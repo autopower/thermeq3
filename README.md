@@ -49,7 +49,7 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
 `http://arduino.ip/data/put/valve_pos/<your value>` you can change valve_pos value (e.g. how many % must be valve opened).
 
 ##What I can change?
-* `devname` = device name (another script (in testing) sends status reports according to crontab settings)
+* `devname` = device name
 * `error` = errors since last status reports
 * `status` = status of device (heating, idle, starting, error)
 * `totalerrs` = total errors from start
@@ -66,12 +66,19 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
   * `uptime` updates uptime value
   * `log_debug` turns on logging on debug level
   * `log_info` turns on loggin on info level (default)
+  * `mute` mutes warning for some time
+  * `rebridge` reloads bridge file
+  * `updatetime` updates uptime and heat time
+  * `led` turns on or off heating LED (according to current heat status)
+  * `upgrade` checks for upgrade, and if new version is available, upgrades nsm.py
 
 ##How to debug?
 Python code produce 3 files:
-* `/mnt/sda1/<device_name>.csv`, simple comma separated value file with valve positions and temperature readings
-* `/mnt/sda1/<device_name>.log`, log file, really huge on `log_debug`
-* `/mnt/sda1/<device_name>_error.log`, python stderr redirected, use in case of crash, or send me this file. 
+* `/mnt/sd<x1>/<device_name>.csv`, simple comma separated value file with valve positions and temperature readings
+* `/mnt/sd<x1>/<device_name>.log`, log file, really huge on `log_debug`
+* `/mnt/sd<x1>/<device_name>_error.log`, python stderr redirected, use in case of crash, or send me this file.
+* `/mnt/sd<x1>/<device_name>.bridge` saved bridge client values
+* `/root/nsm.error` low level errors, which cant be written do .log file (e.g. due to lack of mounted storage media)
 This file is also mailed to recipient on start. Then is truncated to zero size.
 
 ###Thats all folks. Stay tuned :)
