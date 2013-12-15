@@ -282,7 +282,7 @@ def checkUpdate():
 			if new_hash != t[3] and stp.version < tmp_ver:
 				var.logger.info("New version available. Downloading...")
 				down_result = downloadFile(t[1])
-				if not down_result:
+				if down_result:
 					var.logger.info("New version downloaded. Hash is " + str(t[3]))
 					return 2
 				else:
