@@ -289,10 +289,10 @@ def checkUpdate():
 					var.logger.error("Problems downloading new version. Result=" + str(down_result) + ", file=" + str(t[1]))
 			else:
 				return 1
-	finally:
-		if not errstr == "":
-			var.logger.error(errstr)
-		return 0
+
+	if not errstr == "":
+		var.logger.error(errstr)
+	return 0
 
 def doUpdate():
 	var.logger.debug("doUpdate() START")
