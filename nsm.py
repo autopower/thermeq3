@@ -223,10 +223,10 @@ def loadBridge():
 # autoupdate routines
 #
 def downloadFile(filename):
+	errstr = ""
 	try:
 		request = urllib2.urlopen(stp.github + filename)
 		response = request.read()
-		errstr = ""
 	except urllib2.HTTPError, e:
 		errstr += "HTTPError = " + str(e.reason)
 	except urllib2.URLError, e:
@@ -239,11 +239,13 @@ def downloadFile(filename):
 		fbase = filename.split(".")[0]
 		try:
 			f = file(stp.homedir + fbase + ".upd", "wb")
+		except Exception, e:
+			errstr = "Problem during saving new version. File: " + stp.homedir + fbase + ". Error: " + str(e) + " Traceback: " + str(traceback.format_exc())
+		else:
 			f.write(response)
 			f.close()
 			errstr = ""
-		except Exception, e:
-			errstr += "Problem during saving new version. File: " + stp.homedir + fbase + ". Error: " + str(e) + " Traceback: " + str(traceback.format_exc())
+
 	if not errstr == "":
 		var.logger.error(errstr)
 		return False
@@ -279,11 +281,12 @@ def checkUpdate():
 			var.logger.debug("Actual version: " + str(stp.version) + ", hash: " + str(new_hash))
 			if new_hash != t[3] and stp.version < tmp_ver:
 				var.logger.info("New version available. Downloading...")
-				if not downloadFile(t[1]):
+				down_result = downloadFile(t[1])
+				if not down_result:
 					var.logger.info("New version downloaded. Hash is " + str(t[3]))
 					return 2
 				else:
-					var.logger.error("Problems downloading new version")
+					var.logger.error("Problems downloading new version. Result=" + str(down_result) + ", file=" + str(t[1]))
 			else:
 				return 1
 	finally:
