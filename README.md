@@ -86,6 +86,14 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
 * `unsigned long interval = 10*1000;` loop interval in seconds, arduino'll check for messages every 10 seconds, change 10 to anything you want
 * `unsigned long app_interval = 10*60000;` check for running app interval in minutes, change 10 to anything you want
 
+##Messages for arduino
+* `H` heat!
+* `S` stop heating!
+* `E` error, error LED is lit
+* `C` clear error LED
+* `Q` fatal error, lit some disco effects on LEDs
+* `D` dead! try breath with LED
+* `R` restart app, eg. after upgrade
 
 ##How to debug?
 Python code produce 3 files:
