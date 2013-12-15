@@ -74,6 +74,7 @@ def sendMSG():
 	payload = var.msgQ[0:1]
 	var.logger.debug("sending message [" + str(payload) + "]")
 	if payload == "E":
+		var.error = True
 		var.err2Clear = True
 	elif payload == "C":
 		var.err2Clear = False
@@ -90,6 +91,7 @@ def qMSG(payload):
 		tmpvar = str(var.value.get(stp.cw["msg"]))
 		if tmpvar == "":
 			sendMSG()
+		time.sleep(stp.timeout)
 
 def getCMD():
 	localcmd = var.value.get(stp.cw["cmd"])
@@ -239,16 +241,14 @@ def downloadFile(filename):
 			f = file(stp.homedir + fbase + ".upd", "wb")
 			f.write(response)
 			f.close()
+			errstr = ""
 		except Exception, e:
 			errstr += "Problem during saving new version. File: " + stp.homedir + fbase + ". Error: " + str(e) + " Traceback: " + str(traceback.format_exc())
-		else:
-			errstr = ""
-	finally:
-		if not errstr == "":
-			var.logger.error(errstr)
-			return False
-		request.close()
-		return True
+	if not errstr == "":
+		var.logger.error(errstr)
+		return False
+	request.close()
+	return True
 
 def checkUpdate():
 	errstr = "Unable to get latest version info - "
@@ -412,10 +412,11 @@ def sendWarning(selector, dev_key, body_txt):
 	var.logger.debug("sendWarning(" + str(selector) + ") START")
 	tm = time.time()
 	devname = stp.devname
-	d = stp.devices[dev_key]
-	dn = d[2]
-	r = d[3]
-	rn = stp.rooms[str(r)]
+	if not selector == "openmax":
+		d = stp.devices[dev_key]
+		dn = d[2]
+		r = d[3]
+		rn = stp.rooms[str(r)]
 	sil = silence(dev_key, selector == "window")
 	if sil == 1:
 		var.logger.debug("Warning for device " + str(dev_key) + " is muted!")
@@ -480,10 +481,10 @@ def sendWarning(selector, dev_key, body_txt):
 			msg["Subject"] = "Can't connect to MAX! Cube! Warning from " + devname + " (thermeq3 device)"
 			body = body_txt
 	
-		msg.attach(MIMEText(body, "html"))
-		if sendEmail(msg.as_string()) == 0 and selector == "window":
-			var.d_W[dev_key][0] = datetime.now()
-		var.logger.debug("sendWarning() STOP")
+	msg.attach(MIMEText(body, "html"))
+	if sendEmail(msg.as_string()) == 0 and selector == "window":
+		var.d_W[dev_key][0] = datetime.now()
+	var.logger.debug("sendWarning() STOP")
 	
 #
 # logging etc
@@ -500,7 +501,7 @@ def startLog():
 	var.fh.setFormatter(formatter)
 	var.logger.addHandler(var.fh)
 
-	var.logger.info("logfile started with PID=" + str(getpid()))
+	var.logger.info("app V" + str(stp.version) + " started with PID=" + str(getpid()) + " and created logfile")
 	#logger.debug('debug message')
 	#logger.warn('warn message')
 	#logger.critical('critical message')
@@ -522,7 +523,7 @@ def exportCSV(onoff):
 #
 def openMAX():
 	var.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	var.client_socket.settimeout(5)	
+	var.client_socket.settimeout(int(stp.timeout / 2))	
 	temp_key = stp.maxid["sn"]
 
 	try:
@@ -543,7 +544,7 @@ def openMAX():
 		 'a1': str(stp.max_ip), \
 		 'a2': str(e), \
 		 'a3': str(traceback.format_exc()) } 
-		sendWarning(temp_key, "openmax", body)
+		sendWarning("openmax", temp_key, body)
 		return False
 	else:
 		if var.d_W.has_key(temp_key):
@@ -552,7 +553,7 @@ def openMAX():
 		return True
 
 def readMAX(refresh):
-	var.client_socket.settimeout(3)
+	var.client_socket.settimeout(int(stp.timeout / 3))
 	var.error = False
 	this_now = datetime.now()
 	for line in readlines(var.client_socket):
@@ -708,7 +709,7 @@ def doControl():
 		grt += v[0]
 	if not heat and grt >= stp.total:
 			heat = True
-	if var.err2Clear:
+	if var.err2Clear and not var.error:
 		qMSG("C")
 	if var.err2LastStatus:
 		var.err2LastStatus = False
@@ -870,7 +871,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 100
+	stp.version = 101
 	stp.cw = {"status":"status", \
 		  "int":   "interval", \
 		  "ht":    "heattime", \
