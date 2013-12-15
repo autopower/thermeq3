@@ -296,7 +296,9 @@ def checkUpdate():
 
 def doUpdate():
 	var.logger.debug("doUpdate() START")
-	if checkUpdate() == 2:
+	chk = checkUpdate()
+	var.logger.debug("Update result=" + str(chk))
+	if chk == 2:
 		rename(stp.homedir + "nsm.upd", stp.homedir + "nsm.py")
 		qMSG("R")
 	var.logger.debug("doUpdate() STOP")
@@ -874,7 +876,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 101
+	stp.version = 102
 	stp.cw = {"status":"status", \
 		  "int":   "interval", \
 		  "ht":    "heattime", \
