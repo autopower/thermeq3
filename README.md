@@ -49,6 +49,7 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
 `http://arduino.ip/data/put/valve_pos/<your value>` you can change valve_pos value (e.g. how many % must be valve opened).
 
 ##What I can change?
+###In Python code
 * `devname` = device name
 * `error` = errors since last status reports
 * `status` = status of device (heating, idle, starting, error)
@@ -71,6 +72,20 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
   * `updatetime` updates uptime and heat time
   * `led` turns on or off heating LED (according to current heat status)
   * `upgrade` checks for upgrade, and if new version is available, upgrades nsm.py
+
+###In arduino sketch
+* `#define DEBUG_PRG` if you wanna print debug values via serial connection
+* `#define RELAY_PIN 10` where is the relay pin?
+* `#define RELAY_POWER 8` where is the power for relay? undef if relay is connected to 5V directly
+* `#define STATUS_LED 9` status LED pin
+* `#define ERROR_LED 8` error LED pin
+* `#define LOOP_LED 13` activity/loop LED pin
+* `#define BLINK_INTERVAL 150` blink interval in miliseconds
+* `#define WAIT_UPDATE_SYNC 10000` how many millis wait to rerun upgraded python code
+* `#define IWANNABESAFE` in case of any trouble shutdown relay, undef for stay in last selected mode
+* `unsigned long interval = 10*1000;` loop interval in seconds, arduino'll check for messages every 10 seconds, change 10 to anything you want
+* `unsigned long app_interval = 10*60000;` check for running app interval in minutes, change 10 to anything you want
+
 
 ##How to debug?
 Python code produce 3 files:
