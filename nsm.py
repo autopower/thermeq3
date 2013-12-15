@@ -279,11 +279,11 @@ def checkUpdate():
 				tmp_ver = 0
 			var.logger.debug("Available file: " + str(t[1]) + ", V" + str(tmp_ver) + " with hash " + str(t[3]))
 			var.logger.debug("Actual version: " + str(stp.version) + ", hash: " + str(new_hash))
-			if new_hash != t[3] and stp.version < tmp_ver:
-				var.logger.info("New version available. Downloading...")
+			if new_hash != t[3] and stp.version <= tmp_ver:
+				var.logger.info("Downloading new version V" + str(tmp_ver))
 				down_result = downloadFile(t[1])
 				if down_result:
-					var.logger.info("New version downloaded. Hash is " + str(t[3]))
+					var.logger.info("V" + str(tmp_ver) + " downloaded. Hash is " + str(t[3]))
 					return 2
 				else:
 					var.logger.error("Problems downloading new version. Result=" + str(down_result) + ", file=" + str(t[1]))
