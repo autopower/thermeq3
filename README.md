@@ -73,6 +73,16 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
   * `led` turns on or off heating LED (according to current heat status)
   * `upgrade` checks for upgrade, and if new version is available, upgrades nsm.py
 
+###In config.py file
+* `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
+* `stp.fromaddr = "devices@foo.local"` from, user name
+* `stp.toaddr = "user@foo.local"` to email 
+* `stp.mailserver = "mail.foo.local"` via this server
+* `stp.mailport = 25` on port
+* `stp.frompwd = "this.is.password"` login with this password
+* `stp.devname = "hellmostat"` device name
+* `stp.timeout = 10` timeout in secods, used in communicating with MAX! Cube and as a sleep time for flushing msg queue, set to similar value as `unsigned long interval` in arduino sketch
+
 ###In arduino sketch
 * `#define DEBUG_PRG` if you wanna print debug values via serial connection
 * `#define RELAY_PIN 10` where is the relay pin?
