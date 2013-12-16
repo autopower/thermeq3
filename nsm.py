@@ -196,7 +196,7 @@ def sendEmail(sendTxt):
 def saveBridge():
 	f = open(stp.bridgefile, "w")
 	for k, v in stp.cw.iteritems():
-		if k != stp.cw["dump"]
+		if k != stp.cw["dump"]:
 			try:
 				tmp = var.value.get(v)
 			except:
@@ -428,7 +428,8 @@ def sendWarning(selector, dev_key, body_txt):
 	var.logger.debug("sendWarning(" + str(selector) + ") START")
 	tm = time.time()
 	devname = stp.devname
-	if selector != "openmax" or selector != "upgrade":
+	if selector != "openmax" and selector != "upgrade":
+		var.logger.debug("ABC")
 		d = stp.devices[dev_key]
 		dn = d[2]
 		r = d[3]
@@ -890,7 +891,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 105
+	stp.version = 106
 	stp.cw = {"status":"status", \
 		  "int":   "interval", \
 		  "ht":    "heattime", \
