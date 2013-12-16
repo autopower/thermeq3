@@ -196,13 +196,14 @@ def sendEmail(sendTxt):
 def saveBridge():
 	f = open(stp.bridgefile, "w")
 	for k, v in stp.cw.iteritems():
-		try:
-			tmp = var.value.get(v)
-		except:
-			tmp = ""
-		if tmp == "None" or tmp is None:
-			tmp = ""
-		f.write(v + "=" + tmp + "\r\n")
+		if k != stp.cw["dump"]
+			try:
+				tmp = var.value.get(v)
+			except:
+				tmp = ""
+			if tmp == "None" or tmp is None:
+				tmp = ""
+			f.write(v + "=" + tmp + "\r\n")
 	f.close()
 	
 def loadBridge():
@@ -889,7 +890,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 104
+	stp.version = 105
 	stp.cw = {"status":"status", \
 		  "int":   "interval", \
 		  "ht":    "heattime", \
