@@ -427,7 +427,7 @@ def sendWarning(selector, dev_key, body_txt):
 	var.logger.debug("sendWarning(" + str(selector) + ") START")
 	tm = time.time()
 	devname = stp.devname
-	if not selector == "openmax" or not selector == "upgrade":
+	if selector != "openmax" or selector != "upgrade":
 		d = stp.devices[dev_key]
 		dn = d[2]
 		r = d[3]
@@ -889,7 +889,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 103
+	stp.version = 104
 	stp.cw = {"status":"status", \
 		  "int":   "interval", \
 		  "ht":    "heattime", \
