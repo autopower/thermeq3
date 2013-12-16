@@ -80,6 +80,8 @@ def sendMSG():
 		var.err2Clear = False
 		var.err2LastStatus = True
 		var.logger.info("Clearing error LED")
+	elif payload == "R":
+		saveBridge()
 	var.value.put(stp.cw["msg"], str(payload))
 	var.msgQ = var.msgQ[1:]
 
@@ -297,17 +299,24 @@ def checkUpdate():
 def doUpdate():
 	var.logger.debug("doUpdate() START")
 	chk = checkUpdate()
-	var.logger.debug("Update result=" + str(chk))
 	if chk == 2:
 		rename(stp.homedir + "nsm.upd", stp.homedir + "nsm.py")
+		temp_key = stp.maxid["sn"]
+		body = """<html><body><font face="arial,sans-serif">
+		<h1>Device upgrade information.</h1>
+		<p>Hello, I'm your thermostat and I have a information for you.<br/>
+		Please take a note, that I found new version of my control script and I'll be upgraded in few seconds.</br>
+		Resistance is futile :).<br/>
+		</p></body></html>"""
+		sendWarning("upgrade", temp_key, body)
 		qMSG("R")
 	var.logger.debug("doUpdate() STOP")
 		                
 #
 # send this, send that
 #
-def sendLog():
-	var.logger.debug("sendLog() START")
+def sendErrorLog():
+	var.logger.debug("sendErrorLog() START")
 	if path.getsize(stp.stderr_log) > 0:
 		devname = stp.devname
 		msg = MIMEMultipart()
@@ -336,7 +345,7 @@ def sendLog():
 			var.ferr = open(stp.stderr_log, "w")
 	else:
 		var.logger.info("Zero sized stderr log file, nothing'll be send")
-	var.logger.debug("sendLog() STOP")
+	var.logger.debug("sendErrorLog() STOP")
 	
 def sendStatus():
 	var.logger.debug("sendStatus() START")
@@ -417,7 +426,7 @@ def sendWarning(selector, dev_key, body_txt):
 	var.logger.debug("sendWarning(" + str(selector) + ") START")
 	tm = time.time()
 	devname = stp.devname
-	if not selector == "openmax":
+	if not selector == "openmax" or not selector == "upgrade":
 		d = stp.devices[dev_key]
 		dn = d[2]
 		r = d[3]
@@ -484,6 +493,9 @@ def sendWarning(selector, dev_key, body_txt):
 		 	'a2': int(stp.mute_W / 60)}
 		elif selector == "openmax":
 			msg["Subject"] = "Can't connect to MAX! Cube! Warning from " + devname + " (thermeq3 device)"
+			body = body_txt
+		elif selector == "upgrade":
+			msg["Subject"] = devname + " (thermeq3 device) is going to be upgraded"
 			body = body_txt
 	
 	msg.attach(MIMEText(body, "html"))
@@ -582,7 +594,7 @@ def readMAX(refresh):
 				room_adr = es[es_pos:es_pos+3]
 				es_pos += 3
 				if not stp.rooms.has_key(room_id) or refresh:
-					stp.rooms.update({room_id:[room_name, hexify(room_adr)]})
+					stp.rooms.update({room_id:[room_name, hexify(room_adr), False]})
 
 			dev_num = ord(es[es_pos])
 			es_pos += 1
@@ -876,7 +888,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 102
+	stp.version = 103
 	stp.cw = {"status":"status", \
 		  "int":   "interval", \
 		  "ht":    "heattime", \
@@ -928,7 +940,7 @@ if __name__ == '__main__':
 	
 	#sys.excepthook = myHandler
 	prepare()
-	sendLog()
+	sendErrorLog()
 	doUpdate()
 	doLoop()
 	var.logger.close()
