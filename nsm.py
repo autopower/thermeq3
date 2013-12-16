@@ -209,11 +209,12 @@ def loadBridge():
 	if path.exists(stp.bridgefile):
 		with open(stp.bridgefile, "r") as f:
 			for line in f:
-				t = (line.rstrip("\r\n")).split('=')
-				if t[0] in stp.cw.viewvalues():
-					var.value.put(t[0], t[1])
-				else:
-					var.logger.critical("Error processing bridge file. Codeword: [" + str(t[0]) + "] with value [" + str(t[1]) +"]")
+				if not stp.cw["dump"] in line:
+					t = (line.rstrip("\r\n")).split('=')
+					if t[0] in stp.cw.viewvalues():
+						var.value.put(t[0], t[1])
+					else:
+						var.logger.critical("Error processing bridge file. Codeword: [" + str(t[0]) + "] with value [" + str(t[1]) +"]")
 			f.close()
 		updateAllTimes(time.time())
 		return True
