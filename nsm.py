@@ -739,7 +739,7 @@ def doControl():
 			qMSG("H")
 			var.logger.info("Resuming heating state on status LED")
 	if heat != var.heating:
-		if heat and valve_count >= stp.valves:
+		if heat and valve_count >= stp.valve_num:
 			var.heating = True
 			qMSG("H")
 			txt = "heating started due to "
@@ -826,7 +826,7 @@ def getControlValues():
 	# try get readMAX interval value, if not set it
 	stp.i_nextLoop = tryRead("int", 90, True)
 	# try read num of valves to turn heat on
-	stp.valves = tryRead("valves", 1, True)
+	stp.valve_num = tryRead("valves", 1, True)
 
 def setupInit():
 	# threshold in seconds, so 10 minutes are 10*60 seconds
@@ -898,7 +898,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 107
+	stp.version = 108
 	stp.cw = {"status":"status", \
 		  "int":   "interval", \
 		  "ht":    "heattime", \
