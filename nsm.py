@@ -429,7 +429,6 @@ def sendWarning(selector, dev_key, body_txt):
 	tm = time.time()
 	devname = stp.devname
 	if selector != "openmax" and selector != "upgrade":
-		var.logger.debug("ABC")
 		d = stp.devices[dev_key]
 		dn = d[2]
 		r = d[3]
@@ -708,6 +707,7 @@ def readMAXData(refresh):
 #
 def doControl():
 	heat = False
+	valve_count = 0
 	if stp.preference == "total":
 		stp.total = stp.total_switch
 	elif stp.preference == "per":
@@ -726,6 +726,8 @@ def doControl():
 	for k, v in stp.valves.iteritems():
 		if v[0] > stp.valve_switch:
 			heat = True
+			valve_key = k
+			valve_count += 1
 		grt += v[0]
 	if not heat and grt >= stp.total:
 			heat = True
@@ -737,14 +739,14 @@ def doControl():
 			qMSG("H")
 			var.logger.info("Resuming heating state on status LED")
 	if heat != var.heating:
-		if heat:
+		if heat and valve_count >= stp.valves:
 			var.heating = True
 			qMSG("H")
 			txt = "heating started due to "
 			if grt >= stp.total:
 				txt += "sum of valve positions = " + str(grt) 
 			else:
-				d = stp.devices[k]
+				d = stp.devices[valve_key]
 				dn = d[2]
 				r = d[3]
 				rn = stp.rooms[str(r)]
@@ -811,15 +813,20 @@ def doLoop():
 
 	
 def getControlValues():
+	# try read preference settings, total or per
 	stp.preference = tryRead("pref", "total", True)
-	stp.valve_switch = tryRead("valve", 33, True)
+	# try read % valve for heat command
+	stp.valve_switch = tryRead("valve", 35, True)
 	if stp.preference == "per":
-		stp.per_switch = tryRead("per", 10, True)
+		stp.per_switch = tryRead("per", 15, True)
 	elif stp.preference == "total":
-		stp.total_switch = tryRead("total", 60, True)
+		stp.total_switch = tryRead("total", 150, True)
+	# setup total variable as integer
 	stp.total = 100
 	# try get readMAX interval value, if not set it
 	stp.i_nextLoop = tryRead("int", 90, True)
+	# try read num of valves to turn heat on
+	stp.valves = tryRead("valves", 1, True)
 
 def setupInit():
 	# threshold in seconds, so 10 minutes are 10*60 seconds
@@ -891,7 +898,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 106
+	stp.version = 107
 	stp.cw = {"status":"status", \
 		  "int":   "interval", \
 		  "ht":    "heattime", \
@@ -906,7 +913,8 @@ if __name__ == '__main__':
 		  "total": "total_switch", \
 		  "per":   "per_switch", \
 		  "pref":  "preference", \
-		  "htstr": "heattime_string"}
+		  "htstr": "heattime_string", \
+		  "valves": "valves"}
 	stp.statMsg = {"idle": "idle", "heat": "heating", "start": "starting", "dead": "dead"}
 	var = variables()
 	var.msgQ = ""
