@@ -10,25 +10,21 @@ You'll need:
 * boiler with switched heat by wire, via relay
 * python-openssl library `opkg update; opkg install python-openssl`
 * credentials for mail server with TLS (or modify code)
-* storage space on microSD or USB (please modify path to storage, default is `/mnt/sda1`)
+* storage space on microSD or USB,
 
 Wiring:
-* 220ohm resitor to pin13, then to code_run LED (in my setup blue LED, lit when arduino script is reading messages from python part, this is sign of activity)
-* 220ohm resitor to pin6, then to error LED (in my setup red LED, lit when any error)
-* 220ohm resitor to pin5, then to status LED (in my setup green LED, lit when heating is on)
-* relay voltage +5V to pin7, or to the power 5V and you must modify arduino sketch (relay is swithed on only if heating is required)
-* relay in to pin8
+* 220ohm resitor to pin13, then to code_run LED (in my setup green LED, lit when arduino script is reading messages from python part, this is sign of activity)
+* 220ohm resitor to pin8, then to error LED (in my setup red LED, lit when any error)
+* 220ohm resitor to pin9, then to status LED (in my setup blue LED, lit when heating is on)
+* relay voltage +5V to pin8, or to the power 5V and you must comment `RELAY_POWER`
+* relay in to pin10
 * relay GND to GND
 * LED diodes to GND
 * your DHW/Boiler to com and NO (or NC) pins of relay (check your boiler documentation)
 
 ##Code
 There are two parts of thermeq3:
-* python code, upload into /root/nsm.py and then please change:
- * IP of your Max Cube
- * mail server address
- * from and to address
- * password
+* python code, upload into /root/ files nsm.py and config.py and then please edit config.py
 * arduino code, upload with IDE
 
 ##How it works?
@@ -102,7 +98,7 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
 * `E` error, error LED is lit
 * `C` clear error LED
 * `Q` fatal error, lit some disco effects on LEDs
-* `D` dead! try breath with LED
+* `D` dead! status LED breathing
 * `R` restart app, eg. after upgrade
 
 ##How to debug?
