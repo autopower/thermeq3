@@ -687,7 +687,7 @@ def readMAX(refresh):
 				if dev_len == 12:
 					valve_pos = ord(es[es_pos + 0x07])
 					if valve_info & 3 != 2:
-						valve_temp = ord(es[es_pos + 0x0A])
+						valve_temp = int(hexify(es[es_pos + 0x08]), 16) / 2
 					stp.valves.update({valve_adr:[valve_pos, valve_temp]})
 				elif dev_len == 7:
 					tmp_open = ord(es[es_pos + 0x06]) & 2
