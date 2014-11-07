@@ -684,10 +684,17 @@ def readMAX(refresh):
 				valve_status = ord(es[es_pos + 0x05])
 				valve_info = ord(es[es_pos + 0x06])
 				valve_temp = 0xFF
-				if dev_len == 12:
+				valve_curtemp = 0xFF
+				# WallMountedThermostat (dev_type 3)
+				if dev_len == 13:
+					if valve_info & 3 != 2:
+						valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2 # set temp
+						valve_curtemp = float(int(hexify(es[es_pos + 0x0C]), 16)) / 10 # measured temp
+				# HeatingThermostat (dev_type 1 or 2)
+				elif dev_len == 12:
 					valve_pos = ord(es[es_pos + 0x07])
 					if valve_info & 3 != 2:
-						valve_temp = int(hexify(es[es_pos + 0x08]), 16) / 2
+						valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2
 					stp.valves.update({valve_adr:[valve_pos, valve_temp]})
 				elif dev_len == 7:
 					tmp_open = ord(es[es_pos + 0x06]) & 2
