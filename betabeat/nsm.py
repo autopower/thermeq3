@@ -22,6 +22,11 @@ import httplib
 class setup: pass
 class variables: pass
 
+# beta beat comments
+# new codeword "au": "autoupdate", if True then autoupdate works, if False then disabled, can be changed by bridge value
+# new debug line L719 = var.log.debug("Ignorning valve " + str(valve_adr) + " for " + str(var.d_ignore[valve_adr]))
+
+
 #
 # error handling, primitive but funny
 #
