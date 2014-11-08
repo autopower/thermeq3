@@ -520,7 +520,7 @@ def sendWarning(selector, dev_key, body_txt):
 		 'a4': str(mutestr), \
 		 'a5': int(stp.intervals["oww"][2] / 60)}
 	else:
-		if sil == 0 and not itsTime("wrn"):
+		if sil == 0 and not rightTime("wrn"):
 			logSS(False)
 			return
 		if selector == "battery":
@@ -705,7 +705,7 @@ def readMAX(refresh):
 							if var.d_W.has_key(valve_adr):
 								var.logger.debug("Key " + str(valve_adr) + " in d_W deleted.")
 								del var.d_W[valve_adr]
-								# now check for don't heat after window close
+								# now check for window closed ignore interval, so don't heat X seconds after closing window
 								if var.ignore_time > 0 and not var.d_ignore.has_key(valve_adr):
 									var.d_ignore.update({valve_adr: time.time() + var.ignore_time * 60})
 						else:
@@ -928,7 +928,8 @@ def doControl():
 			var.logger.info("heating stopped.")
 			doheat(False)
 
-def itsTime(what):
+# check if its right time to update
+def rightTime(what):
 	tm = time.time()
 	if tm > stp.intervals[what][2]:
 		stp.intervals[what][2] = tm + stp.intervals[what][0]
@@ -936,6 +937,9 @@ def itsTime(what):
 	else:
 		return False
 
+#
+# beta features
+#
 def dayMode():
 	## day = [0-from_str, 1-to_str, 2-switch%, 3-total or per, 4-mode ("total"/"per"), 5-check interval, 6-valves]
 	md = isTime()
@@ -952,18 +956,21 @@ def dayMode():
 			stp.preference = kv[4]
 			stp.intervals["max"][0] = kv[5]
 			stp.valve_num = kv[6]
+#
+# beta
+#
 
 def doLoop():
 	while 1:
 		# do upgrade according schedule
-		if itsTime("upg"):
+		if rightTime("upg"):
 			doUpdate()
 		# do update variables according schedule					
-		if itsTime("var"):
+		if rightTime("var"):
 			updateAllTimes()
 			saveBridge()
 		# check max according schedule
-		if itsTime("max"):
+		if rightTime("max"):
 			## beta features here
 			if tryRead("beta", "no", False).upper() == "YES":
 				dayMode()
@@ -1184,7 +1191,10 @@ if __name__ == '__main__':
 	#sys.excepthook = myHandler
 	prepare()
 	sendErrorLog()
+	
+	# this is it
 	doLoop()
+	
 	var.logger.close()
 	updateStatus("dead")
 	closeMAX()
