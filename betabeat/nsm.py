@@ -18,6 +18,8 @@ import traceback
 import urllib2
 import hashlib
 import httplib
+import pif
+#import struct
 
 class setup: pass
 class variables: pass
@@ -52,6 +54,19 @@ def llError(err_string):
 #
 # helpers
 #
+def is_private(lookup):
+    f = unpack('!I', inet_pton(AF_INET, lookup))[0]
+    private = (
+        [ 2130706432, 4278190080 ], # 127.0.0.0,   255.0.0.0   http://tools.ietf.org/html/rfc3330
+        [ 3232235520, 4294901760 ], # 192.168.0.0, 255.255.0.0 http://tools.ietf.org/html/rfc1918
+        [ 2886729728, 4293918720 ], # 172.16.0.0,  255.240.0.0 http://tools.ietf.org/html/rfc1918
+        [ 167772160,  4278190080 ], # 10.0.0.0,    255.0.0.0   http://tools.ietf.org/html/rfc1918
+    ) 
+    for net in private:
+        if (f & net[1] == net[0]):
+            return True
+    return False
+        	
 def hexify(tmpadr):
 	return "".join("%02x" % ord(c) for c in tmpadr)
 
@@ -501,7 +516,7 @@ def sendWarning(selector, dev_key, body_txt):
 		var.logger.debug("Warning for device " + str(dev_key) + " is muted!")
 		return
 
-	mutestr = "http://" + stp.myip + "/data/put/command/mute" + str(dev_key)
+	mutestr = "http://" + stp.myip + ":" + str(stp.extport) + "/data/put/command/mute" + str(dev_key)
 	msg = MIMEMultipart()
 	msg["From"] = stp.fromaddr
 	msg["To"] = stp.toaddr
@@ -538,11 +553,12 @@ def sendWarning(selector, dev_key, body_txt):
 			<p>Hello, I'm your thermostat and I have a warning for you.<br/>
 			Please take a care of device <b>%(a0)s</b> in room <b>%(a1)s</b>.
 			This device have low batteries, please replace batteries.<br/>
-			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a2)s mins. \
+			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins. \
 			</p></body></html>""" % \
 			{'a0': str(dn), \
 		 	'a1': str(rn[0]), \
-		 	'a2': int(stp.intervals["wrn"][1] / 60)}
+		 	'a2': str(mutestr), \
+		 	'a3': int(stp.intervals["wrn"][1] / 60)}
 		elif selector == "error":
 			msg["Subject"] = "Error report for device " + str(dn) + ". Warning from " + devname + " (thermeq3 device)"
 			body = """<html><body><font face="arial,sans-serif">
@@ -550,11 +566,12 @@ def sendWarning(selector, dev_key, body_txt):
 			<p>Hello, I'm your thermostat and I have a warning for you.<br/>
 			Please take a care of device <b>%(a0)s</b> in room <b>%(a1)s</b>.
 			This device reports error.<br/>
-			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a2)s mins. \
+			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins. \
 			</p></body></html>""" % \
 			{'a0': str(dn), \
 		 	'a1': str(rn[0]), \
-		 	'a2': int(stp.intervals["wrn"][1] / 60)}
+		 	'a2': str(mutestr), \
+		 	'a3': int(stp.intervals["wrn"][1] / 60)}
 		elif selector == "openmax":
 			msg["Subject"] = "Can't connect to MAX! Cube! Warning from " + devname + " (thermeq3 device)"
 			body = body_txt
@@ -1065,8 +1082,8 @@ def setupInit():
 					"var": [10*60, 0, tm], \
 					# threshold, send every X, muted for X
 					"oww": [10*60, 30*60, 45*60], \
-					# threshold, muted for X, time.time()
-					"wrn": [15*60, 60*60, tm], \
+					# threshold, muted for X, time.time(), trust me, if you don't have access to thermostat you'll kill thermeq for 15*60 :)
+					"wrn": [6*60*60, 24*60*60, tm], \
 					"err": [0, 0, 0.0], \
 					# just sleep value, always calculated as max[0] / slp[1]
 					"slp": [30, 3, 0]}
@@ -1139,7 +1156,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 119
+	stp.version = 120
 	# turn off writing <funcname> START, <funcname> STOP into the DEBUG, just write DEBUG
 	stp.globalDebugSS = False
 	stp.cw = {"status":"status", \
@@ -1184,17 +1201,25 @@ if __name__ == '__main__':
 		var.value.put(stp.cw["msg"], "Q")
 		exit()
 	
+	# warning, if you have dynamic IP, don't use pif.get_public_ip, must be moved to function and checked periodically (to be implemented)
 	try:
-		stp.myip = socket.gethostbyname(socket.gethostname())
+		stp.myip = pif.get_public_ip()
 	except Exception, e:
-		err_str = "Error getting IP address from hostname, please check resolv.conf or hosts or both!\r\n"
-		err_str += "Error code: " + str(e) + "\r\n"
-		err_str += "Traceback: " + str(traceback.format_exc()) +"\r\n"
-		llError(err_str)
-		var.value.put(stp.cw["msg"], "Q")
-		exit()
+			try:
+				stp.myip = socket.gethostbyname(socket.gethostname())
+			except Exception, e:
+				err_str = "Error getting IP address from hostname, please check resolv.conf or hosts or both!\r\n"
+				err_str += "Error code: " + str(e) + "\r\n"
+				err_str += "Traceback: " + str(traceback.format_exc()) +"\r\n"
+				llError(err_str)
+				var.value.put(stp.cw["msg"], "Q")
+				exit()
 	
 	execfile("/root/config.py")
+	
+	# after all, if myip is private address, web server port must be on 80 (by default)
+	if is_private(stp.myip):
+		stp.extport = 80
 		
 	stp.stderr_log = stp.place + stp.devname + "_error.log"
 
