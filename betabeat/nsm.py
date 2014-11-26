@@ -19,7 +19,7 @@ import urllib2
 import hashlib
 import httplib
 import pif
-#import struct
+import struct
 
 class setup: pass
 class variables: pass
