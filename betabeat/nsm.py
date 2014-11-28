@@ -18,7 +18,6 @@ import traceback
 import urllib2
 import hashlib
 import httplib
-import pif
 import struct
 
 class setup: pass
@@ -26,7 +25,7 @@ class variables: pass
 
 # beta beat comments
 # new codeword "au": "autoupdate", if True then autoupdate works, if False then disabled, can be changed by bridge value
-# new debug line L719 = var.log.debug("Ignorning valve " + str(valve_adr) + " for " + str(var.d_ignore[valve_adr]))
+# new debug line L719 = var.logger.debug("Ignorning valve " + str(valve_adr) + " for " + str(var.d_ignore[valve_adr]))
 
 
 #
@@ -55,7 +54,7 @@ def llError(err_string):
 # helpers
 #
 def is_private(lookup):
-    f = unpack('!I', inet_pton(AF_INET, lookup))[0]
+    f = struct.unpack('!I', inet_pton(AF_INET, lookup))[0]
     private = (
         [ 2130706432, 4278190080 ], # 127.0.0.0,   255.0.0.0   http://tools.ietf.org/html/rfc3330
         [ 3232235520, 4294901760 ], # 192.168.0.0, 255.255.0.0 http://tools.ietf.org/html/rfc1918
@@ -66,7 +65,19 @@ def is_private(lookup):
         if (f & net[1] == net[0]):
             return True
     return False
-        	
+    
+def getPublicIP():
+	try:
+		stp.myip = str(urllib2.urlopen('http://ip.42.pl/raw').read())
+		tmp = 1
+	except Exception:
+			try:
+				stp.myip = socket.gethostbyname(socket.gethostname())
+				tmp = 0
+			except Exception:
+				tmp = 0xFF
+	return tmp
+                
 def hexify(tmpadr):
 	return "".join("%02x" % ord(c) for c in tmpadr)
 
@@ -709,12 +720,13 @@ def readMAX(refresh):
 				valve_status = ord(es[es_pos + 0x05])
 				valve_info = ord(es[es_pos + 0x06])
 				valve_temp = 0xFF
-				valve_curtemp = 0xFF
+				# valve_curtemp = 0xFF
 				# WallMountedThermostat (dev_type 3)
 				if dev_len == 13:
 					if valve_info & 3 != 2:
 						valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2 # set temp
-						valve_curtemp = float(int(hexify(es[es_pos + 0x0C]), 16)) / 10 # measured temp
+						# but we are not using this
+						# valve_curtemp = float(int(hexify(es[es_pos + 0x0C]), 16)) / 10 # measured temp
 				# HeatingThermostat (dev_type 1 or 2)
 				elif dev_len == 12:
 					valve_pos = ord(es[es_pos + 0x07])
@@ -733,7 +745,7 @@ def readMAX(refresh):
 								# now check for window closed ignore interval, so don't heat X seconds after closing window
 								if var.ignore_time > 0 and not var.d_ignore.has_key(valve_adr):
 									var.d_ignore.update({valve_adr: time.time() + var.ignore_time * 60})
-									var.log.debug("Ignorning valve " + str(valve_adr) + " for " + str(var.d_ignore[valve_adr]))
+									var.logger.debug("Ignorning valve " + str(valve_adr) + " for " + str(var.d_ignore[valve_adr]))
 						else:
 							var.logger.info(tmp_txt + "opened.")
 						stp.devices[valve_adr][4] = tmp_open
@@ -834,8 +846,8 @@ def readMAXData(refresh):
 		var.csv.write(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime()) + ",")
 		for k, v in stp.valves.iteritems():
 			logstr += "\r\n[" + str(k) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(str(v[0])) + "%, " + \
-				'{:>5}'.format(str(float(v[1] / 10))) + " C"
-			var.csv.write(str(v[0]) + "," + str(float(v[1]) / 10) + ",")
+				'{:>5}'.format(str(v[1])) + " C"
+			var.csv.write(str(v[0]) + "," + str(v[1]) + ",")
 		var.csv.write("\r\n")
 		var.logger.debug(logstr)
 	closeMAX()
@@ -995,6 +1007,8 @@ def doLoop():
 		if rightTime("var"):
 			updateAllTimes()
 			saveBridge()
+			result = getPublicIP()
+			var.logger.debug("IP address of device is " + stp.myip)
 		# check max according schedule
 		if rightTime("max"):
 			## beta features here
@@ -1077,7 +1091,7 @@ def setupInit():
 	stp.abnormalCount = 30
 	# interval as "name": [interval=how often is checked, mute interval, next_time]
 	tm = time.time()
-	stp.intervals ={"max": [90, 0, tm], \
+	stp.intervals ={"max": [120, 0, tm], \
 					"upg": [4*60*60, 0, tm], \
 					"var": [10*60, 0, tm], \
 					# threshold, send every X, muted for X
@@ -1202,24 +1216,19 @@ if __name__ == '__main__':
 		exit()
 	
 	# warning, if you have dynamic IP, don't use pif.get_public_ip, must be moved to function and checked periodically (to be implemented)
-	try:
-		stp.myip = pif.get_public_ip()
-	except Exception, e:
-			try:
-				stp.myip = socket.gethostbyname(socket.gethostname())
-			except Exception, e:
-				err_str = "Error getting IP address from hostname, please check resolv.conf or hosts or both!\r\n"
-				err_str += "Error code: " + str(e) + "\r\n"
-				err_str += "Traceback: " + str(traceback.format_exc()) +"\r\n"
-				llError(err_str)
-				var.value.put(stp.cw["msg"], "Q")
-				exit()
+	result = getPublicIP()
+	if result == 255:
+		err_str = "Error getting IP address from hostname, please check resolv.conf or hosts or both!\r\n"
+		llError(err_str)
+		var.value.put(stp.cw["msg"], "Q")
+		exit()
 	
 	execfile("/root/config.py")
 	
-	# after all, if myip is private address, web server port must be on 80 (by default)
-	if is_private(stp.myip):
+	# after all, if myip is private address, web server port must be on 80 (by default)    
+	if result == 0 and is_private(stp.myip):
 		stp.extport = 80
+		var.localAddr = True
 		
 	stp.stderr_log = stp.place + stp.devname + "_error.log"
 
