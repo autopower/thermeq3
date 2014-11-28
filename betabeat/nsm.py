@@ -54,7 +54,7 @@ def llError(err_string):
 # helpers
 #
 def is_private(lookup):
-    f = struct.unpack('!I', inet_pton(AF_INET, lookup))[0]
+    f = struct.unpack('!I', socket.inet_pton(socket.AF_INET, lookup))[0]
     private = (
         [ 2130706432, 4278190080 ], # 127.0.0.0,   255.0.0.0   http://tools.ietf.org/html/rfc3330
         [ 3232235520, 4294901760 ], # 192.168.0.0, 255.255.0.0 http://tools.ietf.org/html/rfc1918
@@ -1008,7 +1008,11 @@ def doLoop():
 			updateAllTimes()
 			saveBridge()
 			result = getPublicIP()
-			var.logger.debug("IP address of device is " + stp.myip)
+			if is_private(stp.myip):
+				logstr = "Local"
+			else:
+				logstr = "Public"
+			var.logger.debug(logstr + " IP address of device is " + stp.myip)
 		# check max according schedule
 		if rightTime("max"):
 			## beta features here
