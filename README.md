@@ -1,4 +1,4 @@
-#thermeq3
+﻿#thermeq3
 Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme :)
 
 ##Setup
@@ -78,6 +78,7 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
 * `stp.frompwd = "this.is.password"` login with this password
 * `stp.devname = "hellmostat"` device name
 * `stp.timeout = 10` timeout in secods, used in communicating with MAX! Cube and as a sleep time for flushing msg queue, set to similar value as `unsigned long interval` in arduino sketch
+* `stp.extport = 29080` external port, this is the port (typically) on firewall where NAT is defined (so you can mute thermeq3 from internet), please setup your firewall/router to such scenario
 
 ###In arduino sketch
 * `#define DEBUG_PRG` if you wanna print debug values via serial connection
