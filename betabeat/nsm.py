@@ -840,7 +840,11 @@ def readMAXData(refresh):
 			logstr = "Heating"
 		else:
 			logstr = "Idle"
-		logstr += ", switching at " + str(stp.valve_switch) + "%"
+		logstr += ", switching over "
+		if stp.preference == "per":
+			logstr += str(stp.valve_switch) + "%" + " at " + str(stp.valve_num) + " valve(s)."
+		elif stp.preference == "total":
+			logstr += "total value of " + str(getTotal()) + "."
 		var.logger.debug(logstr)			
 		logstr = "Actual positions follows"
 		var.csv.write(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime()) + ",")
@@ -888,12 +892,7 @@ def isRadioError(key):
 		return False
 
 def getTotal():
-	if stp.preference == "total":
-		return stp.total_switch
-	elif stp.preference == "per":
-		return stp.per_switch * len(stp.valves)
-	else:
-		return 10000
+	return stp.total_switch
 
 def doheat(heatOrNot):
 	if heatOrNot:
@@ -905,12 +904,17 @@ def doheat(heatOrNot):
 		updateStatus("idle")
 	updateCounters(heatOrNot)
 	var.heating = heatOrNot
-		
-def doControl():
-	heat = False
-	valve_count = 0
-	stp.total = getTotal()
-		
+
+# day table
+def checkDayTable():
+	if len(stp.day) > 1:
+		for i in range(len(stp.day) - 1):
+			# time.strptime(k[0], "%H:%M")
+			if time.strptime(stp.day[i+1][0], "%H:%M") <= time.strptime(stp.day[i][0], "%H:%M"):
+				var.logger.error("Day mode table is wrong! Using default table!")
+				stp.day = [["00:00", "23:59", 40, 185, "total", 120, 1]]
+
+def doControl():	
 	for k, v in stp.devices.iteritems():
 		if isWinOpenTooLong(k): 
 			var.logger.debug("Warning condition for window " + str(k) + " met")
@@ -920,28 +924,7 @@ def doControl():
 			sendWarning("battery", k, "")
 		if isRadioError(k):
 			sendWarning("error", k, "")
-	
-	grt = 0
-	tm = time.time()
-	for k, v in stp.valves.iteritems():
-		its_ok = False 
-		if v[0] > stp.valve_switch:
-			if var.d_ignore.has_key(k):
-				if var.d_ignore[k] < tm:
-					del var.d_ignore[k]
-					its_ok = True
-			else:
-				its_ok = True
-			if its_ok:
-				heat = True
-				valve_key = k
-				valve_count += 1
-				grt += v[0]
-	if not heat and grt >= stp.total:
-			heat = True
-			valve_count = stp.valve_num
-	if heat:
-		var.heatReadings += 1
+		
 	if var.err2Clear and not var.error:
 		queueMsg("C")
 	if var.err2LastStatus:
@@ -950,22 +933,62 @@ def doControl():
 			queueMsg("H")
 			var.logger.info("Resuming heating state on status LED")
 	# var.logger.debug("Control: " + str(var.heating) + "=" + str(heat) + ", " + str(grt) + "; " + str(stp.valve_num) + " , " + str(valve_count))
-	if heat != var.heating:
-		if heat and valve_count >= stp.valve_num:
-			doheat(True)
-			txt = "heating started due to "
+	
+	# and now showtime
+	stp.total = getTotal()
+	# grand total
+	heat = False
+	grt = 0
+	tm = time.time()
+	valve_count = 0
+	
+	if stp.valve_num > stp.valves.iteritems():
+		var.logger.error("Something is wrong, you have only " + str(stp.valves.iteritems()) + " valves, but you want to " + str(stp.valve_num) + "of them be checked to turn on heating!")
+	for k, v in stp.valves.iteritems():
+		if stp.preference == "per":
+			valve_is_ok = False 
+			if v[0] > stp.valve_switch:
+				if var.d_ignore.has_key(k):
+					if var.d_ignore[k] < tm:
+						del var.d_ignore[k]
+						valve_is_ok = True
+				else:
+					valve_is_ok = True				
+				if valve_is_ok:
+					valve_count += 1
+					if valve_count >= stp.valve_num:
+						heat = True
+						valve_key = k
+		elif stp.preference == "total":
+			grt += v[0]
 			if grt >= stp.total:
-				txt += "sum of valve positions = " + str(grt) 
-			else:			
-				v = stp.valves[valve_key]
-				dn = stp.devices[valve_key][2]
-				rn = stp.rooms[str(stp.devices[valve_key][3])][0] 
-				txt += "room " + str(rn) + ", device " + str(dn) + " with value " + str(v)
+				heat = True
+	
+	# increment number of readings with heat on
+	if heat:
+		var.heatReadings += 1
+	
+	var.logger.debug("Control: " + str(var.heating) + "=" + str(heat) + ", " + str(grt) + "; " + str(stp.valve_num) + " , " + str(valve_count))
+		
+	if heat != var.heating:
+		if heat:
+			txt = "heating started due to "
+			if stp.preference == "per" and valve_count >= stp.valve_num:
+				if valve_count > 1:
+					txt += str(valve_count) + " valves with position more than " + str(stp.valve_switch)
+				else:
+					v = stp.valves[valve_key]
+					dn = stp.devices[valve_key][2]
+					rn = stp.rooms[str(stp.devices[valve_key][3])][0] 
+					txt += "room " + str(rn) + ", device " + str(dn) + " with value " + str(v)
+			elif stp.preference == "total":
+					txt += "sum of valve positions = " + str(grt) 			
 			var.logger.info(txt)
+			doheat(True)
 		else:
 			var.logger.info("heating stopped.")
 			doheat(False)
-
+	
 # check if its right time to update
 def rightTime(what):
 	tm = time.time()
@@ -989,8 +1012,6 @@ def dayMode():
 			stp.valve_switch = kv[2]
 			if kv[4] == "total":
 				stp.total_switch = kv[3]
-			else:
-				stp.per_switch = kv[3]
 			stp.preference = kv[4]
 			stp.intervals["max"][0] = kv[5]
 			stp.valve_num = kv[6]
@@ -1007,7 +1028,7 @@ def doLoop():
 		if rightTime("var"):
 			updateAllTimes()
 			saveBridge()
-			result = getPublicIP()
+			getPublicIP()
 			if is_private(stp.myip):
 				logstr = "Local"
 			else:
@@ -1068,11 +1089,9 @@ def doLoop():
 	
 def getControlValues():
 	# try read preference settings, total or per
-	stp.preference = tryRead("pref", "total", True)
+	stp.preference = tryRead("pref", "per", True)
 	# try read % valve for heat command
 	stp.valve_switch = tryRead("valve", 35, True)
-	if stp.preference == "per":
-		stp.per_switch = tryRead("per", 15, True)
 	elif stp.preference == "total":
 		stp.total_switch = tryRead("total", 150, True)
 	# setup total variable as integer
@@ -1106,21 +1125,13 @@ def setupInit():
 					# just sleep value, always calculated as max[0] / slp[1]
 					"slp": [30, 3, 0]}
 	# day windows/intervals
-	## day = [0-from_str, 1-to_str, 2-switch%, 3-total or per, 4-mode ("total"/"per"), 5-check interval, 6-valves]
-	stp.day =  [["00:00", "06:00", 40, 185, "total", 240, 2], \
-				["06:00", "10:00", 40,  30,   "per", 120, 1], \
-				["10:00", "14:00", 40,  30,   "per", 120, 1], \
-				["14:00", "22:00", 40,  30,   "per", 120, 1], \
-				["22:00", "23:59", 40, 185, "total", 240, 1]]
+	## day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
+	stp.day =  [["00:00", "06:00", 185, "total", 240, 2], \
+				["06:00", "10:00",  40, "per",   120, 1], \
+				["10:00", "14:00",  40, "per",   120, 1], \
+				["14:00", "22:00",  40, "per",   120, 1], \
+				["22:00", "23:59", 185, "total", 240, 1]]
 	
-def checkDay():
-	if len(stp.day) > 1:
-		for i in range(len(stp.day) - 1):
-			# time.strptime(k[0], "%H:%M")
-			if time.strptime(stp.day[i+1][0], "%H:%M") <= time.strptime(stp.day[i][0], "%H:%M"):
-				var.logger.error("Day mode table is wrong! Using default table!")
-				stp.day = [["00:00", "23:59", 40, 185, "total", 120, 1]]
-
 def varInit():
 	# open window dictionary
 	var.d_W = {}
@@ -1174,7 +1185,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 120
+	stp.version = 121
 	# turn off writing <funcname> START, <funcname> STOP into the DEBUG, just write DEBUG
 	stp.globalDebugSS = False
 	stp.cw = {"status":"status", \
