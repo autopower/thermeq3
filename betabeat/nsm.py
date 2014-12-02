@@ -840,7 +840,7 @@ def readMAXData(refresh):
 			logstr = "Heating"
 		else:
 			logstr = "Idle"
-		logstr += ", switching over "
+		logstr += ", "
 		if stp.preference == "per":
 			logstr += str(stp.valve_switch) + "%" + " at " + str(stp.valve_num) + " valve(s)."
 		elif stp.preference == "total":
@@ -941,6 +941,7 @@ def doControl():
 	grt = 0
 	tm = time.time()
 	valve_count = 0
+	valve_key = {}
 	
 	if stp.valve_num > stp.valves.iteritems():
 		var.logger.error("Something is wrong, you have only " + str(stp.valves.iteritems()) + " valves, but you want to " + str(stp.valve_num) + "of them be checked to turn on heating!")
@@ -958,7 +959,10 @@ def doControl():
 					valve_count += 1
 					if valve_count >= stp.valve_num:
 						heat = True
-						valve_key = k
+						v = stp.valves[k]
+						dn = stp.devices[k][2]
+						rn = stp.rooms[str(stp.devices[k][3])][0]
+						valve_key.update({k:[rn, dn, v]}) 
 		elif stp.preference == "total":
 			grt += v[0]
 			if grt >= stp.total:
@@ -972,17 +976,12 @@ def doControl():
 		
 	if heat != var.heating:
 		if heat:
-			txt = "heating started due to "
-			if stp.preference == "per" and valve_count >= stp.valve_num:
-				if valve_count > 1:
-					txt += str(valve_count) + " valves with position more than " + str(stp.valve_switch)
-				else:
-					v = stp.valves[valve_key]
-					dn = stp.devices[valve_key][2]
-					rn = stp.rooms[str(stp.devices[valve_key][3])][0] 
-					txt += "room " + str(rn) + ", device " + str(dn) + " with value " + str(v)
+			txt = "heating started due to"
+			if stp.preference == "per" and valve_count >= stp.valve_num:			
+				for k, v in valve_key.iteritems():
+					txt += " room " + str(v[0]) + ", valve " + str(v[1]) + "@" + str(v[2])
 			elif stp.preference == "total":
-					txt += "sum of valve positions = " + str(grt) 			
+					txt += " sum of valve positions = " + str(grt) 			
 			var.logger.info(txt)
 			doheat(True)
 		else:
@@ -1092,8 +1091,7 @@ def getControlValues():
 	stp.preference = tryRead("pref", "per", True)
 	# try read % valve for heat command
 	stp.valve_switch = tryRead("valve", 35, True)
-	elif stp.preference == "total":
-		stp.total_switch = tryRead("total", 150, True)
+	stp.total_switch = tryRead("total", 150, True)
 	# setup total variable as integer
 	stp.total = 100
 	# try get readMAX interval value, if not set it
@@ -1185,7 +1183,7 @@ def prepare():
 	
 if __name__ == '__main__':
 	stp = setup()
-	stp.version = 121
+	stp.version = 122
 	# turn off writing <funcname> START, <funcname> STOP into the DEBUG, just write DEBUG
 	stp.globalDebugSS = False
 	stp.cw = {"status":"status", \
