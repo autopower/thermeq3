@@ -143,7 +143,7 @@ def getCMD():
 		return ""
 	elif len(localcmd) > 0:
 		var.value.put(rCW("cmd"), "")
-		var.logger.info("received command: [" + localcmd + "]")
+		var.logger.info("Received command: [" + localcmd + "]")
 	return localcmd
 
 def tryRead(cw, default, save):
@@ -227,10 +227,9 @@ def saveBridge():
 				tmp = var.value.get(v[0])
 			except:
 				tmp = ""
-			# var.logger.debug("Codeword [" + str(k) + "]/[" + str(v) + "] returns value [" + str(tmp) + "]")
 			if tmp == "None" or tmp is None:
 				tmp = str(v[1])
-			f.write(v[0] + "=" + tmp + "\r\n")
+			f.write(v[0] + "=" + str(tmp) + "\r\n")
 	f.close()
 	var.logger.debug("Bridge file saved.")
 	
@@ -253,13 +252,13 @@ def loadBridge():
 						var.value.put(t[0], t[1])
 						if t[1] == "" or t[1] is None:
 							defValue = str(cw[t[0]])
-							var.logger.info("Codeword [" + str(t[0]) + "] is null/empty, using defaults [" + str(t[1]) + "]")
+							var.logger.info("CW [" + str(t[0]) + "] is empty, using default [" + str(t[1]) + "]")
 							var.value.put(t[0], defValue)
 					else:
 						var.logger.error("Bridge error codeword @[" + str(t[0]) + "] value [" + str(t[1]) +"]")									
 			f.close()
-		updateAllTimes()
 		var.logger.debug("Bridge file loaded.")
+		updateAllTimes()
 	else:
 		for k, v in stp.defaults.iteritems():
 			var.value.put(v[0], v[1])
@@ -695,6 +694,7 @@ def readMAX(refresh):
 				room_adr = es[es_pos:es_pos+3]
 				es_pos += 3
 				if not room_id in stp.rooms or refresh:
+					#					id   :0room_name, 1room_address,   2is_win_open 
 					stp.rooms.update({room_id:[room_name, hexify(room_adr), False]})
 
 			dev_num = ord(es[es_pos])
@@ -738,18 +738,19 @@ def readMAX(refresh):
 				# HeatingThermostat (dev_type 1 or 2)
 				elif dev_len == 12:
 					valve_pos = ord(es[es_pos + 0x07])
-					# debug someting
-					# var.logger.debug(hexify(es[es_pos:es_pos + 12]))
 					if valve_info & 3 != 2:
 						valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2
 						valve_curtemp = float(ord(es[es_pos + 0x0A])) / 10
 					stp.valves.update({valve_adr:[valve_pos, valve_temp, valve_curtemp]})
+				# WindowContact
 				elif dev_len == 7:
 					tmp_open = ord(es[es_pos + 0x06]) & 2
 					if tmp_open != stp.devices[valve_adr][4]:
 						tmp_txt = "Window contact " + str(stp.devices[valve_adr][2]) + " is now "
+						r_id = str(stp.devices[valve_adr][3])
 						if tmp_open == 0:
 							var.logger.info(tmp_txt + "closed.")
+							stp.rooms[r_id][2] = False
 							if valve_adr in var.d_W:
 								var.logger.debug("Key " + str(valve_adr) + " in d_W deleted.")
 								del var.d_W[valve_adr]
@@ -758,8 +759,10 @@ def readMAX(refresh):
 								setIgnoredValves(valve_adr)
 						else:
 							var.logger.info(tmp_txt + "opened.")
+							stp.rooms[r_id][2] = True
 						stp.devices[valve_adr][4] = tmp_open
 						stp.devices[valve_adr][5] = datetime.datetime.now()
+				# save status and info
 				stp.devices[valve_adr][6] = valve_status
 				stp.devices[valve_adr][7] = valve_info
 				es_pos += dev_len
@@ -802,13 +805,17 @@ def updateCounters(heatStart):
 			for k in var.ht.keys():
 				v = var.ht[k]
 				if not k == "total":
-					var.logger.info("Daily heating summary for day: " + str(k) + " is " + str(datetime.timedelta(seconds = v[0])))
-					var.logger.debug("Deleting old daily heat key: " + str(k))
+					var.logger.info(str(k) + " heating daily summary: " + str(datetime.timedelta(seconds = v[0])))
+					var.logger.debug("Deleting old daily key: " + str(k))
 					del var.ht[k]
+			# and close CSV file
+			exportCSV("close")
 		# create the new key
-		var.logger.debug("Creating new daily heat key: " + str(nw))
+		var.logger.debug("Creating new daily key: " + str(nw))
 		var.ht.update({nw:[0, time.time()]})
-		# so its a new day, update other values 
+		# so its a new day, update other values
+		exportCSV("init")
+		exportCSV("headers") 
 		# day readings warning, take number of heated readings and divide by 2 
 		drW = var.heatReadings / 2
 		var.logger.debug("Day reading warnings value=" + str(drW))
@@ -840,42 +847,72 @@ def dumpMAX(method):
 	var.logger.info("System dumped into bridge variable")
 	logSS(False)
 
+def writeStrings():
+# construct and write CSV data, Log debug string and current status string 
+	if var.heating:
+		logstr = "Heating"
+	else:
+		logstr = "Idle"
+	logstr += ", "
+	if stp.preference == "per":
+		logstr += str(stp.valve_switch) + "%" + " at " + str(stp.valve_num) + " valve(s)."
+	elif stp.preference == "total":
+		logstr += "total value of " + str(getTotal()) + "."
+	var.logger.debug(logstr)			
+	var.csv.write(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime()) + "," + str(1 if var.heating else 0) + ",")
+	
+	rooms = {}
+	current = {}
+	for k, v in stp.rooms.iteritems():
+		rooms.update({str(v[0]):["", v[2]]})
+		current.update({str(v[0]): {}})
+	
+	for k, v in stp.valves.iteritems():
+		# update rooms string
+		room_id = str(getName(k)[0])
+		roomStr = rooms[room_id][0]
+		roomStr += "\r\n\t[" + str(k.upper()) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(str(v[0])) + "% @ " + \
+			'{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
+		cv = countValve(k)  
+		if cv:
+			roomStr += "(+)"
+		else:
+			roomStr += "(-)"
+		
+		rooms[room_id][0] = roomStr
+		var.csv.write(str(v[0]) + "," + str(v[1]) + ",")
+		
+		current[room_id].update({str(k.upper()):[str(stp.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), \
+			str(1 if cv else 0)]})
+	
+	var.csv.write("\r\n")
+	
+	logstr = "Actual positions follows"
+	for k, v in rooms.iteritems():
+		logstr += "\r\nRoom: " + str(k)
+		if v[1]:
+			logstr += ", window opened"
+		logstr += str(v[0]) 
+	var.logger.debug(logstr)
+	var.csv.flush()
+	var.value.put(rCW("cur"), current)
+
 def readMAXData(refresh):
 	logSS(True)
 	if not openMAX():
 		queueMsg("E")
 	else:
 		readMAX(refresh)
-		if var.heating:
-			logstr = "Heating"
-		else:
-			logstr = "Idle"
-		logstr += ", "
-		if stp.preference == "per":
-			logstr += str(stp.valve_switch) + "%" + " at " + str(stp.valve_num) + " valve(s)."
-		elif stp.preference == "total":
-			logstr += "total value of " + str(getTotal()) + "."
-		var.logger.debug(logstr)			
-		logstr = "Actual positions follows"
-		var.csv.write(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime()) + ",")
-		for k, v in stp.valves.iteritems():
-			logstr += "\r\n[" + str(k) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(str(v[0])) + "% @ " + \
-				'{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
-			if countValve(k):
-				logstr += "(+)"
-			else:
-				logstr += "(-)"
-			var.csv.write(str(v[0]) + "," + str(v[1]) + ",")
-		var.csv.write("\r\n")
-		var.logger.debug(logstr)
+		if not refresh:
+			writeStrings()
 	closeMAX()
 	logSS(False)
 	
 #
 # and here we go, this is app logic
 #
-
 def isWinOpen(key):
+	# Return true if window is open
 	v = stp.devices[key]
 	if v[0] == 4 and v[4] == 2:
 		return True
@@ -883,6 +920,7 @@ def isWinOpen(key):
 		return False
 
 def isWinOpenTooLong(key):
+	# return True if window open time is > defined warning interval 
 	v = stp.devices[key]
 	if isWinOpen(key):
 		tmp = (datetime.datetime.now() - v[5]).total_seconds()
@@ -907,6 +945,7 @@ def isRadioError(key):
 
 def getTotal():
 	return stp.total_switch
+	
 
 def getName(k):
 	v = stp.valves[k]
@@ -933,7 +972,7 @@ def countValve(key):
 		if var.d_ignore[key] < time.time():
 			del var.d_ignore[key]
 		else:
-			var.logger.debug("Valve " + str(key) + " ignored,")
+			# var.logger.debug("Valve " + str(key) + " ignored,")
 			return False
 	return True
 
@@ -946,8 +985,14 @@ def checkDayTable():
 				var.logger.error("Day mode table is wrong! Using default table!")
 				stp.day = [["00:00", "23:59", 40, 185, "total", 120, 1]]
 
-def doControl():	
+def doControl():
+	tmp = {}	
 	for k, v in stp.devices.iteritems():
+		if v[4] == 2:
+			room_id = str(v[3])
+			room_name = str(stp.rooms[room_id][0])
+			tmp.update({k:room_name})
+
 		if isWinOpenTooLong(k): 
 			var.logger.debug("Warning condition for window " + str(k) + " met")
 			if var.no_oww == 0:
@@ -956,7 +1001,9 @@ def doControl():
 			sendWarning("battery", k, "")
 		if isRadioError(k):
 			sendWarning("error", k, "")
-		
+
+	var.value.put(rCW("owl"), str(tmp)) 
+												
 	if var.err2Clear and not var.error:
 		queueMsg("C")
 	if var.err2LastStatus:
@@ -1141,6 +1188,7 @@ def getControlValues():
 	stp.valve_num = tryRead("valves", 1, True)
 	# try read how many minutes you can ignore valve after closing window
 	var.ignore_time = tryRead("ign_op", 20, True)
+	# and if open windows warning is disabled, 0 = enables, 1 = disabled
 	var.no_oww = tryRead("no_oww", 0, True)
 	
 	# try read if autoupdate is OK
@@ -1173,7 +1221,9 @@ def setupInit():
 def varInit():
 	# open window dictionary
 	var.d_W = {}
+	# index in day table
 	var.actDayIndex = -1
+	# dictionary for ignoring valves after closing window
 	var.d_ignore = {}
 	
 def prepare():
@@ -1211,15 +1261,16 @@ def prepare():
 	loadBridge()
 	updateStatus("start")
 	queueMsg("S")
-	
+
 	exportCSV("init")
+	exportCSV("headers")	
 	readMAXData(True)
-	exportCSV("headers")
 	updateCounters(False)
 	
 if __name__ == '__main__':
+	# setup values
 	stp = setup()
-	stp.version = 125
+	stp.version = 130
 	# turn off writing <funcname> START, <funcname> STOP into the DEBUG, just write DEBUG
 	stp.globalDebugSS = False
 	# required values, if any error in bridge then stp.defaults is used	
@@ -1243,14 +1294,20 @@ if __name__ == '__main__':
 		"appuptime":["app_uptime", 0], \
 		"htstr": ["heattime_string", str(datetime.timedelta(seconds = 0))], \
 		"daily": ["daily", ""], \
-		"status":["status", "defaults"]}
+		"status":["status", "defaults"], \
+		"owl": ["openwinlist", "{}"], \
+		"cur": ["current_status", "{}"]}
 
+	# status messages
 	stp.statusMsg = {"idle": "idle", "heat": "heating", "start": "starting", "dead": "dead"}
-	
+
+	# variables	
 	var = variables()
 	# heat times; total: [totalheattime, time.time()]   
 	var.ht = {"total": [0, 0.0]}
+	# device log, used to count if valve position didn't change
 	var.dev_log = {}
+	# message queue
 	var.msgQ = []
 	
 	# initialize bridge
