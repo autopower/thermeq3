@@ -2,13 +2,13 @@
 Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme :)
 
 ##What is new?
-2014-Dec-26
-Ignoring valve after closing window
-Redesigned rooms/valves listing in log file
-Support for tasker, new bridge values: openwinlist and current_status, please take a look at `tasker` directory, there's simple example how to list open windows. Usefull especially when leaving house :)
-New CSV file handling, file is generated daily. New column in CSV, after date/time col, you can read 0/1 for heating (0=off, 1=on), so you can analyze when is boiler turned on or off (no more cat log | grep)
-Redesigned bridge functions (load/save), little bit failsafe (nothing extraordinary)
-Implemented support for day table, just enable beta functionality (thermeq3.ip/data/put/beta/yes) and edit table in nsm.py. You can control boiler in different way during day.
+###2014-Dec-26
+* Ignoring valve after closing window
+* Redesigned rooms/valves listing in log file
+* Support for tasker, new bridge values: openwinlist and current_status, please take a look at `tasker` directory, there's simple example how to list open windows. Usefull especially when leaving house :)
+* New CSV file handling, file is generated daily. New column in CSV, after date/time col, you can read 0/1 for heating (0=off, 1=on), so you can analyze when is boiler turned on or off (no more cat log | grep)
+* Redesigned bridge functions (load/save), little bit failsafe (nothing extraordinary)
+* Implemented support for day table, just enable beta functionality (thermeq3.ip/data/put/beta/yes) and edit table in nsm.py. You can control boiler in different way during day.
 
 ##Setup
 You'll need:
