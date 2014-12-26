@@ -1,5 +1,8 @@
 ﻿#thermeq3
-Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme :)
+Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
+
+##Check betabeat directory
+There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
 ###2014-Dec-26
