@@ -5,6 +5,9 @@ Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2014-Dec-27
+* Simple install script: update opkg, installs openssl for python, create some scripts for nsm.py controlling.
+
 ###2014-Dec-26
 * Ignoring valve after closing window
 * Redesigned rooms/valves listing in log file
