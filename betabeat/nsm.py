@@ -896,6 +896,11 @@ def writeStrings():
 	var.logger.debug(logstr)
 	var.csv.flush()
 	var.value.put(rCW("cur"), current)
+	
+	# second web
+	secweb = open(stp.secweb, "w")
+	secweb.write(str(current))
+	secweb.close()
 
 def readMAXData(refresh):
 	logSS(True)
@@ -1002,7 +1007,11 @@ def doControl():
 		if isRadioError(k):
 			sendWarning("error", k, "")
 
-	var.value.put(rCW("owl"), str(tmp)) 
+	var.value.put(rCW("owl"), str(tmp))
+	# second web
+	owlfile = open(stp.owl, "w")
+	owlfile.write(str(tmp))
+	owlfile.close()
 												
 	if var.err2Clear and not var.error:
 		queueMsg("C")
@@ -1236,6 +1245,8 @@ def prepare():
 			
 	stp.csv_log = stp.place + stp.devname + ".csv"
 	stp.bridgefile = stp.place + stp.devname + ".bridge"
+	stp.secweb = stp.place + "/www/status.xml"
+	stp.owl = stp.place + "/www/owl.xml"
  
 	# dictionaries for MAX
 	stp.maxid = {"sn":"000000", "rf":"", "fw":""}
@@ -1270,7 +1281,7 @@ def prepare():
 if __name__ == '__main__':
 	# setup values
 	stp = setup()
-	stp.version = 130
+	stp.version = 131
 	# turn off writing <funcname> START, <funcname> STOP into the DEBUG, just write DEBUG
 	stp.globalDebugSS = False
 	# required values, if any error in bridge then stp.defaults is used	
