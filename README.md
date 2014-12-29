@@ -1,10 +1,13 @@
-﻿#thermeq3
+#thermeq3
 Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
 
 ##Check betabeat directory
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2014-Dec-28
+* betabeat: open window list and current status separated into secondary web server as xml files, accessible w/o any credentials
+
 ###2014-Dec-27
 * Simple install script: update opkg, installs openssl for python, create some scripts for nsm.py controlling.
 
