@@ -23,11 +23,6 @@ import struct
 class setup: pass
 class variables: pass
 
-# beta beat comments
-# new codeword "au": "autoupdate", if True then autoupdate works, if False then disabled, can be changed by bridge value
-# new debug line L719 = var.logger.debug("Ignorning valve " + str(valve_adr) + " for " + str(var.d_ignore[valve_adr]))
-
-
 #
 # error handling, primitive but funny
 #
@@ -599,7 +594,7 @@ def startLog():
 	var.logger = logging.getLogger("thermeq3")
 	var.logger.setLevel(logging.DEBUG)
 
-	#var.fh = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=10*(1024*1024), backupCount=10)
+	#var.fh = logging.TimedRotatingFileHandler(stp.log_filename, when="W0", interval=4, backupCount=12)
 
 	var.fh = logging.FileHandler(stp.log_filename)
 	var.fh.setLevel(logging.DEBUG)
@@ -608,9 +603,6 @@ def startLog():
 	var.logger.addHandler(var.fh)
 
 	var.logger.info("V" + str(stp.version) + " started with PID=" + str(getpid()))
-	#logger.debug('debug message')
-	#logger.warn('warn message')
-	#logger.critical('critical message')
 
 def exportCSV(onoff):
 	if onoff == "init":
@@ -631,32 +623,37 @@ def openMAX():
 	var.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	var.client_socket.settimeout(int(stp.timeout / 2))	
 	temp_key = stp.maxid["sn"]
+	
+	i = 0
+	while i < 3:
+		try:
+			var.client_socket.connect((stp.max_ip, 62910))
+		except Exception, e:
+			incErr()
+			i = i + 1
+		else:
+			if temp_key in var.d_W:
+				var.logger.debug("Key " + str(temp_key) + " in d_W deleted.")
+				del var.d_W[temp_key]
+			return True
+		time.sleep(int(stp.timeout /2))
 
-	try:
-		var.client_socket.connect((stp.max_ip, 62910))
-	except Exception, e:
-		incErr()
-		var.logger.error("Error opening connection to MAX Cube. Error: " + str(e))
-		var.logger.error("Traceback: " + str(traceback.format_exc()))
-		body = """<html><body><font face="arial,sans-serif">
-		<h1>Device %(a0)s warning.</h1>
-		<p>Hello, I'm your thermostat and I have a warning for you.<br/>
-		Please take a care of connection to MAX! Cube.</br>
-		I can't connect to Cube at address <b>%(a1)s</b>.<br/>
-		Error: %(a2)s<br/>
-		Traceback: %(a3)s<br/>
-		</p></body></html>""" % \
-		{'a0': str(stp.devname), \
-		 'a1': str(stp.max_ip), \
-		 'a2': str(e), \
-		 'a3': str(traceback.format_exc()) } 
-		sendWarning("openmax", temp_key, body)
-		return False
-	else:
-		if temp_key in var.d_W:
-			var.logger.debug("Key " + str(temp_key) + " in d_W deleted.")
-			del var.d_W[temp_key]
-		return True
+	var.logger.error("Error opening connection to MAX Cube. Error: " + str(e))
+	var.logger.error("Traceback: " + str(traceback.format_exc()))
+	body = """<html><body><font face="arial,sans-serif">
+	<h1>Device %(a0)s warning.</h1>
+	<p>Hello, I'm your thermostat and I have a warning for you.<br/>
+	Please take a care of connection to MAX! Cube.</br>
+	I can't connect to Cube at address <b>%(a1)s</b>.<br/>
+	Error: %(a2)s<br/>
+	Traceback: %(a3)s<br/>
+	</p></body></html>""" % \
+	{'a0': str(stp.devname), \
+	 'a1': str(stp.max_ip), \
+	 'a2': str(e), \
+	 'a3': str(traceback.format_exc()) } 
+	sendWarning("openmax", temp_key, body)		
+	return False
 
 def setIgnoredValves(key):
 	room = stp.devices[key][3]
@@ -895,7 +892,7 @@ def writeStrings():
 		logstr += str(v[0]) 
 	var.logger.debug(logstr)
 	var.csv.flush()
-	var.value.put(rCW("cur"), current)
+	# var.value.put(rCW("cur"), current)
 	
 	# second web
 	secweb = open(stp.secweb, "w")
@@ -1007,7 +1004,7 @@ def doControl():
 		if isRadioError(k):
 			sendWarning("error", k, "")
 
-	var.value.put(rCW("owl"), str(tmp))
+	# var.value.put(rCW("owl"), str(tmp))
 	# second web
 	owlfile = open(stp.owl, "w")
 	owlfile.write(str(tmp))
@@ -1098,19 +1095,22 @@ def isTime():
 	return -1
 
 def dayMode():
-	## day = [0-from_str, 1-to_str, 2-switch%, 3-total or per, 4-mode ("total"/"per"), 5-check interval, 6-valves]
+	## day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
 	md = isTime()
 	if md != -1:
 		if md != var.actDayIndex:
 			kv = stp.day[md]
 			var.actDayIndex = md
 			var.logger.debug("Switching day mode to " + str(md) + " = " + str(kv))
-			stp.valve_switch = kv[2]
-			if kv[4] == "total":
-				stp.total_switch = kv[3]
-			stp.preference = kv[4]
-			stp.intervals["max"][0] = kv[5]
-			stp.valve_num = kv[6]
+			if kv[3] == "total":
+				stp.total_switch = kv[2]
+			else:
+				stp.valve_switch = kv[2]
+			stp.preference = kv[3]
+			stp.intervals["max"][0] = kv[4]
+			stp.valve_num = kv[5]
+			# just sleep value, always calculated as max[0] / slp[1]
+			stp.intervals["slp"][0] = int(kv[4] / stp.intervals["slp"][1])
 #
 # beta
 #
@@ -1218,14 +1218,14 @@ def setupInit():
 					"wrn": [6*60*60, 24*60*60, tm], \
 					"err": [0, 0, 0.0], \
 					# just sleep value, always calculated as max[0] / slp[1]
-					"slp": [30, 3, 0]}
+					"slp": [40, 3, 0]}
 	# day windows/intervals
 	## day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
-	stp.day =  [["00:00", "06:00", 185, "total", 240, 2], \
-				["06:00", "10:00",  40, "per",   120, 1], \
-				["10:00", "14:00",  40, "per",   120, 1], \
-				["14:00", "22:00",  40, "per",   120, 1], \
-				["22:00", "23:59", 185, "total", 240, 1]]
+	stp.day =  [["00:00", "06:00", 35, "per", 240, 1], \
+				["06:00", "10:00", 36, "per", 120, 1], \
+				["10:00", "14:00", 30, "per", 120, 2], \
+				["14:00", "22:00", 36, "per", 120, 1], \
+				["22:00", "23:59", 35, "per", 120, 1]]
 	
 def varInit():
 	# open window dictionary
@@ -1281,7 +1281,7 @@ def prepare():
 if __name__ == '__main__':
 	# setup values
 	stp = setup()
-	stp.version = 131
+	stp.version = 132
 	# turn off writing <funcname> START, <funcname> STOP into the DEBUG, just write DEBUG
 	stp.globalDebugSS = False
 	# required values, if any error in bridge then stp.defaults is used	
