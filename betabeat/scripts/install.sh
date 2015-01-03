@@ -14,10 +14,10 @@ mkdir /root/backup
 cp /etc/config/uhttpd /root/backup/uhttpd.old
 
 if [ -d /mnt/sda1 ]; then
-	$DIR = /mnt/sda1
+	DIR=/mnt/sda1
 else
 	if [ -d /mnt/sdb1 ]; then
-		$DIR = /mnt/sdb1
+		DIR=/mnt/sdb1
 	else
 		echo "Please mount USB or SD card!"
 		exit 1
@@ -41,7 +41,7 @@ chmod +x owl
 
 echo "config uhttpd secondary
         list listen_http        0.0.0.0:8180
-        option home             /mnt/sda1/www
+        option home             $DIR/www
         option cgi_prefix		/cgi-bin
         option max_requests     2
         option script_timeout   10
