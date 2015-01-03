@@ -10,7 +10,7 @@ from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 from email.MIMEBase import MIMEBase
 from email import Encoders
-from os import getpid, path, rename
+import os
 from ast import literal_eval
 import smtplib
 import logging
@@ -84,7 +84,7 @@ def hexify(tmpadr):
 
 def getHash(filename):
 	checksum = hashlib.md5()
-	if path.isfile(filename):
+	if os.path.isfile(filename):
 		f = file(filename, "rb")
 		while True:
 			part = f.read(1024)
@@ -229,7 +229,7 @@ def saveBridge():
 	var.logger.debug("Bridge file saved.")
 	
 def loadBridge():
-	if path.exists(stp.bridgefile):
+	if os.path.exists(stp.bridgefile):
 		with open(stp.bridgefile, "r") as f:
 			# create dictionary fro codewords setup dictionary
 			cw = {}
@@ -247,7 +247,7 @@ def loadBridge():
 						var.value.put(t[0], t[1])
 						if t[1] == "" or t[1] is None:
 							defValue = str(cw[t[0]])
-							var.logger.info("CW [" + str(t[0]) + "] is empty, using default [" + str(t[1]) + "]")
+							var.logger.info("CW [" + str(t[0]) + "] empty, using default [" + str(t[1]) + "]")
 							var.value.put(t[0], defValue)
 					else:
 						var.logger.error("Bridge error codeword @[" + str(t[0]) + "] value [" + str(t[1]) +"]")									
@@ -360,7 +360,7 @@ def doUpdate():
 	chk = checkUpdate()
 	if stp.au:
 		if chk == 2:
-			rename(stp.homedir + "nsm.upd", stp.homedir + "nsm.py")
+			os.rename(stp.homedir + "nsm.upd", stp.homedir + "nsm.py")
 			temp_key = stp.maxid["sn"]
 			body = """<html><body><font face="arial,sans-serif">
 			<h1>Device upgrade information.</h1>
@@ -379,7 +379,7 @@ def doUpdate():
 #
 def sendErrorLog():
 	logSS(True)
-	if path.getsize(stp.stderr_log) > 0:
+	if os.path.getsize(stp.stderr_log) > 0:
 		devname = stp.devname
 		msg = MIMEMultipart()
 		msg["From"] = stp.fromaddr
@@ -397,7 +397,7 @@ def sendErrorLog():
 		part = MIMEBase("application", "octet-stream")
 		part.set_payload(open(stp.stderr_log, "rb").read())
 		Encoders.encode_base64(part)
-		head, tail = path.split(stp.stderr_log)
+		head, tail = os.path.split(stp.stderr_log)
 		part.add_header("Content-Disposition", "attachment; filename=\"" + tail + "\"\"")
 		msg.attach(part)
 
@@ -598,16 +598,16 @@ def startLog():
 
 	var.fh = logging.FileHandler(stp.log_filename)
 	var.fh.setLevel(logging.DEBUG)
-	formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%d/%m/%Y %H:%M:%S")
+	formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y/%m/%d %H:%M:%S")
 	var.fh.setFormatter(formatter)
 	var.logger.addHandler(var.fh)
 
-	var.logger.info("V" + str(stp.version) + " started with PID=" + str(getpid()))
+	var.logger.info("V" + str(stp.version) + " started with PID=" + str(os.getpid()))
 
 def exportCSV(onoff):
 	if onoff == "init":
-		if path.exists(stp.csv_log):
-			rename(stp.csv_log, stp.place + stp.devname + "_" + time.strftime("%d%m%Y-%H%M%S", time.localtime()) + ".csv")
+		if os.path.exists(stp.csv_log):
+			os.rename(stp.csv_log, stp.place + stp.devname + "_" + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + ".csv")
 		var.csv = open(stp.csv_log, "a")
 	elif onoff == "headers":
 		for k, v in stp.valves.iteritems():
@@ -631,13 +631,14 @@ def openMAX():
 		except Exception, e:
 			incErr()
 			i = i + 1
+			time.sleep(int(stp.timeout / 2))
 		else:
+			i = 3
 			if temp_key in var.d_W:
 				var.logger.debug("Key " + str(temp_key) + " in d_W deleted.")
 				del var.d_W[temp_key]
 			return True
-		time.sleep(int(stp.timeout /2))
-
+		
 	var.logger.error("Error opening connection to MAX Cube. Error: " + str(e))
 	var.logger.error("Traceback: " + str(traceback.format_exc()))
 	body = """<html><body><font face="arial,sans-serif">
@@ -1245,8 +1246,8 @@ def prepare():
 			
 	stp.csv_log = stp.place + stp.devname + ".csv"
 	stp.bridgefile = stp.place + stp.devname + ".bridge"
-	stp.secweb = stp.place + "/www/status.xml"
-	stp.owl = stp.place + "/www/owl.xml"
+	stp.secweb = stp.place + "www/status.xml"
+	stp.owl = stp.place + "www/owl.xml"	
  
 	# dictionaries for MAX
 	stp.maxid = {"sn":"000000", "rf":"", "fw":""}
@@ -1281,7 +1282,7 @@ def prepare():
 if __name__ == '__main__':
 	# setup values
 	stp = setup()
-	stp.version = 132
+	stp.version = 133
 	# turn off writing <funcname> START, <funcname> STOP into the DEBUG, just write DEBUG
 	stp.globalDebugSS = False
 	# required values, if any error in bridge then stp.defaults is used	
@@ -1324,9 +1325,9 @@ if __name__ == '__main__':
 	# initialize bridge
 	var.value = BridgeClient()
 	
-	if path.ismount("/mnt/sda1"):
+	if os.path.ismount("/mnt/sda1"):
 		stp.place = "/mnt/sda1/"
-	elif path.ismount("/mnt/sdb1"):
+	elif os.path.ismount("/mnt/sdb1"):
 		stp.place = "/mnt/sdb1/"
 	else:
 		err_str = "Error: can't find mounted storage device! Please mount SD card or USB key and run program again."
@@ -1357,6 +1358,13 @@ if __name__ == '__main__':
 	#sys.excepthook = myHandler
 	prepare()
 	sendErrorLog()
+	
+	# check if exists directory for secondary we, if no, create
+	try:
+		os.makedirs(stp.place + "www")
+	except OSError as exception:
+		if exception.errno != errno.EEXIST:
+			raise
 	
 	# this is it
 	doLoop()
