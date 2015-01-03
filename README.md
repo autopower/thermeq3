@@ -1,4 +1,4 @@
-﻿#thermeq3
+#thermeq3
 Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
 
 ##Check betabeat directory
@@ -7,6 +7,7 @@ There's always new code, which seems to work on my development thermeq :)
 ##What is new?
 ###2015-Jan-03
 * betabeat: if webserver directory not exist, is created
+* betabeat: correct response on secondary web server, eg: http://arduino.ip:second_port/cgi-bin/status returns app/json from status.xml file
 
 ###2014-Dec-28
 * betabeat: open window list and current status separated into secondary web server as xml files, accessible w/o any credentials
