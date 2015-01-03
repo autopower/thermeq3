@@ -1,4 +1,5 @@
 #!/bin/ash
+echo "opkg update & install..."
 opkg update
 if [ $? -ne 0 ]; then
 	echo "Error during opkg update: $?"
@@ -9,9 +10,6 @@ if [ $? -ne 0 ]; then
 	echo "Error during installing openssl library. Error: $?"
 	exit $?
 fi
-echo "Modyfying uhttp configuration"
-mkdir /root/backup
-cp /etc/config/uhttpd /root/backup/uhttpd.old
 
 if [ -d /mnt/sda1 ]; then
 	DIR=/mnt/sda1
@@ -23,22 +21,28 @@ else
 		exit 1
 	fi
 fi
-
 echo "Using $DIR as storage path."
- 
+
+echo "Backing up configuration..."
+mkdir /root/backup
+cp /etc/config/uhttpd /root/backup/uhttpd.old
+
+echo "Creating directories and cgi scripts" 
 mkdir $DIR/www
 cd $DIR/www
 mkdir cgi-bin
 cd cgi-bin
+
 echo "echo \"Content-type: application/json\"
 	echo \"\"
-	cat $DIR/status.xml" > status
+	cat $DIR/www/status.xml" > status
 echo "echo \"Content-type: application/json\"
 	echo \"\"
-	cat $DIR/owl.xml" > owl
+	cat $DIR/www/owl.xml" > owl
 chmod +x status
 chmod +x owl
 
+echo "Modifying uhttp configuration..."
 echo "config uhttpd secondary
         list listen_http        0.0.0.0:8180
         option home             $DIR/www
@@ -48,13 +52,14 @@ echo "config uhttpd secondary
         option network_timeout  10
         option tcp_keepalive    1
 " >> /etc/config/uhttpd
-echo "Restarting uhttpd"
+echo "Restarting uhttpd..."
 /etc/init.r/uhttpd restart
+
 echo "#!/bin/ash
 if [ \$# -lt 2 ]; then
 	echo \"Please run with thermeq3 name and path as arguments.\"
 	echo \"Example:\"
-	echo \"cs3 $DIR1 boiler\"
+	echo \"cs3 $DIR boiler\"
 else
 	echo \"Using \$2 as thermeq3 name and \$1 as path\"
 	echo \"tail -n 50 \$1/\$2.log\" > /root/ct
