@@ -1,17 +1,12 @@
 #!/usr/bin/env python
+import sys
+sys.path.insert(0, "/usr/lib/python2.7/bridge/") 
 import socket
 import base64
-import sys
 import time
-sys.path.insert(0, "/usr/lib/python2.7/bridge/") 
-from bridgeclient import BridgeClient
 import datetime
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
-from email.MIMEBase import MIMEBase
-from email import Encoders
 import os
-from ast import literal_eval
+import errno
 import smtplib
 import logging
 import traceback
@@ -19,6 +14,14 @@ import urllib2
 import hashlib
 import httplib
 import struct
+from bridgeclient import BridgeClient
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEText import MIMEText
+from email.MIMEBase import MIMEBase
+from email import Encoders
+from ast import literal_eval
+from xml.etree.ElementTree import parse
+
 
 class setup: pass
 class variables: pass
@@ -1075,6 +1078,32 @@ def rightTime(what):
 #
 # beta features
 #
+def weather_for_woeid(woeid):
+	WEATHER_URL = "http://xml.weather.yahoo.com/forecastrss?w=%s&u=c"
+	WEATHER_NS = "http://xml.weather.yahoo.com/ns/rss/1.0"
+	url = WEATHER_URL % woeid
+	rss = parse(urllib2.urlopen(url)).getroot()
+	
+	humidity = rss.find("channel/{%s}atmosphere" % WEATHER_NS)
+    
+	forecasts = []
+	for element in rss.findall("channel/item/{%s}forecast" % WEATHER_NS):
+		forecasts.append({
+			"date": element.get("date"),
+			"low": element.get("low"),
+			"high": element.get("high"),
+			"condition": element.get("text")
+		})
+	ycondition = rss.find("channel/item/{%s}condition" % WEATHER_NS)
+    
+	return {
+        "current_condition": ycondition.get("text"),
+        "current_temp": ycondition.get("temp"),
+        "forecasts": forecasts,
+        "title": rss.findtext("channel/title"),
+        "humidity": humidity.get("humidity")
+    }
+
 def time_in_range(start, end, x):
     today = datetime.date.today()
     start = datetime.datetime.combine(today, start)
@@ -1214,7 +1243,7 @@ def setupInit():
 					"upg": [4*60*60, 0, tm], \
 					"var": [10*60, 0, tm], \
 					# threshold, send every X, muted for X
-					"oww": [10*60, 45*60, 45*60], \
+					"oww": [15*60, 45*60, 45*60], \
 					# threshold, muted for X, time.time(), trust me, if you don't have access to thermostat you'll kill thermeq for 15*60 :)
 					"wrn": [6*60*60, 24*60*60, tm], \
 					"err": [0, 0, 0.0], \
@@ -1283,7 +1312,7 @@ if __name__ == '__main__':
 	# setup values
 	stp = setup()
 	stp.version = 133
-	# turn off writing <funcname> START, <funcname> STOP into the DEBUG, just write DEBUG
+	# turn off writing <funcname> START, <funcname> STOP into the DEBUG
 	stp.globalDebugSS = False
 	# required values, if any error in bridge then stp.defaults is used	
 	stp.cw = {"valve": ["valve_pos", 35], \
