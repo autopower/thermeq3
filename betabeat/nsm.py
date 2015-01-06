@@ -21,7 +21,7 @@ from email.MIMEBase import MIMEBase
 from email import Encoders
 from ast import literal_eval
 from xml.etree.ElementTree import parse
-
+from math import exp
 
 class setup: pass
 class variables: pass
@@ -1079,6 +1079,7 @@ def rightTime(what):
 # beta features
 #
 def weather_for_woeid(woeid):
+	# please change u=c to u=f for farenheit below
 	WEATHER_URL = "http://xml.weather.yahoo.com/forecastrss?w=%s&u=c"
 	WEATHER_NS = "http://xml.weather.yahoo.com/ns/rss/1.0"
 	url = WEATHER_URL % woeid
@@ -1104,6 +1105,22 @@ def weather_for_woeid(woeid):
         "humidity": humidity.get("humidity")
     }
 
+    return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
+
+def scale(val, src, dst):
+    # Scale the given value from the scale of src to the scale of dst
+    return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
+    
+def updateOWW2sit():
+	# update open window warning interval according to outside temperature
+	var.sit = weather_for_woeid(stp.location)
+	a = scale(var.sit["current_temp"], (-35.0, 35.0), (0, 10))
+	# sample temperature to interval 10min ~ 360min (at -35/at 35 'C)
+	# so warning will be fired after 10 mins at -35, and after 360 mins at 35 'C
+	# sampled through exp function  
+	b = int(scale(exp(a), (exp(0), exp(10)), (10, 360)))
+	# and maybe we need take care of humidity here :) ooo next time
+	
 def time_in_range(start, end, x):
     today = datetime.date.today()
     start = datetime.datetime.combine(today, start)
@@ -1264,8 +1281,13 @@ def varInit():
 	var.actDayIndex = -1
 	# dictionary for ignoring valves after closing window
 	var.d_ignore = {}
+	# variable for weather situation
+	var.sit = {}
 	
 def prepare():
+	# update this to your location
+	stp.location = 818717
+	# 
 	stp.percentage = 3
 	stp.github = "https://raw.github.com/autopower/thermeq3/master/"
 	stp.homedir = "/root/"
@@ -1311,7 +1333,7 @@ def prepare():
 if __name__ == '__main__':
 	# setup values
 	stp = setup()
-	stp.version = 133
+	stp.version = 134
 	# turn off writing <funcname> START, <funcname> STOP into the DEBUG
 	stp.globalDebugSS = False
 	# required values, if any error in bridge then stp.defaults is used	
