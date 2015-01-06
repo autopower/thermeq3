@@ -7,6 +7,8 @@ There's always new code, which seems to work on my development thermeq :)
 ##What is new?
 ###2015-Jan-06
 * support for yahoo weather, stay tuned for open window interval auto update by actual weather situation (temperature, humidity), better ventilation 'support'
+* resample function
+* support directory in betabeat, check code for sampling function, modify to your needs
 
 ###2015-Jan-03
 * betabeat: if webserver directory not exist, is created
