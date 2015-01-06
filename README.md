@@ -5,6 +5,9 @@ Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Jan-06
+* support for yahoo weather, stay tuned for open window interval auto update by actual weather situation (temperature, humidity), better ventilation 'support'
+
 ###2015-Jan-03
 * betabeat: if webserver directory not exist, is created
 * betabeat: correct response on secondary web server, eg: http://arduino.ip:second_port/cgi-bin/status returns app/json from status.xml file
