@@ -10,6 +10,11 @@ if [ $? -ne 0 ]; then
 	echo "Error during installing openssl library. Error: $?"
 	exit $?
 fi
+opkg install python-expat
+if [ $? -ne 0 ]; then
+	echo "Error during installing expat library. Error: $?"
+	exit $?
+fi
 
 if [ -d /mnt/sda1 ]; then
 	DIR=/mnt/sda1
@@ -39,8 +44,12 @@ echo "echo \"Content-type: application/json\"
 echo "echo \"Content-type: application/json\"
 	echo \"\"
 	cat $DIR/www/owl.xml" > owl
+echo "echo \"Content-type: text/html\"
+	echo \"\"
+	cat $DIR/www/nice.html" > nice
 chmod +x status
 chmod +x owl
+chmod +x nice
 
 echo "Modifying uhttp configuration..."
 echo "config uhttpd secondary

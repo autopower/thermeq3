@@ -7,7 +7,7 @@ There's always new code, which seems to work on my development thermeq :)
 ##What is new?
 ###2015-Jan-07
 * betabeat: yahoo weather and oww interval sampling working
-* betabeat: in secondary web folder `nice.html` file is generated, contains nice formated status (hm, if <pre> means nice)
+* betabeat: in secondary web folder `nice.html` file is generated, contains nice formated status (hm, if pre means nice)
 
 ###2015-Jan-06
 * support for yahoo weather, stay tuned for open window interval auto update by actual weather situation (temperature, humidity), better ventilation 'support'
