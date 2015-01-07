@@ -23,6 +23,10 @@ from ast import literal_eval
 from xml.etree.ElementTree import parse
 from math import exp
 
+
+
+
+
 class setup: pass
 class variables: pass
 
@@ -1105,21 +1109,39 @@ def weather_for_woeid(woeid):
         "humidity": humidity.get("humidity")
     }
 
-    return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
-
 def scale(val, src, dst):
     # Scale the given value from the scale of src to the scale of dst
     return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
     
 def updateOWW2sit():
 	# update open window warning interval according to outside temperature
+	# minimum and maximum temperature to be considered
+	t = {"min": -35, "max": 35}
+	# remap values on x scale
+	r = {"min": 0, "max": 10}
+	# minimum and maximum value for open window warning
+	w = {"min": 10, "max": 360}
 	var.sit = weather_for_woeid(stp.location)
-	a = scale(var.sit["current_temp"], (-35.0, 35.0), (0, 10))
+
+	# check if current temperature is in interval
+	temp = int(var.sit["current_temp"])
+	
+	if temp < t["min"]:
+		temp = t["min"]
+	elif temp > t["max"]:
+		temp = t["max"]
+	
+	
+	a = scale(temp, (t["min"], t["max"]), (r["min"], r["max"]))
 	# sample temperature to interval 10min ~ 360min (at -35/at 35 'C)
 	# so warning will be fired after 10 mins at -35, and after 360 mins at 35 'C
 	# sampled through exp function  
-	b = int(scale(exp(a), (exp(0), exp(10)), (10, 360)))
-	# and maybe we need take care of humidity here :) ooo next time
+	b = int(scale(exp(a), (exp(r["min"]), exp(r["max"])), (w["min"], w["max"])))
+	# and maybe we need take care of humidity here :) oooh next time
+	# humidity code
+	#
+	stp.intervals["oww"] =  [b * 60, (3 * b) * 60, (3 * b) * 60]
+	var.logger.debug("OWW interval updated to " + str(stp.intervals["oww"]))
 	
 def time_in_range(start, end, x):
     today = datetime.date.today()
@@ -1177,6 +1199,9 @@ def doLoop():
 			else:
 				logstr = "Public"
 			var.logger.debug(logstr + " IP address: " + stp.myip)
+			# BETA!
+			updateOWW2sit()
+			# BETA!
 		# check max according schedule
 		if rightTime("max"):
 			## beta features here
