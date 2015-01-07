@@ -33,8 +33,8 @@ class variables: pass
 #
 # error handling, primitive but funny
 #
-##def myHandler(type, value, tb):
-##	var.logger.exception("Uncaught exception: {0}".format(str(value)))
+#def myHandler(type, value, tb):
+#	var.logger.exception("Uncaught exception: {0}".format(str(value)))
 	
 def redirErr(onoff):
 	if onoff:
@@ -465,9 +465,9 @@ def sendStatus():
 	logSS(False)
 
 def silence(key, isWin):
-	##
-	## d_w = key: OW_time(thisnow), isMuted(False), warning/error count(0)
-	##
+	#
+	# d_w = key: OW_time(thisnow), isMuted(False), warning/error count(0)
+	#
 	# is there key in dict?
 	dt = datetime.datetime.now()
 	if not key in var.d_W:
@@ -480,10 +480,10 @@ def silence(key, isWin):
 		return 2
 	else:
 		# yes, there it is, so check if we are silent, if so exit, otherwise reset mute
-		## threshold, send every X, muted for X
-		## "oww": [10*60, 30*60, 45*60]
-		## threshold, muted for X, time.time()
-		##	"wrn": [60*60, 60*60, tm]
+		# threshold, send every X, muted for X
+		# "oww": [10*60, 30*60, 45*60]
+		# threshold, muted for X, time.time()
+		#	"wrn": [60*60, 60*60, tm]
 		if var.d_W[key][1]:
 			# yes, we must be silent
 			if isWin:
@@ -514,7 +514,7 @@ def itsWarnTime():
 	
 def sendWarning(selector, dev_key, body_txt):
 	logSS(True)
-	## var.logger.debug("sendWarning(" + str(selector) + ", " + str(dev_key) + ", " + str(body_txt) + ")")
+	# var.logger.debug("sendWarning(" + str(selector) + ", " + str(dev_key) + ", " + str(body_txt) + ")")
 	devname = stp.devname
 	if selector != "openmax" and selector != "upgrade":
 		d = stp.devices[dev_key]
@@ -535,7 +535,7 @@ def sendWarning(selector, dev_key, body_txt):
 		owd = int((datetime.datetime.now() - stp.devices[dev_key][5]).total_seconds())
 		oww = int((datetime.datetime.now() - var.d_W[dev_key][0]).total_seconds())
 		if sil == 0 and oww < stp.intervals["oww"][1]:
-			var.logger.debug("Condition not met. Trace=" + str(oww) + "/" + str(var.d_W[dev_key][0]))
+			# var.logger.debug("Condition not met. Trace=" + str(oww) + "/" + str(var.d_W[dev_key][0]))
 			return
 		msg["Subject"] = "Open window in room " + str(rn[0]) + ". Warning from " + devname + " (thermeq3 device)"
 		body = """<html><body><font face="arial,sans-serif">
@@ -903,8 +903,17 @@ def writeStrings():
 	# var.value.put(rCW("cur"), current)
 	
 	# second web
-	secweb = open(stp.secweb, "w")
+	# JSON formated status
+	secweb = open(stp.secweb["status"], "w")
 	secweb.write(str(current))
+	secweb.close()
+	# nice text web
+	logstr.replace("\r\n", "<br/>")
+	logstr.replace("\t", "&#9;")	
+	secweb = open(stp.secweb["nice"], "w")
+	secweb.write("<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>")
+	secweb.write(str(logstr))
+	secweb.write("</pre></p>\r\n</body>\r\n</html>")
 	secweb.close()
 
 def readMAXData(refresh):
@@ -1012,9 +1021,8 @@ def doControl():
 		if isRadioError(k):
 			sendWarning("error", k, "")
 
-	# var.value.put(rCW("owl"), str(tmp))
 	# second web
-	owlfile = open(stp.owl, "w")
+	owlfile = open(stp.secweb["owl"], "w")
 	owlfile.write(str(tmp))
 	owlfile.close()
 												
@@ -1101,12 +1109,16 @@ def weather_for_woeid(woeid):
 		})
 	ycondition = rss.find("channel/item/{%s}condition" % WEATHER_NS)
     
+	city = rss.find("channel/{%s}location" % WEATHER_NS)
+	var.logger.debug("Current temperature in " + str(city.get("city")) + " is " + str(ycondition.get("temp")) + ", humidity " + str(humidity.get("humidity")) + "%")
+    
 	return {
         "current_condition": ycondition.get("text"),
         "current_temp": ycondition.get("temp"),
         "forecasts": forecasts,
         "title": rss.findtext("channel/title"),
-        "humidity": humidity.get("humidity")
+        "humidity": humidity.get("humidity"),
+        "city": city.get("city")
     }
 
 def scale(val, src, dst):
@@ -1164,7 +1176,7 @@ def isTime():
 	return -1
 
 def dayMode():
-	## day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
+	# day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
 	md = isTime()
 	if md != -1:
 		if md != var.actDayIndex:
@@ -1204,10 +1216,10 @@ def doLoop():
 			# BETA!
 		# check max according schedule
 		if rightTime("max"):
-			## beta features here
+			# beta features here
 			if tryRead("beta", "no", False).upper() == "YES":
 				dayMode()
-			## end of beta			
+			# end of beta			
 			cmd = getCMD()
 			if cmd == "init":
 				closeMAX()
@@ -1292,7 +1304,7 @@ def setupInit():
 					# just sleep value, always calculated as max[0] / slp[1]
 					"slp": [40, 3, 0]}
 	# day windows/intervals
-	## day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
+	# day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
 	stp.day =  [["00:00", "06:00", 35, "per", 240, 1], \
 				["06:00", "10:00", 36, "per", 120, 1], \
 				["10:00", "14:00", 30, "per", 120, 2], \
@@ -1322,8 +1334,10 @@ def prepare():
 			
 	stp.csv_log = stp.place + stp.devname + ".csv"
 	stp.bridgefile = stp.place + stp.devname + ".bridge"
-	stp.secweb = stp.place + "www/status.xml"
-	stp.owl = stp.place + "www/owl.xml"	
+	
+	stp.secweb = {"status": str(stp.place + "www/status.xml"), \
+		"owl": str(stp.place + "www/owl.xml"), \
+		"nice": str(stp.place + "www/nice.html")}
  
 	# dictionaries for MAX
 	stp.maxid = {"sn":"000000", "rf":"", "fw":""}
