@@ -9,6 +9,7 @@ import os
 import errno
 import smtplib
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import traceback
 import urllib2
 import hashlib
@@ -48,33 +49,56 @@ def redirErr(onoff):
 		var.ferr.close()
 
 def llError(err_string):
-	err_file = open("/root/nsm.error", "a")
-	err_file.write(time.strftime("%H:%M:%S", time.localtime()) + "\t" + err_string + "\r\n")
-	err_file.close()
+	try:
+		err_file = open("/root/nsm.error", "a")
+	except:
+		print "Error writing to error file!"
+		print err_string
+	else:
+		err_file.write(time.strftime("%H:%M:%S", time.localtime()) + "\t" + err_string + "\r\n")
+		err_file.close()
 	
 #
 # helpers
 #
 def rCW(cw):
+	""" returns command word, always string """
 	if cw in stp.cw:
-		return stp.cw[cw][0]
+		return str(stp.cw[cw][0])
 	else:
 		return "wrong_key"
 
+def secWebFile(cw, txt):
+	""" saves txt to file which is in secondary web directory """
+	try:
+		fn = str(stp.secweb[str(cw)])
+	except:
+		var.looger.error("Wrong cw [" + str(cw) + "] for saving file!")
+	else:	
+		try:
+			sf = open(fn, "w")
+		except:
+			var.logger.error("Error writing to file " + fn + "!")
+		else:
+			sf.write(str(txt))
+			sf.close()
+
 def is_private(lookup):
-    f = struct.unpack('!I', socket.inet_pton(socket.AF_INET, lookup))[0]
-    private = (
+	""" returns True if IP address is private, False if not """
+	f = struct.unpack('!I', socket.inet_pton(socket.AF_INET, lookup))[0]
+	private = (
         [ 2130706432, 4278190080 ], # 127.0.0.0,   255.0.0.0   http://tools.ietf.org/html/rfc3330
         [ 3232235520, 4294901760 ], # 192.168.0.0, 255.255.0.0 http://tools.ietf.org/html/rfc1918
         [ 2886729728, 4293918720 ], # 172.16.0.0,  255.240.0.0 http://tools.ietf.org/html/rfc1918
         [ 167772160,  4278190080 ], # 10.0.0.0,    255.0.0.0   http://tools.ietf.org/html/rfc1918
     ) 
-    for net in private:
-        if (f & net[1] == net[0]):
-            return True
-    return False
+	for net in private:
+		if (f & net[1] == net[0]):
+			return True
+	return False
     
 def getPublicIP():
+	""" gets public IP, using service at ip.42.pl/raw address """
 	try:
 		stp.myip = str(urllib2.urlopen('http://ip.42.pl/raw').read())
 		tmp = 1
@@ -87,7 +111,7 @@ def getPublicIP():
 	return tmp
                 
 def hexify(tmpadr):
-	return "".join("%02x" % ord(c) for c in tmpadr)
+	return "".join("%02x" % ord(c) for c in tmpadr).upper()
 
 def getHash(filename):
 	checksum = hashlib.md5()
@@ -155,7 +179,7 @@ def tryRead(cw, default, save):
 		isNum = True
 	lcw = rCW(cw)
 
-	tmp_str = var.value.get(str(lcw))
+	tmp_str = var.value.get(lcw)
 
 	if tmp_str == "None":
 		tmp = default
@@ -168,7 +192,7 @@ def tryRead(cw, default, save):
 		else:
 			tmp = tmp_str
 	if save:
-		var.value.put(str(lcw), str(tmp))
+		var.value.put(lcw, str(tmp))
 	return tmp
 	
 def readlines(sock, recv_buffer=4096, delim="\r\n"):
@@ -222,18 +246,22 @@ def sendEmail(sendTxt):
 	return 1
 
 def saveBridge():
-	f = open(stp.bridgefile, "w")
-	for k, v in stp.cw.iteritems():
-		if k != "dump":
-			try:
-				tmp = var.value.get(v[0])
-			except:
-				tmp = ""
-			if tmp == "None" or tmp is None:
-				tmp = str(v[1])
-			f.write(v[0] + "=" + str(tmp) + "\r\n")
-	f.close()
-	var.logger.debug("Bridge file saved.")
+	try:
+		f = open(stp.bridgefile, "w")
+	except:
+		var.logger.error("Error writing to bridgefile!")
+	else:
+		for k, v in stp.cw.iteritems():
+			if k != "dump":
+				try:
+					tmp = var.value.get(v[0])
+				except:
+					tmp = ""
+				if tmp == "None" or tmp is None:
+					tmp = str(v[1])
+				f.write(v[0] + "=" + str(tmp) + "\r\n")
+		f.close()
+		var.logger.debug("Bridge file saved.")
 	
 def loadBridge():
 	if os.path.exists(stp.bridgefile):
@@ -598,30 +626,37 @@ def sendWarning(selector, dev_key, body_txt):
 # logging etc
 #
 def startLog():
+	""" opens log file """
 	var.logger = logging.getLogger("thermeq3")
 	var.logger.setLevel(logging.DEBUG)
-
-	#var.fh = logging.TimedRotatingFileHandler(stp.log_filename, when="W0", interval=4, backupCount=12)
-
-	var.fh = logging.FileHandler(stp.log_filename)
+	
+	# var.fh = logging.FileHandler(stp.log_filename)
+	var.fh = TimedRotatingFileHandler(stp.log_filename, when="W0", interval=4, backupCount=12)
 	var.fh.setLevel(logging.DEBUG)
+	
 	formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y/%m/%d %H:%M:%S")
 	var.fh.setFormatter(formatter)
 	var.logger.addHandler(var.fh)
 
-	var.logger.info("V" + str(stp.version) + " started with PID=" + str(os.getpid()))
+	var.logger.info("--> V" + str(stp.version) + " started with PID=" + str(os.getpid()) + " <--")
 
 def exportCSV(onoff):
 	if onoff == "init":
 		if os.path.exists(stp.csv_log):
 			os.rename(stp.csv_log, stp.place + stp.devname + "_" + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + ".csv")
-		var.csv = open(stp.csv_log, "a")
+		try:
+			var.csv = open(stp.csv_log, "a")
+		except:
+			raise
 	elif onoff == "headers":
 		for k, v in stp.valves.iteritems():
 			var.csv.write(stp.devices[k][2] + "," + stp.devices[k][2] + ",")
 		var.csv.write("\r\n")
 	elif onoff == "close":
-		var.csv.close()
+		try:
+			var.csv.close()
+		except:
+			var.logger.error("Can't close CSV file!")
 		
 #
 # EQ-3/ELV MAX! communication
@@ -837,13 +872,13 @@ def dumpMAX(method):
 	logSS(True)
 	txt = "DEVICES={"
 	for k, v in stp.devices.iteritems():
-		txt += str(k).upper() + ":" + str(v) + ", "
+		txt += str(k) + ":" + str(v) + ", "
 	txt += "}; VALVES={"
 	for k, v in stp.valves.iteritems():
-		txt += str(k).upper() + ":" + str(v) + ", "
+		txt += str(k) + ":" + str(v) + ", "
 	txt += "}; DEV_LOG={"
 	for k,v in var.dev_log.iteritems():
-		txt += str(k).upper() + ":" + str(v) + ", "
+		txt += str(k) + ":" + str(v) + ", "
 	txt += "}"
 	if method == 1:
 		var.logger.debug(txt)
@@ -876,7 +911,7 @@ def writeStrings():
 		# update rooms string
 		room_id = str(getName(k)[0])
 		roomStr = rooms[room_id][0]
-		roomStr += "\r\n\t[" + str(k.upper()) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(str(v[0])) + "% @ " + \
+		roomStr += "\r\n\t[" + str(k) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(str(v[0])) + "% @ " + \
 			'{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
 		cv = countValve(k)  
 		if cv:
@@ -887,7 +922,7 @@ def writeStrings():
 		rooms[room_id][0] = roomStr
 		var.csv.write(str(v[0]) + "," + str(v[1]) + ",")
 		
-		current[room_id].update({str(k.upper()):[str(stp.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), \
+		current[room_id].update({str(k):[str(stp.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), \
 			str(1 if cv else 0)]})
 	
 	var.csv.write("\r\n")
@@ -904,17 +939,12 @@ def writeStrings():
 	
 	# second web
 	# JSON formated status
-	secweb = open(stp.secweb["status"], "w")
-	secweb.write(str(current))
-	secweb.close()
+	secWebFile("status", current)
 	# nice text web
 	logstr.replace("\r\n", "<br/>")
 	logstr.replace("\t", "&#9;")	
-	secweb = open(stp.secweb["nice"], "w")
-	secweb.write("<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>")
-	secweb.write(str(logstr))
-	secweb.write("</pre></p>\r\n</body>\r\n</html>")
-	secweb.close()
+	secWebFile("nice", "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" \
+		+ logstr + "</pre></p>\r\n</body>\r\n</html>")
 
 def readMAXData(refresh):
 	logSS(True)
@@ -931,7 +961,7 @@ def readMAXData(refresh):
 # and here we go, this is app logic
 #
 def isWinOpen(key):
-	# Return true if window is open
+	""" Return true if window is open """
 	v = stp.devices[key]
 	if v[0] == 4 and v[4] == 2:
 		return True
@@ -939,7 +969,7 @@ def isWinOpen(key):
 		return False
 
 def isWinOpenTooLong(key):
-	# return True if window open time is > defined warning interval 
+	""" return True if window open time is > defined warning interval """ 
 	v = stp.devices[key]
 	if isWinOpen(key):
 		tmp = (datetime.datetime.now() - v[5]).total_seconds()
@@ -1022,9 +1052,7 @@ def doControl():
 			sendWarning("error", k, "")
 
 	# second web
-	owlfile = open(stp.secweb["owl"], "w")
-	owlfile.write(str(tmp))
-	owlfile.close()
+	secWebFile("owl", tmp)
 												
 	if var.err2Clear and not var.error:
 		queueMsg("C")
@@ -1091,6 +1119,7 @@ def rightTime(what):
 # beta features
 #
 def weather_for_woeid(woeid):
+	""" returns weather from yahoo weather from given WOEID """
 	# please change u=c to u=f for farenheit below
 	WEATHER_URL = "http://xml.weather.yahoo.com/forecastrss?w=%s&u=c"
 	WEATHER_NS = "http://xml.weather.yahoo.com/ns/rss/1.0"
@@ -1122,7 +1151,7 @@ def weather_for_woeid(woeid):
     }
 
 def scale(val, src, dst):
-    # Scale the given value from the scale of src to the scale of dst
+    """ Scale the given value from the scale of src to the scale of dst """
     return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
     
 def updateOWW2sit():
@@ -1372,7 +1401,7 @@ def prepare():
 if __name__ == '__main__':
 	# setup values
 	stp = setup()
-	stp.version = 134
+	stp.version = 135
 	# turn off writing <funcname> START, <funcname> STOP into the DEBUG
 	stp.globalDebugSS = False
 	# required values, if any error in bridge then stp.defaults is used	
