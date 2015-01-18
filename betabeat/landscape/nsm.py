@@ -154,18 +154,12 @@ class variables(object):
 		self.error = False
 
 
-"""
-def myHandler(type, value, tb):
-	# error handling, primitive
-	var.logger.exception("Uncaught exception: {0}".format(str(value)))
-"""
-
 def redirErr(onoff):
 	if onoff:
 		stp.stderr_log = stp.place + stp.devname + "_error.log"
 		try:
 			var.ferr = open(stp.stderr_log, "a")
-		except:
+		except Exception:
 			raise
 		else:
 			var.original_stderr = sys.stderr
@@ -180,7 +174,7 @@ def redirErr(onoff):
 def llError(err_string):
 	try:
 		err_file = open("/root/nsm.error", "a")
-	except:
+	except Exception:
 		print "Error writing to error file!"
 		print err_string
 	else:
@@ -201,12 +195,12 @@ def secWebFile(cw, txt):
 	""" saves txt to file which is in secondary web directory """
 	try:
 		fn = str(stp.secweb[str(cw)])
-	except:
+	except Exception:
 		var.logger.error("Wrong cw [" + str(cw) + "] for saving file!")
 	else:	
 		try:
 			sf = open(fn, "w")
-		except:
+		except Exception:
 			var.logger.error("Error writing to file " + fn + "!")
 		else:
 			sf.write(str(txt))
@@ -326,7 +320,7 @@ def tryRead(cw, default, save):
 		if isNum:
 			try:
 				tmp = int(tmp_str)
-			except:
+			except Exception:
 				tmp = default
 		else:
 			tmp = tmp_str
@@ -393,14 +387,14 @@ def sendEmail(sendTxt):
 def saveBridge():
 	try:
 		f = open(stp.bridgefile, "w")
-	except:
+	except Exception:
 		var.logger.error("Error writing to bridgefile!")
 	else:
 		for k, v in stp.cw.iteritems():
 			if k != "dump":
 				try:
 					tmp = var.value.get(v[0])
-				except:
+				except Exception:
 					tmp = ""
 				if tmp == "None" or tmp is None:
 					tmp = str(v[1])
@@ -421,7 +415,7 @@ def loadBridge():
 				if t[0] == rCW("ht"):
 					try:
 						var.ht = literal_eval(t[1])
-					except:
+					except Exception:
 						var.ht = {"total": [0, 0.0]}				
 				elif not rCW("dump") in line:
 					if t[0] in cw:
@@ -798,7 +792,7 @@ def exportCSV(onoff):
 			os.rename(stp.csv_log, stp.place + stp.devname + "_" + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + ".csv")
 		try:
 			var.csv = open(stp.csv_log, "a")
-		except:
+		except Exception:
 			raise
 		else:
 			for k, v in stp.valves.iteritems():
@@ -807,7 +801,7 @@ def exportCSV(onoff):
 	elif onoff == "close":
 		try:
 			var.csv.close()
-		except:
+		except Exception:
 			var.logger.error("Can't close CSV file!")
 
 
@@ -1308,7 +1302,7 @@ def weather_for_woeid(woeid):
 	url = WEATHER_URL % woeid
 	try:
 		rss = parse(urllib2.urlopen(url)).getroot()
-	except:
+	except Exception:
 		pass
 	else:
 		humidity = rss.find("channel/{%s}atmosphere" % WEATHER_NS)
@@ -1554,7 +1548,6 @@ if __name__ == '__main__':
 	# redir stderr to file
 	redirErr(True)
 	
-	# TBI: sys.excepthook = myHandler
 	prepare()
 	sendErrorLog()
 
