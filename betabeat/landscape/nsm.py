@@ -30,7 +30,7 @@ class setup:
 		self.version = 135
 		# turn off writing <funcname> START, <funcname> STOP into the DEBUG
 		self.globalDebugSS = False
-		# required values, if any error in bridge then stp.defaults is used
+		# required values, if any error in bridge then defaults is used [1]
 		self.cw = {"valve": ["valve_pos", 35],
 			"valves": ["valves", 1],
 			"total": ["total_switch", 150],
@@ -58,8 +58,6 @@ class setup:
 		self.statusMsg = {"idle": "idle", "heat": "heating", "start": "starting", "dead": "dead"}
 		# my IP address
 		self.myip = "127.0.0.1"
-		# port of yun bridge
-		self.extport = 80
 		# sd card or usb key mount point, default is /mnt/sda1/
 		self.place = ""
 		# where is stderr log located, default is stp.place + stp.devname + "_error.log"
@@ -79,10 +77,18 @@ class setup:
 		self.homedir = "/root/"
 		# abnormal count of warning is
 		self.abnormalCount = 30
-		# device name
-		self.devname = ""
 		# stp.stderr_log = stp.place + stp.devname + "_error.log"
 		self.stderr_log = ""
+		""" this is in config.py file, here just for set type """
+		self.max_ip = ""
+		self.fromaddr = ""
+		self.toaddr = ""
+		self.mailserver = ""
+		self.mailport = 25
+		self.frompwd = ""
+		self.devname = ""
+		self.timeout = 10
+		self.extport = 80
 
 
 	def initIntervals(self):
@@ -408,7 +414,7 @@ def saveBridge():
 def loadBridge():
 	if os.path.exists(stp.bridgefile):
 		with open(stp.bridgefile, "r") as f:
-			# create dictionary fro codewords setup dictionary
+			# create dictionary from codewords setup dictionary
 			cw = {}
 			for k,v in stp.cw.iteritems():
 				cw.update({v[0]:v[1]})
@@ -432,7 +438,7 @@ def loadBridge():
 		var.logger.debug("Bridge file loaded.")
 		updateAllTimes()
 	else:
-		for k, v in stp.defaults.iteritems():
+		for k, v in stp.cw.iteritems():
 			var.value.put(v[0], v[1])
 		var.logger.error("Error loading bridge file, using defaults!")
 
