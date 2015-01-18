@@ -16,10 +16,10 @@ import hashlib
 import httplib
 import struct
 from bridgeclient import BridgeClient
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
-from email.MIMEBase import MIMEBase
-from email import Encoders
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+import email.encoders
 from ast import literal_eval
 from xml.etree.ElementTree import parse
 from math import exp
@@ -114,7 +114,7 @@ class setup(object):
 					["22:00", "23:59", 35, "per", 120, 1]]
 
 
- 	def initPaths(self):
+	def initPaths(self):
 		self.log_filename = self.place + self.devname + ".log"
 		self.appStartTime = time.time()
 		self.csv_log = self.place + self.devname + ".csv"
@@ -408,8 +408,8 @@ def loadBridge():
 		with open(stp.bridgefile, "r") as f:
 			# create dictionary from codewords setup dictionary
 			cw = {}
-			for k,v in stp.cw.iteritems():
-				cw.update({v[0]:v[1]})
+			for k in stp.cw.iteritems():
+				cw.update({k[1][0]:k[1][1]})
 			for line in f:
 				t = (line.rstrip("\r\n")).split('=')
 				if t[0] == rCW("ht"):
@@ -736,9 +736,9 @@ def sendWarning(selector, dev_key, body_txt):
 			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins. \
 			</p></body></html>""" % \
 			{'a0': str(dn), \
-		 	'a1': str(rn[0]), \
-		 	'a2': str(mutestr), \
-		 	'a3': int(stp.intervals["wrn"][1] / 60)}
+			'a1': str(rn[0]), \
+			'a2': str(mutestr), \
+			'a3': int(stp.intervals["wrn"][1] / 60)}
 		elif selector == "error":
 			msg["Subject"] = "Error report for device " + str(dn) + ". Warning from " + devname + " (thermeq3 device)"
 			body = """<html><body><font face="arial,sans-serif">
@@ -749,9 +749,9 @@ def sendWarning(selector, dev_key, body_txt):
 			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins. \
 			</p></body></html>""" % \
 			{'a0': str(dn), \
-		 	'a1': str(rn[0]), \
-		 	'a2': str(mutestr), \
-		 	'a3': int(stp.intervals["wrn"][1] / 60)}
+			'a1': str(rn[0]), \
+			'a2': str(mutestr), \
+			'a3': int(stp.intervals["wrn"][1] / 60)}
 		elif selector == "openmax":
 			msg["Subject"] = "Can't connect to MAX! Cube! Warning from " + devname + " (thermeq3 device)"
 			body = body_txt
