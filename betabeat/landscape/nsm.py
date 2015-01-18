@@ -920,6 +920,7 @@ def maxCmd_L(line):
 	""" process L response """
 	es = base64.b64decode(line[0])
 	es_pos = 0
+	this_now = datetime.datetime.now()
 	while (es_pos < len(es)):
 		dev_len = ord(es[es_pos]) + 1
 		valve_adr = hexify(es[es_pos+1:es_pos+4])
@@ -969,7 +970,6 @@ def readMAX(refresh):
 	""" read data from MAX! cube """
 	var.client_socket.settimeout(int(stp.timeout / 3))
 	var.error = False
-	this_now = datetime.datetime.now()
 	for line in readlines(var.client_socket):
 		data = line
 		sd = data[2:].split(",")		
@@ -988,7 +988,7 @@ def closeMAX():
 	var.client_socket.close()
 
 
-""" some stupid commands :) """
+# some stupid commands :) 
 def updateCounters(heatStart):
 	# save the date 
 	nw = datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y")
