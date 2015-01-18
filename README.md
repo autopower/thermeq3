@@ -5,6 +5,9 @@ Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Jan-18
+* more pythonic code, classes etc.
+
 ###2015-Jan-07
 * betabeat: yahoo weather and oww interval sampling working
 * betabeat: in secondary web folder `nice.html` file is generated, contains nice formated status (hm, if pre means nice)
