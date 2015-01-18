@@ -435,9 +435,7 @@ def loadBridge():
 		var.logger.error("Error loading bridge file, using defaults!")
 
 
-"""
- problem prediction routines, if during heating valve didn't change position, something is wrong
-"""
+# problem prediction routines, if during heating valve didn't change position, something is wrong 
 def isSame(key):
 	tmp = var.dev_log[key][1]
 	kv = stp.valves[key][1]
@@ -457,9 +455,7 @@ def doDevLogging():
 			var.dev_log.update({k:[0, v[0]]})
 								
 
-"""
-autoupdate routines
-"""
+# autoupdate routines
 def downloadFile(filename):
 	errstr = ""
 	try:
@@ -913,7 +909,6 @@ def maxCmd_L(line):
 	""" process L response """
 	es = base64.b64decode(line[0])
 	es_pos = 0
-	this_now = datetime.datetime.now()
 	while (es_pos < len(es)):
 		dev_len = ord(es[es_pos]) + 1
 		valve_adr = hexify(es[es_pos+1:es_pos+4])
