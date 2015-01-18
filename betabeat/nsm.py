@@ -27,7 +27,7 @@ from math import exp
 
 class setup(object):
 	def __init__(self):
-		self.version = 135
+		self.version = 136
 		# turn off writing <funcname> START, <funcname> STOP into the DEBUG
 		self.globalDebugSS = False
 		# required values, if any error in bridge then defaults is used [1]
@@ -845,10 +845,9 @@ def openMAX():
 def setIgnoredValves(key):
 	room = stp.devices[key][3]
 	for k, v in stp.devices.iteritems():
-		dev = stp.devices[k]
 		# this is heating thermostat and is in room where we want ignore all heating thermostats and is not in d_ignore dictionary
 		# it means, it not ignored now
-		if dev[0] == 1 and dev[3] == room and not k in var.d_ignore:
+		if v[0] == 1 and v[3] == room and not k in var.d_ignore:
 			# don't heat X*60 seconds after closing window
 			var.d_ignore.update({k: time.time() + var.ignore_time * 60})
 			var.logger.debug("Ignoring valve " + str(k) + " until " +  time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(var.d_ignore[k])))
