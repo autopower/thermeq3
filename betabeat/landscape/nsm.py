@@ -188,9 +188,7 @@ def llError(err_string):
 		err_file.close()
 
 
-""" 
-helpers
-"""
+# helpers
 def rCW(cw):
 	""" returns command word, always string """
 	if cw in stp.cw:
@@ -562,7 +560,7 @@ def doUpdate():
 	logSS(False)
 
 
-""" send this, send that """
+# send this, send that 
 def sendErrorLog():
 	logSS(True)
 	if os.path.getsize(stp.stderr_log) > 0:
@@ -777,7 +775,7 @@ def sendWarning(selector, dev_key, body_txt):
 	logSS(False)
 
 
-""" logging etc """
+# logging etc 
 def startLog():
 	""" opens log file """
 	var.logger = logging.getLogger("thermeq3")
@@ -813,7 +811,7 @@ def exportCSV(onoff):
 			var.logger.error("Can't close CSV file!")
 
 
-""" EQ-3/ELV MAX! communication """
+# EQ-3/ELV MAX! communication 
 def openMAX():
 	""" open communication to MAX! Cube """
 	var.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -877,6 +875,7 @@ def maxCmd_M(line, refresh):
 	es = base64.b64decode(line[2])
 	room_num = ord(es[2])
 	es_pos = 3
+	this_now = datetime.datetime.now()
 	for i in range(0, room_num):
 		room_id = str(ord(es[es_pos]))
 		room_len = ord(es[es_pos+1])
@@ -1133,7 +1132,7 @@ def readMAXData(refresh):
 	logSS(False)
 
 
-""" and here we go, this is app logic """
+# and here we go, this is app logic 
 def isWinOpen(key):
 	""" Return true if window is open """
 	v = stp.devices[key]
@@ -1300,7 +1299,7 @@ def rightTime(what):
 		return False
 
 
-""" beta features """
+# beta features 
 def weather_for_woeid(woeid):
 	""" returns weather from yahoo weather from given WOEID """
 	# please change u=c to u=f for farenheit below
@@ -1411,7 +1410,7 @@ def dayMode():
 			stp.valve_num = kv[5]
 			# just sleep value, always calculated as max[0] / slp[1]
 			stp.intervals["slp"][0] = int(kv[4] / stp.intervals["slp"][1])
-""" beta end """
+# beta end 
 
 
 def doLoop():
