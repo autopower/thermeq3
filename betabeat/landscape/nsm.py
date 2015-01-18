@@ -25,7 +25,7 @@ from xml.etree.ElementTree import parse
 from math import exp
 
 
-class setup:
+class setup(object):
 	def __init__(self):
 		self.version = 135
 		# turn off writing <funcname> START, <funcname> STOP into the DEBUG
@@ -124,7 +124,7 @@ class setup:
 			"nice": str(self.place + "www/nice.html")}
 
 
-class variables:
+class variables(object):
 	def __init__(self):
 		# heat times; total: [totalheattime, time.time()]   
 		self.ht = {"total": [0, 0.0]}
@@ -562,9 +562,7 @@ def doUpdate():
 	logSS(False)
 
 
-"""
-send this, send that
-"""
+""" send this, send that """
 def sendErrorLog():
 	logSS(True)
 	if os.path.getsize(stp.stderr_log) > 0:
@@ -779,9 +777,7 @@ def sendWarning(selector, dev_key, body_txt):
 	logSS(False)
 
 
-"""
-logging etc
-"""
+""" logging etc """
 def startLog():
 	""" opens log file """
 	var.logger = logging.getLogger("thermeq3")
@@ -817,10 +813,9 @@ def exportCSV(onoff):
 			var.logger.error("Can't close CSV file!")
 
 
-"""
-EQ-3/ELV MAX! communication
-"""
+""" EQ-3/ELV MAX! communication """
 def openMAX():
+	""" open communication to MAX! Cube """
 	var.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	var.client_socket.settimeout(int(stp.timeout / 2))	
 	temp_key = stp.maxid["sn"]
@@ -870,112 +865,130 @@ def setIgnoredValves(key):
 			var.logger.debug("Ignoring valve " + str(k) + " until " +  time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(var.d_ignore[k])))
 
 
+def maxCmd_H(line):
+	""" process H response """
+	stp.maxid["sn"] = line[0]
+	stp.maxid["rf"] = line[1]
+	stp.maxid["fw"] = line[2]
+
+
+def maxCmd_M(line, refresh):
+	""" process M response """
+	es = base64.b64decode(line[2])
+	room_num = ord(es[2])
+	es_pos = 3
+	for i in range(0, room_num):
+		room_id = str(ord(es[es_pos]))
+		room_len = ord(es[es_pos+1])
+		es_pos += 2
+		room_name = es[es_pos:es_pos + room_len]
+		es_pos += room_len
+		room_adr = es[es_pos:es_pos+3]
+		es_pos += 3
+		if not room_id in stp.rooms or refresh:
+			#					id   :0room_name, 1room_address,   2is_win_open 
+			stp.rooms.update({room_id:[room_name, hexify(room_adr), False]})
+	dev_num = ord(es[es_pos])
+	es_pos += 1
+	for i in range(0, dev_num):
+		dev_type = ord(es[es_pos])
+		es_pos += 1
+		dev_adr = hexify(es[es_pos:es_pos+3])
+		es_pos += 3
+		dev_sn = es[es_pos:es_pos+10]
+		es_pos += 10
+		dev_len = ord(es[es_pos])
+		es_pos += 1
+		dev_name = es[es_pos:es_pos+dev_len]
+		es_pos += dev_len
+		dev_room = ord(es[es_pos])
+		es_pos += 1
+		if not dev_adr in stp.devices or refresh:
+			#                            0type     1serial 2name     3room    4OW,5OW_time, 6status, 7info, 8temp offset
+			stp.devices.update({dev_adr:[dev_type, dev_sn, dev_name, dev_room, 0, this_now, 0, 0, 7]})
+
+
+def maxCmd_C(line):
+	""" process C response """
+	es = base64.b64decode(line[1])
+	if ord(es[0x04]) == 1:
+		dev_adr = hexify(es[0x01:0x04])
+		stp.devices[dev_adr][8] = es[0x16]
+		
+
+def maxCmd_L(line):
+	""" process L response """
+	es = base64.b64decode(line[0])
+	es_pos = 0
+	while (es_pos < len(es)):
+		dev_len = ord(es[es_pos]) + 1
+		valve_adr = hexify(es[es_pos+1:es_pos+4])
+		valve_status = ord(es[es_pos + 0x05])
+		valve_info = ord(es[es_pos + 0x06])
+		valve_temp = 0xFF
+		valve_curtemp = 0xFF
+		# WallMountedThermostat (dev_type 3)
+		if dev_len == 13:
+			if valve_info & 3 != 2:
+				valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2 		# set temp
+				valve_curtemp = float(int(hexify(es[es_pos + 0x0C]), 16)) / 10	# measured temp
+		# HeatingThermostat (dev_type 1 or 2)
+		elif dev_len == 12:
+			valve_pos = ord(es[es_pos + 0x07])
+			if valve_info & 3 != 2:
+				valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2
+				valve_curtemp = float(ord(es[es_pos + 0x0A])) / 10
+			stp.valves.update({valve_adr:[valve_pos, valve_temp, valve_curtemp]})
+		# WindowContact
+		elif dev_len == 7:
+			tmp_open = ord(es[es_pos + 0x06]) & 2
+			if tmp_open != stp.devices[valve_adr][4]:
+				tmp_txt = "Window contact " + str(stp.devices[valve_adr][2]) + " is now "
+				r_id = str(stp.devices[valve_adr][3])
+				if tmp_open == 0:
+					var.logger.info(tmp_txt + "closed.")
+					stp.rooms[r_id][2] = False
+					if valve_adr in var.d_W:
+						var.logger.debug("Key " + str(valve_adr) + " in d_W deleted.")
+						del var.d_W[valve_adr]
+					# now check for window closed ignore interval, if non zero set valves to ignore
+					if var.ignore_time > 0:
+						setIgnoredValves(valve_adr)
+				else:
+					var.logger.info(tmp_txt + "opened.")
+					stp.rooms[r_id][2] = True
+				stp.devices[valve_adr][4] = tmp_open
+				stp.devices[valve_adr][5] = datetime.datetime.now()
+		# save status and info
+		stp.devices[valve_adr][6] = valve_status
+		stp.devices[valve_adr][7] = valve_info
+		es_pos += dev_len	
+
+
 def readMAX(refresh):
+	""" read data from MAX! cube """
 	var.client_socket.settimeout(int(stp.timeout / 3))
 	var.error = False
 	this_now = datetime.datetime.now()
 	for line in readlines(var.client_socket):
 		data = line
-		sd = data[2:].split(",")
-		
+		sd = data[2:].split(",")		
 		if data[0] == 'H':
-			stp.maxid["sn"] = sd[0]
-			stp.maxid["rf"] = sd[1]
-			stp.maxid["fw"] = sd[2]
+			maxCmd_H(sd)
 		elif data[0] == 'M':
-			es = base64.b64decode(sd[2])
-			room_num = ord(es[2])
-			es_pos = 3
-			for i in range(0, room_num):
-				room_id = str(ord(es[es_pos]))
-				room_len = ord(es[es_pos+1])
-				es_pos += 2
-				room_name = es[es_pos:es_pos + room_len]
-				es_pos += room_len
-				room_adr = es[es_pos:es_pos+3]
-				es_pos += 3
-				if not room_id in stp.rooms or refresh:
-					#					id   :0room_name, 1room_address,   2is_win_open 
-					stp.rooms.update({room_id:[room_name, hexify(room_adr), False]})
-
-			dev_num = ord(es[es_pos])
-			es_pos += 1
-			for i in range(0, dev_num):
-				dev_type = ord(es[es_pos])
-				es_pos += 1
-				dev_adr = hexify(es[es_pos:es_pos+3])
-				es_pos += 3
-				dev_sn = es[es_pos:es_pos+10]
-				es_pos += 10
-				dev_len = ord(es[es_pos])
-				es_pos += 1
-				dev_name = es[es_pos:es_pos+dev_len]
-				es_pos += dev_len
-				dev_room = ord(es[es_pos])
-				es_pos += 1
-				if not dev_adr in stp.devices or refresh:
-					#                            0type     1serial 2name     3room    4OW,5OW_time, 6status, 7info, 8temp offset
-					stp.devices.update({dev_adr:[dev_type, dev_sn, dev_name, dev_room, 0, this_now, 0, 0, 7]})
+			maxCmd_M(sd, refresh)
 		elif data[0] == 'C':
-			es = base64.b64decode(sd[1])
-			if ord(es[0x04]) == 1:
-				dev_adr = hexify(es[0x01:0x04])
-				stp.devices[dev_adr][8] = es[0x16]
+			maxCmd_C(sd)
 		elif data[0] == 'L':
-			es = base64.b64decode(sd[0])
-			es_pos = 0
-			while (es_pos < len(es)):
-				dev_len = ord(es[es_pos]) + 1
-				valve_adr = hexify(es[es_pos+1:es_pos+4])
-				valve_status = ord(es[es_pos + 0x05])
-				valve_info = ord(es[es_pos + 0x06])
-				valve_temp = 0xFF
-				valve_curtemp = 0xFF
-				# WallMountedThermostat (dev_type 3)
-				if dev_len == 13:
-					if valve_info & 3 != 2:
-						valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2 		# set temp
-						valve_curtemp = float(int(hexify(es[es_pos + 0x0C]), 16)) / 10	# measured temp
-				# HeatingThermostat (dev_type 1 or 2)
-				elif dev_len == 12:
-					valve_pos = ord(es[es_pos + 0x07])
-					if valve_info & 3 != 2:
-						valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2
-						valve_curtemp = float(ord(es[es_pos + 0x0A])) / 10
-					stp.valves.update({valve_adr:[valve_pos, valve_temp, valve_curtemp]})
-				# WindowContact
-				elif dev_len == 7:
-					tmp_open = ord(es[es_pos + 0x06]) & 2
-					if tmp_open != stp.devices[valve_adr][4]:
-						tmp_txt = "Window contact " + str(stp.devices[valve_adr][2]) + " is now "
-						r_id = str(stp.devices[valve_adr][3])
-						if tmp_open == 0:
-							var.logger.info(tmp_txt + "closed.")
-							stp.rooms[r_id][2] = False
-							if valve_adr in var.d_W:
-								var.logger.debug("Key " + str(valve_adr) + " in d_W deleted.")
-								del var.d_W[valve_adr]
-							# now check for window closed ignore interval, if non zero set valves to ignore
-							if var.ignore_time > 0:
-								setIgnoredValves(valve_adr)
-						else:
-							var.logger.info(tmp_txt + "opened.")
-							stp.rooms[r_id][2] = True
-						stp.devices[valve_adr][4] = tmp_open
-						stp.devices[valve_adr][5] = datetime.datetime.now()
-				# save status and info
-				stp.devices[valve_adr][6] = valve_status
-				stp.devices[valve_adr][7] = valve_info
-				es_pos += dev_len
+			maxCmd_L(sd)
 
 
 def closeMAX():
+	""" close connection to MAX """
 	var.client_socket.close()
 
 
-"""
-some stupid commands :)
-"""
+""" some stupid commands :) """
 def updateCounters(heatStart):
 	# save the date 
 	nw = datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y")
@@ -1120,9 +1133,7 @@ def readMAXData(refresh):
 	logSS(False)
 
 
-"""
-and here we go, this is app logic
-"""
+""" and here we go, this is app logic """
 def isWinOpen(key):
 	""" Return true if window is open """
 	v = stp.devices[key]
@@ -1289,9 +1300,7 @@ def rightTime(what):
 		return False
 
 
-"""
-beta features
-"""
+""" beta features """
 def weather_for_woeid(woeid):
 	""" returns weather from yahoo weather from given WOEID """
 	# please change u=c to u=f for farenheit below
@@ -1419,10 +1428,8 @@ def doLoop():
 				logstr = "Local"
 			else:
 				logstr = "Public"
-			var.logger.debug(logstr + " IP address: " + stp.myip)
-			# BETA!
-			updateOWW2sit()
-			# BETA!
+			var.logger.debug(logstr + " IP address: " + stp.myip)			
+			updateOWW2sit()			
 		# check max according schedule
 		if rightTime("max"):
 			# beta features here
