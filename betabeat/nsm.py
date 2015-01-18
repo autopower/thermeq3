@@ -19,7 +19,7 @@ from bridgeclient import BridgeClient
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
-import email.encoders
+from email.encoders import encode_base64 
 from ast import literal_eval
 from xml.etree.ElementTree import parse
 from math import exp
@@ -570,7 +570,7 @@ def sendErrorLog():
 	
 		part = MIMEBase("application", "octet-stream")
 		part.set_payload(open(stp.stderr_log, "rb").read())
-		Encoders.encode_base64(part)
+		encode_base64(part)
 		head, tail = os.path.split(stp.stderr_log)
 		part.add_header("Content-Disposition", "attachment; filename=\"" + tail + "\"\"")
 		msg.attach(part)
