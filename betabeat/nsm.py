@@ -19,7 +19,7 @@ from bridgeclient import BridgeClient
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
-from email.encoders import encode_base64 
+from email.encoders import encode_base64
 from ast import literal_eval
 from xml.etree.ElementTree import parse
 from math import exp
@@ -28,10 +28,10 @@ from math import exp
 class setup(object):
 	def __init__(self):
 		self.version = 136
-		# turn off writing <funcname> START, <funcname> STOP into the DEBUG
-		self.globalDebugSS = False
+		self.appStartTime = time.time()
 		# required values, if any error in bridge then defaults is used [1]
-		self.cw = {"valve": ["valve_pos", 35],
+		self.cw = {
+			"valve": ["valve_pos", 35],
 			"valves": ["valves", 1],
 			"total": ["total_switch", 150],
 			"pref":  ["preference", "per"],
@@ -41,35 +41,40 @@ class setup(object):
 			"beta": ["beta", "no"],
 			"no_oww": ["no_oww", 0],
 			# optional values
-			"ht":    ["heattime", '{"total": [0, 0.0], {datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"):[0, time.time()]}'],
+			"ht":    ["heattime", '{"total": [0, 0.0], \
+				{datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"): [0, time.time()]}'],
 			"errs":  ["error", 0],
 			"terrs": ["totalerrors", 0],
 			"cmd":   ["command", ""],
 			"msg":   ["msg", ""],
 			"dump":  ["dumpdata", ""],
-			"uptime":["uptime", ""],
-			"appuptime":["app_uptime", 0],
-			"htstr": ["heattime_string", str(datetime.timedelta(seconds = 0))],
+			"uptime": ["uptime", ""],
+			"appuptime": ["app_uptime", 0],
+			"htstr": ["heattime_string", str(datetime.timedelta(seconds=0))],
 			"daily": ["daily", ""],
-			"status":["status", "defaults"],
+			"status": ["status", "defaults"],
 			"owl": ["openwinlist", "{}"],
 			"cur": ["current_status", "{}"]}
 		# status messages
-		self.statusMsg = {"idle": "idle", "heat": "heating", "start": "starting", "dead": "dead"}
+		self.statusMsg = {
+			"idle": "idle",
+			"heat": "heating",
+			"start": "starting",
+			"dead": "dead"}
 		# my IP address
 		self.myip = "127.0.0.1"
 		# sd card or usb key mount point, default is /mnt/sda1/
 		self.place = ""
-		# where is stderr log located, default is stp.place + stp.devname + "_error.log"
+		# where is stderr log located, def stp.place+stp.devname+"_error.log"
 		self.stderr_log = ""
 		# dictionaries for MAX
-		self.maxid = {"sn":"000000", "rf":"", "fw":""}
+		self.maxid = {"sn": "000000", "rf": "", "fw": ""}
 		self.valves = {}
 		self.rooms = {}
 		self.devices = {}
 		# update this to your location, yahoo WOEID
 		self.location = 818717
-		# 
+		# difference from last known valve value, in %
 		self.percentage = 3
 		# github location for auto update
 		self.github = "https://raw.github.com/autopower/thermeq3/master/"
@@ -93,40 +98,42 @@ class setup(object):
 
 	def initIntervals(self):
 		# threshold in seconds, so 10 minutes are 10*60 seconds
-		# interval as "name": [interval=how often is checked, mute interval, next_time]
+		# interval as "name": [interval=how often check, mute int, next_time]
 		tm = time.time()
-		self.intervals = {"max": [120, 0, tm], \
-						"upg": [4*60*60, 0, tm], \
-						"var": [10*60, 0, tm], \
-						# threshold, send every X, muted for X
-						"oww": [15*60, 45*60, 45*60], \
-						# threshold, muted for X, time.time(), trust me, if you don't have access to thermostat you'll kill thermeq for 15*60 :)
-						"wrn": [6*60*60, 24*60*60, tm], \
-						"err": [0, 0, 0.0], \
-						# just sleep value, always calculated as max[0] / slp[1]
-						"slp": [40, 3, 0]}
+		self.intervals = {
+			"max": [120, 0, tm],
+			"upg": [4*60*60, 0, tm],
+			"var": [10*60, 0, tm],
+			# threshold, send every X, muted for X
+			"oww": [15*60, 45*60, 45*60],
+			# threshold, muted for X, time.time(), trust me, if you don't have access to thermostat you'll kill thermeq for 15*60 :)
+			"wrn": [6*60*60, 24*60*60, tm],
+			"err": [0, 0, 0.0],
+			# just sleep value, always calculated as max[0] / slp[1]
+			"slp": [40, 3, 0]}
 		# day windows/intervals
 		# day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
-		self.day = [["00:00", "06:00", 35, "per", 240, 1], \
-					["06:00", "10:00", 36, "per", 120, 1], \
-					["10:00", "14:00", 30, "per", 120, 2], \
-					["14:00", "22:00", 36, "per", 120, 1], \
-					["22:00", "23:59", 35, "per", 120, 1]]
+		self.day = [
+			["00:00", "06:00", 35, "per", 240, 1],
+			["06:00", "10:00", 36, "per", 120, 1],
+			["10:00", "14:00", 30, "per", 120, 2],
+			["14:00", "22:00", 36, "per", 120, 1],
+			["22:00", "23:59", 35, "per", 120, 1]]
 
 
 	def initPaths(self):
 		self.log_filename = self.place + self.devname + ".log"
-		self.appStartTime = time.time()
 		self.csv_log = self.place + self.devname + ".csv"
 		self.bridgefile = self.place + self.devname + ".bridge"
-		self.secweb = {"status": str(self.place + "www/status.xml"), \
-			"owl": str(self.place + "www/owl.xml"), \
+		self.secweb = {
+			"status": str(self.place + "www/status.xml"),
+			"owl": str(self.place + "www/owl.xml"),
 			"nice": str(self.place + "www/nice.html")}
 
 
 class variables(object):
 	def __init__(self):
-		# heat times; total: [totalheattime, time.time()]   
+		# heat times; total: [totalheattime, time.time()]
 		self.ht = {"total": [0, 0.0]}
 		# device log, used to count if valve position didn't change
 		self.dev_log = {}
@@ -141,7 +148,14 @@ class variables(object):
 		# dictionary for ignoring valves after closing window
 		self.d_ignore = {}
 		# variable for weather situation
-		self.sit = {}
+		self.sit = {
+			"current_condition": "",
+			"current_temp": "0",
+			"forecasts": "",
+			"title": "title",
+			"humidity": "50",
+			"city": "city"
+		}
 		# CSV file
 		self.csv = None
 		# number of readings when we heating
@@ -197,7 +211,7 @@ def secWebFile(cw, txt):
 		fn = str(stp.secweb[str(cw)])
 	except Exception:
 		var.logger.error("Wrong cw [" + str(cw) + "] for saving file!")
-	else:	
+	else:
 		try:
 			sf = open(fn, "w")
 		except Exception:
@@ -211,10 +225,10 @@ def is_private(lookup):
 	""" returns True if IP address is private, False if not """
 	f = struct.unpack('!I', socket.inet_pton(socket.AF_INET, lookup))[0]
 	private = (
-		[ 2130706432, 4278190080 ], #  127.0.0.0,   255.0.0.0   http://tools.ietf.org/html/rfc3330
-		[ 3232235520, 4294901760 ], #  192.168.0.0, 255.255.0.0 http://tools.ietf.org/html/rfc1918
-		[ 2886729728, 4293918720 ], #  172.16.0.0,  255.240.0.0 http://tools.ietf.org/html/rfc1918
-		[ 167772160,  4278190080 ], #  10.0.0.0,    255.0.0.0   http://tools.ietf.org/html/rfc1918
+		[2130706432, 4278190080], #  127.0.0.0,   255.0.0.0   http://tools.ietf.org/html/rfc3330
+		[3232235520, 4294901760], #  192.168.0.0, 255.255.0.0 http://tools.ietf.org/html/rfc1918
+		[2886729728, 4293918720], #  172.16.0.0,  255.240.0.0 http://tools.ietf.org/html/rfc1918
+		[167772160,  4278190080], #  10.0.0.0,    255.0.0.0   http://tools.ietf.org/html/rfc1918
 	)
 	for net in private:
 		if (f & net[1] == net[0]):
@@ -237,6 +251,7 @@ def getPublicIP():
 
 
 def hexify(tmpadr):
+	""" returns hexified address """
 	return "".join("%02x" % ord(c) for c in tmpadr).upper()
 
 
@@ -246,7 +261,7 @@ def getHash(filename):
 		f = file(filename, "rb")
 		while True:
 			part = f.read(1024)
-			if not part: 
+			if not part:
 				break
 			checksum.update(part)
 		f.close()
@@ -262,16 +277,6 @@ def getUptime():
 def incErr():
 	tmp = tryRead("errs", 0, False)
 	var.value.put(rCW("errs"), str(tmp+1))
-
-
-def logSS(isStart):
-	if stp.globalDebugSS: 
-		stack = traceback.extract_stack()
-		filename, codeline, funcName, text = stack[-2]
-		if isStart:
-			var.logger.debug(">>> " + str(funcName) + " START")
-		else:
-			var.logger.debug("<<< " + str(funcName) + " STOP")
 
 
 def queueMsg(msg):
@@ -347,7 +352,7 @@ def readlines(sock, recv_buffer=4096, delim="\r\n"):
 def updateUptime():
 	tmp = time.time()
 	var.value.put(rCW("uptime"), str(getUptime()))
-	var.value.put(rCW("appuptime"), str(datetime.timedelta(seconds = int(tmp - stp.appStartTime))))
+	var.value.put(rCW("appuptime"), str(datetime.timedelta(seconds=int(tmp - stp.appStartTime))))
 
 
 def updateAllTimes():
@@ -363,7 +368,7 @@ def sendEmail(sendTxt):
 	try:
 		server = smtplib.SMTP(stp.mailserver, stp.mailport)
 	except Exception, error:
-		var.logger.error("Error connecting to mail server " +  str(stp.mailserver) + ":" + str(stp.mailport) + ". Error code: " + str(error))
+		var.logger.error("Error connecting to mail server " + str(stp.mailserver) + ":" + str(stp.mailport) + ". Error code: " + str(error))
 		var.logger.error("Traceback: " + str(traceback.format_exc()))
 	else:
 		try:
@@ -409,14 +414,14 @@ def loadBridge():
 			# create dictionary from codewords setup dictionary
 			cw = {}
 			for k in stp.cw.iteritems():
-				cw.update({k[1][0]:k[1][1]})
+				cw.update({k[1][0]: k[1][1]})
 			for line in f:
 				t = (line.rstrip("\r\n")).split('=')
 				if t[0] == rCW("ht"):
 					try:
 						var.ht = literal_eval(t[1])
 					except Exception:
-						var.ht = {"total": [0, 0.0]}				
+						var.ht = {"total": [0, 0.0]}
 				elif not rCW("dump") in line:
 					if t[0] in cw:
 						var.value.put(t[0], t[1])
@@ -425,7 +430,7 @@ def loadBridge():
 							var.logger.info("CW [" + str(t[0]) + "] empty, using default [" + str(t[1]) + "]")
 							var.value.put(t[0], defValue)
 					else:
-						var.logger.error("Bridge error codeword @[" + str(t[0]) + "] value [" + str(t[1]) +"]")									
+						var.logger.error("Bridge error codeword @[" + str(t[0]) + "] value [" + str(t[1]) + "]")
 			f.close()
 		var.logger.debug("Bridge file loaded.")
 		updateAllTimes()
@@ -435,14 +440,14 @@ def loadBridge():
 		var.logger.error("Error loading bridge file, using defaults!")
 
 
-# problem prediction routines, if during heating valve didn't change position, something is wrong 
+# problem prediction routines, if during heating valve didn't change position, something is wrong
 def isSame(key):
 	tmp = var.dev_log[key][1]
 	kv = stp.valves[key][1]
 	if kv >= tmp - stp.percentage and kv <= tmp + stp.percentage:
 		return True
 	else:
-		return False 
+		return False
 
 
 def doDevLogging():
@@ -450,10 +455,10 @@ def doDevLogging():
 		if k in var.dev_log:
 			if var.heating and isSame(k):
 				var.dev_log[k][0] += 1
-			var.dev_log[k][1] = v[0]						
+			var.dev_log[k][1] = v[0]
 		else:
-			var.dev_log.update({k:[0, v[0]]})
-								
+			var.dev_log.update({k: [0, v[0]]})
+
 
 # autoupdate routines
 def downloadFile(filename):
@@ -503,7 +508,7 @@ def checkUpdate():
 	else:
 		errstr = ""
 		t = response.split(":")
-		
+
 		new_hash = getHash(stp.homedir + str(t[1])).hexdigest()
 		if new_hash == "":
 			var.logger.error("Can't find file " + str(t[1]))
@@ -531,7 +536,6 @@ def checkUpdate():
 
 
 def doUpdate():
-	logSS(True)
 	chk = checkUpdate()
 	if stp.au:
 		if chk == 2:
@@ -547,17 +551,14 @@ def doUpdate():
 			queueMsg("R")
 	else:
 		var.logger.info("Auto update is disabled.")
-	logSS(False)
 
 
-# send this, send that 
+# send this, send that
 def sendErrorLog():
-	logSS(True)
 	if os.path.getsize(stp.stderr_log) > 0:
 		devname = stp.devname
 		msg = MIMEMultipart()
 		msg["From"] = stp.fromaddr
-		#msg['To'] = stp.toaddr
 		msg["To"] = ''.join(stp.toaddr)
 		msg["Subject"] = devname + " log email (thermeq3 device)"
 
@@ -567,7 +568,7 @@ def sendErrorLog():
 		</p></body></html>""" % \
 		{"a0": str(devname)}
 		msg.attach(MIMEText(body, "html"))
-	
+
 		part = MIMEBase("application", "octet-stream")
 		part.set_payload(open(stp.stderr_log, "rb").read())
 		encode_base64(part)
@@ -581,11 +582,9 @@ def sendErrorLog():
 			var.ferr = open(stp.stderr_log, "w")
 	else:
 		var.logger.info("Zero sized stderr log file, nothing'll be send")
-	logSS(False)
 
 
 def sendStatus():
-	logSS(True)
 	devname = stp.devname
 	valve_pos = int(var.value.get(rCW("valve")))
 	error = int(var.value.get(rCW("errs")))
@@ -598,12 +597,11 @@ def sendStatus():
 	var.value.put(rCW("terrs"), str(totalerrs + error))
 	msg = MIMEMultipart()
 	msg["From"] = stp.fromaddr
-	#msg['To'] = stp.toaddr
 	msg["To"] = ''.join(stp.toaddr)
 	msg["Subject"] = devname + " status email (thermeq3 device)"
 
 	heat_str = var.value.get(rCW("htstr"))
-	
+
 	body = """<html><body><font face="arial,sans-serif">
 	<h1>%(a0)s status email.</h1>
 	<p>Hello, I'm your thermostat and I sending you this status email.<br/>
@@ -615,22 +613,21 @@ def sendStatus():
 	Device uptime: <b>%(a8)s</b><br/>
 	Application uptime: <b>%(a9)s</b><br/>
 	</p></body></html>""" % \
-	{'a0': str(devname), \
-	 'a1': status, \
-	 'a2': str(error), \
-	 'a3': heat_str, \
-	 'a5': interval, \
-	 'a6': valve_pos, \
-	 'a7': totalerrs, \
-	 'a8': uptime_string, \
-	 'a9': str(datetime.timedelta(seconds = int(time.time() - stp.appStartTime))) \
+	{'a0': str(devname),
+	 'a1': status,
+	 'a2': str(error),
+	 'a3': heat_str,
+	 'a5': interval,
+	 'a6': valve_pos,
+	 'a7': totalerrs,
+	 'a8': uptime_string,
+	 'a9': str(datetime.timedelta(seconds=int(time.time() - stp.appStartTime)))
 	}
 
 	msg.attach(MIMEText(body, "html"))
 
 	if sendEmail(msg.as_string()) == 0:
 		var.value.put(rCW("errs"), "0")
-	logSS(False)
 
 
 def silence(key, isWin):
@@ -639,13 +636,13 @@ def silence(key, isWin):
 	#
 	# is there key in dict?
 	dt = datetime.datetime.now()
-	if not key in var.d_W:
+	if key not in var.d_W:
 		# there no key, so its new warning
 		var.logger.debug("No key " + str(key) + " in d_W. Key added.")
 		if isWin:
-			var.d_W.update({key:[stp.devices[key][5], False, 0]})
+			var.d_W.update({key: [stp.devices[key][5], False, 0]})
 		else:
-			var.d_W.update({key:[dt, False, 0]})
+			var.d_W.update({key: [dt, False, 0]})
 		return 2
 	else:
 		# yes, there it is, so check if we are silent, if so exit, otherwise reset mute
@@ -656,15 +653,15 @@ def silence(key, isWin):
 		if var.d_W[key][1]:
 			# yes, we must be silent
 			if isWin:
-				tmp = var.d_W[key][0] + datetime.timedelta(seconds = stp.intervals["oww"][2])
+				tmp = var.d_W[key][0] + datetime.timedelta(seconds=stp.intervals["oww"][2])
 			else:
-				tmp = var.d_W[key][0] + datetime.timedelta(seconds = stp.intervals["wrn"][1])
+				tmp = var.d_W[key][0] + datetime.timedelta(seconds=stp.intervals["wrn"][1])
 			if tmp < dt:
 				return 1
 			else:
 				# silence is over
 				var.d_W[key][1] = False
-	
+
 	# increment counter of warning for this key
 	var.d_W[key][2] += 1
 	if var.d_W[key][2] > stp.abnormalCount:
@@ -683,7 +680,6 @@ def itsWarnTime():
 
 
 def sendWarning(selector, dev_key, body_txt):
-	logSS(True)
 	# var.logger.debug("sendWarning(" + str(selector) + ", " + str(dev_key) + ", " + str(body_txt) + ")")
 	devname = stp.devname
 	if selector != "openmax" and selector != "upgrade":
@@ -700,12 +696,11 @@ def sendWarning(selector, dev_key, body_txt):
 	msg = MIMEMultipart()
 	msg["From"] = stp.fromaddr
 	msg["To"] = stp.toaddr
-	
+
 	if selector == "window":
 		owd = int((datetime.datetime.now() - stp.devices[dev_key][5]).total_seconds())
 		oww = int((datetime.datetime.now() - var.d_W[dev_key][0]).total_seconds())
 		if sil == 0 and oww < stp.intervals["oww"][1]:
-			# var.logger.debug("Condition not met. Trace=" + str(oww) + "/" + str(var.d_W[dev_key][0]))
 			return
 		msg["Subject"] = "Open window in room " + str(rn[0]) + ". Warning from " + devname + " (thermeq3 device)"
 		body = """<html><body><font face="arial,sans-serif">
@@ -716,15 +711,14 @@ def sendWarning(selector, dev_key, body_txt):
 		Threshold for warning is <b>%(a3)d</b> mins.<br/>
 		</p><p>You can <a href="%(a4)s">mute this warning</a> for %(a5)s mins. \
 		</p></body></html>""" % \
-		{'a0': str(dn), \
-		 'a1': str(rn[0]), \
-		 'a2': int(owd / 60), \
-		 'a3': int(stp.intervals["oww"][0] / 60), \
-		 'a4': str(mutestr), \
+		{'a0': str(dn), 
+		 'a1': str(rn[0]), 
+		 'a2': int(owd / 60), 
+		 'a3': int(stp.intervals["oww"][0] / 60), 
+		 'a4': str(mutestr), 
 		 'a5': int(stp.intervals["oww"][2] / 60)}
 	else:
 		if sil == 0 and not rightTime("wrn"):
-			logSS(False)
 			return
 		if selector == "battery":
 			msg["Subject"] = "Battery status for device " + str(dn) + ". Warning from " + devname + " (thermeq3 device)"
@@ -735,9 +729,9 @@ def sendWarning(selector, dev_key, body_txt):
 			This device have low batteries, please replace batteries.<br/>
 			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins. \
 			</p></body></html>""" % \
-			{'a0': str(dn), \
-			'a1': str(rn[0]), \
-			'a2': str(mutestr), \
+			{'a0': str(dn), 
+			'a1': str(rn[0]), 
+			'a2': str(mutestr), 
 			'a3': int(stp.intervals["wrn"][1] / 60)}
 		elif selector == "error":
 			msg["Subject"] = "Error report for device " + str(dn) + ". Warning from " + devname + " (thermeq3 device)"
@@ -748,9 +742,9 @@ def sendWarning(selector, dev_key, body_txt):
 			This device reports error.<br/>
 			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins. \
 			</p></body></html>""" % \
-			{'a0': str(dn), \
-			'a1': str(rn[0]), \
-			'a2': str(mutestr), \
+			{'a0': str(dn), 
+			'a1': str(rn[0]), 
+			'a2': str(mutestr),
 			'a3': int(stp.intervals["wrn"][1] / 60)}
 		elif selector == "openmax":
 			msg["Subject"] = "Can't connect to MAX! Cube! Warning from " + devname + " (thermeq3 device)"
@@ -758,23 +752,22 @@ def sendWarning(selector, dev_key, body_txt):
 		elif selector == "upgrade":
 			msg["Subject"] = devname + " (thermeq3 device) is going to be upgraded"
 			body = body_txt
-	
+
 	msg.attach(MIMEText(body, "html"))
 	if sendEmail(msg.as_string()) == 0 and selector == "window":
 		var.d_W[dev_key][0] = datetime.datetime.now()
-	logSS(False)
 
 
-# logging etc 
+# logging etc
 def startLog():
 	""" opens log file """
 	var.logger = logging.getLogger("thermeq3")
 	var.logger.setLevel(logging.DEBUG)
-	
+
 	# var.fh = logging.FileHandler(stp.log_filename)
 	var.fh = TimedRotatingFileHandler(stp.log_filename, when="W0", interval=4, backupCount=12)
 	var.fh.setLevel(logging.DEBUG)
-	
+
 	formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y/%m/%d %H:%M:%S")
 	var.fh.setFormatter(formatter)
 	var.logger.addHandler(var.fh)
@@ -792,7 +785,7 @@ def exportCSV(onoff):
 			raise
 		else:
 			for k, v in stp.valves.iteritems():
-				name = stp.devices[k][2] 
+				name = stp.devices[k][2]
 				var.csv.write(name + "," + name + ",")
 			var.csv.write("\r\n")
 	elif onoff == "close":
@@ -802,13 +795,13 @@ def exportCSV(onoff):
 			var.logger.error("Can't close CSV file!")
 
 
-# EQ-3/ELV MAX! communication 
+# EQ-3/ELV MAX! communication
 def openMAX():
 	""" open communication to MAX! Cube """
 	var.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	var.client_socket.settimeout(int(stp.timeout / 2))	
+	var.client_socket.settimeout(int(stp.timeout / 2))
 	temp_key = stp.maxid["sn"]
-	
+
 	i = 0
 	while i < 3:
 		try:
@@ -823,7 +816,7 @@ def openMAX():
 				var.logger.debug("Key " + str(temp_key) + " in d_W deleted.")
 				del var.d_W[temp_key]
 			return True
-		
+
 	var.logger.error("Error opening connection to MAX Cube. Error: " + str(e))
 	var.logger.error("Traceback: " + str(traceback.format_exc()))
 	body = """<html><body><font face="arial,sans-serif">
@@ -834,11 +827,11 @@ def openMAX():
 	Error: %(a2)s<br/>
 	Traceback: %(a3)s<br/>
 	</p></body></html>""" % \
-	{'a0': str(stp.devname), \
-	 'a1': str(stp.max_ip), \
-	 'a2': str(e), \
-	 'a3': str(traceback.format_exc()) } 
-	sendWarning("openmax", temp_key, body)		
+	{'a0': str(stp.devname),
+	 'a1': str(stp.max_ip),
+	 'a2': str(e),
+	 'a3': str(traceback.format_exc())}
+	sendWarning("openmax", temp_key, body)
 	return False
 
 
@@ -850,7 +843,7 @@ def setIgnoredValves(key):
 		if v[0] == 1 and v[3] == room and not k in var.d_ignore:
 			# don't heat X*60 seconds after closing window
 			var.d_ignore.update({k: time.time() + var.ignore_time * 60})
-			var.logger.debug("Ignoring valve " + str(k) + " until " +  time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(var.d_ignore[k])))
+			var.logger.debug("Ignoring valve " + str(k) + " until " + time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(var.d_ignore[k])))
 
 
 def maxCmd_H(line):
@@ -875,7 +868,7 @@ def maxCmd_M(line, refresh):
 		room_adr = es[es_pos:es_pos+3]
 		es_pos += 3
 		if not room_id in stp.rooms or refresh:
-			#					id   :0room_name, 1room_address,   2is_win_open 
+			#					id   :0room_name, 1room_address,   2is_win_open
 			stp.rooms.update({room_id:[room_name, hexify(room_adr), False]})
 	dev_num = ord(es[es_pos])
 	es_pos += 1
@@ -903,7 +896,7 @@ def maxCmd_C(line):
 	if ord(es[0x04]) == 1:
 		dev_adr = hexify(es[0x01:0x04])
 		stp.devices[dev_adr][8] = es[0x16]
-		
+
 
 def maxCmd_L(line):
 	""" process L response """
@@ -951,7 +944,7 @@ def maxCmd_L(line):
 		# save status and info
 		stp.devices[valve_adr][6] = valve_status
 		stp.devices[valve_adr][7] = valve_info
-		es_pos += dev_len	
+		es_pos += dev_len
 
 
 def readMAX(refresh):
@@ -960,7 +953,7 @@ def readMAX(refresh):
 	var.error = False
 	for line in readlines(var.client_socket):
 		data = line
-		sd = data[2:].split(",")		
+		sd = data[2:].split(",")
 		if data[0] == 'H':
 			maxCmd_H(sd)
 		elif data[0] == 'M':
@@ -976,19 +969,19 @@ def closeMAX():
 	var.client_socket.close()
 
 
-# some stupid commands :) 
+# some stupid commands :)
 def updateCounters(heatStart):
-	# save the date 
+	# save the date
 	nw = datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y")
 	tm = time.time()
-	
-	# update total heat counter	
+
+	# update total heat counter
 	if var.heating:
 		tmp = var.ht["total"][0]
 		tmp += int(time.time() - var.ht["total"][1])
 		var.value.put(rCW("ht"), str(var.ht))
-		var.value.put(rCW("htstr"),  str(datetime.timedelta(seconds = tmp)))
-		var.logger.info("Total heat counter updated to " + str(datetime.timedelta(seconds = tmp)))
+		var.value.put(rCW("htstr"),  str(datetime.timedelta(seconds=tmp)))
+		var.logger.info("Total heat counter updated to " + str(datetime.timedelta(seconds=tmp)))
 		var.ht["total"][0] = tmp
 		var.ht["total"][1] = time.time()
 
@@ -1000,15 +993,15 @@ def updateCounters(heatStart):
 			totalheat = int(var.ht[nw][0] + (tm - var.ht[nw][1]))
 			var.ht[nw] = [totalheat, time.time()]
 			var.value.put(rCW("ht"), str(var.ht))
-			var.value.put(rCW("daily"), str(datetime.timedelta(seconds = totalheat)))
-	else:		                                                                                                 
+			var.value.put(rCW("daily"), str(datetime.timedelta(seconds=totalheat)))
+	else:
 		if len(var.ht) > 1:
 			# if there a key, this must be old key(s)
 			# save the old date, and flush values into log
 			for k in var.ht.keys():
 				v = var.ht[k]
 				if not k == "total":
-					var.logger.info(str(k) + " heating daily summary: " + str(datetime.timedelta(seconds = v[0])))
+					var.logger.info(str(k) + " heating daily summary: " + str(datetime.timedelta(seconds=v[0])))
 					var.logger.debug("Deleting old daily key: " + str(k))
 					del var.ht[k]
 			# and close CSV file
@@ -1017,41 +1010,23 @@ def updateCounters(heatStart):
 		var.logger.debug("Creating new daily key: " + str(nw))
 		var.ht.update({nw:[0, time.time()]})
 		# so its a new day, update other values
-		exportCSV("init") 
-		# day readings warning, take number of heated readings and divide by 2 
+		exportCSV("init")
+		# day readings warning, take number of heated readings and divide by 2
 		drW = var.heatReadings / 2
 		var.logger.debug("Day reading warnings value=" + str(drW))
 		for k, v in var.dev_log.iteritems():
 			var.logger.debug("Valve: " + str(k) + " has value " + str(v[0]))
 			if v[0] > drW:
-				var.logger.info("Valve: " + str(k) + " reports during heating too many same % positions, e.g. " + str(v[0]) + " per " + str(drW))  
+				var.logger.info("Valve: " + str(k) + \
+					" reports during heating too many same % positions, e.g. " \
+					+ str(v[0]) + " per " + str(drW))
 			var.dev_log[k][0] = 0
 		var.heatReadings = 0
 		saveBridge()
 
 
-def dumpMAX(method):
-	logSS(True)
-	txt = "DEVICES={"
-	for k, v in stp.devices.iteritems():
-		txt += str(k) + ":" + str(v) + ", "
-	txt += "}; VALVES={"
-	for k, v in stp.valves.iteritems():
-		txt += str(k) + ":" + str(v) + ", "
-	txt += "}; DEV_LOG={"
-	for k,v in var.dev_log.iteritems():
-		txt += str(k) + ":" + str(v) + ", "
-	txt += "}"
-	if method == 1:
-		var.logger.debug(txt)
-	else:
-		var.value.put(rCW("dump"), txt)
-	var.logger.info("System dumped into bridge variable")
-	logSS(False)
-
-
 def writeStrings():
-	""" construct and write CSV data, Log debug string and current status string """ 
+	""" construct and write CSV data, Log debug string and current status string """
 	if var.heating:
 		logstr = "Heating"
 	else:
@@ -1061,56 +1036,55 @@ def writeStrings():
 		logstr += str(stp.valve_switch) + "%" + " at " + str(stp.valve_num) + " valve(s)."
 	elif stp.preference == "total":
 		logstr += "total value of " + str(getTotal()) + "."
-	var.logger.debug(logstr)			
+	var.logger.debug(logstr)
 	var.csv.write(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime()) + "," + str(1 if var.heating else 0) + ",")
-	
+
 	rooms = {}
 	current = {}
 	for k, v in stp.rooms.iteritems():
 		rooms.update({str(v[0]):["", v[2]]})
 		current.update({str(v[0]): {}})
-	
+
 	for k, v in stp.valves.iteritems():
 		# update rooms string
 		room_id = str(getName(k)[0])
 		roomStr = rooms[room_id][0]
 		roomStr += "\r\n\t[" + str(k) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(str(v[0])) + "% @ " + \
 			'{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
-		cv = countValve(k)  
+		cv = countValve(k)
 		if cv:
 			roomStr += "(+)"
 		else:
 			roomStr += "(-)"
-		
+
 		rooms[room_id][0] = roomStr
 		var.csv.write(str(v[0]) + "," + str(v[1]) + ",")
-		
+
 		current[room_id].update({str(k):[str(stp.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), \
 			str(1 if cv else 0)]})
-	
+
 	var.csv.write("\r\n")
-	
+
 	logstr = "Actual positions follows"
 	for k, v in rooms.iteritems():
 		logstr += "\r\nRoom: " + str(k)
 		if v[1]:
 			logstr += ", window opened"
-		logstr += str(v[0]) 
+		logstr += str(v[0])
 	var.logger.debug(logstr)
 	var.csv.flush()
-	
+
 	# second web
 	# JSON formated status
 	secWebFile("status", current)
 	# nice text web
 	logstr.replace("\r\n", "<br/>")
-	logstr.replace("\t", "&#9;")	
+	logstr.replace("\t", "&#9;")
 	secWebFile("nice", "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" \
 		+ logstr + "</pre></p>\r\n</body>\r\n</html>")
 
 
 def readMAXData(refresh):
-	logSS(True)
 	if not openMAX():
 		queueMsg("E")
 	else:
@@ -1118,10 +1092,9 @@ def readMAXData(refresh):
 		if not refresh:
 			writeStrings()
 	closeMAX()
-	logSS(False)
 
 
-# and here we go, this is app logic 
+# and here we go, this is app logic
 def isWinOpen(key):
 	""" Return true if window is open """
 	v = stp.devices[key]
@@ -1132,7 +1105,7 @@ def isWinOpen(key):
 
 
 def isWinOpenTooLong(key):
-	""" return True if window open time is > defined warning interval """ 
+	""" return True if window open time is > defined warning interval """
 	v = stp.devices[key]
 	if isWinOpen(key):
 		tmp = (datetime.datetime.now() - v[5]).total_seconds()
@@ -1206,25 +1179,25 @@ def checkDayTable():
 
 
 def doControl():
-	tmp = {}	
+	tmp = {}
 	for k, v in stp.devices.iteritems():
 		if v[4] == 2:
 			room_id = str(v[3])
 			room_name = str(stp.rooms[room_id][0])
-			tmp.update({k:room_name})
+			tmp.update({k: room_name})
 
-		if isWinOpenTooLong(k): 
+		if isWinOpenTooLong(k):
 			var.logger.debug("Warning condition for window " + str(k) + " met")
 			if var.no_oww == 0:
 				sendWarning("window", k, "")
-		if isBattError(k): 
+		if isBattError(k):
 			sendWarning("battery", k, "")
 		if isRadioError(k):
 			sendWarning("error", k, "")
 
 	# second web
 	secWebFile("owl", tmp)
-												
+
 	if var.err2Clear and not var.error:
 		queueMsg("C")
 	if var.err2LastStatus:
@@ -1233,7 +1206,7 @@ def doControl():
 			queueMsg("H")
 			var.logger.info("Resuming heating state on status LED")
 	# var.logger.debug("Control: " + str(var.heating) + "=" + str(heat) + ", " + str(grt) + "; " + str(stp.valve_num) + " , " + str(valve_count))
-	
+
 	# and now showtime
 	stp.total = getTotal()
 	# grand total
@@ -1241,7 +1214,7 @@ def doControl():
 	grt = 0
 	valve_count = 0
 	valve_key = {}
-	
+
 	if stp.valve_num > len(stp.valves):
 		var.logger.error("Something is wrong, you have only " + str(len(stp.valves)) + " valves, but you want to " + str(stp.valve_num) + " of them be checked to turn on heating!")
 		stp.valve_num = len(stp.valves)
@@ -1251,26 +1224,26 @@ def doControl():
 			valve_count += 1
 			if valve_count >= stp.valve_num:
 				heat = True
-				valve_key.update(getKeyName(k)) 
+				valve_key.update(getKeyName(k))
 		elif stp.preference == "total" and is_ok:
 			grt += v[0]
 			if grt >= stp.total:
 				heat = True
-	
+
 	# increment number of readings with heat on
 	if heat:
 		var.heatReadings += 1
-	
+
 	# var.logger.debug("Control: " + str(var.heating) + "=" + str(heat) + ", " + str(grt) + "; " + str(stp.valve_num) + " , " + str(valve_count))
-		
+
 	if heat != var.heating:
 		if heat:
 			txt = "heating started due to"
-			if stp.preference == "per" and valve_count >= stp.valve_num:			
+			if stp.preference == "per" and valve_count >= stp.valve_num:
 				for k, v in valve_key.iteritems():
 					txt += " room " + str(v[0]) + ", valve " + str(v[1]) + "@" + str(v[2])
 			elif stp.preference == "total":
-					txt += " sum of valve positions = " + str(grt) 			
+					txt += " sum of valve positions = " + str(grt)
 			var.logger.info(txt)
 			doheat(True)
 		else:
@@ -1288,7 +1261,7 @@ def rightTime(what):
 		return False
 
 
-# beta features 
+# beta features
 def weather_for_woeid(woeid):
 	""" returns weather from yahoo weather from given WOEID """
 	# please change u=c to u=f for farenheit below
@@ -1342,7 +1315,7 @@ def updateOWW2sit():
 
 	# check if current temperature is in interval
 	temp = int(var.sit["current_temp"])
-	
+
 	if temp < t["min"]:
 		temp = t["min"]
 	elif temp > t["max"]:
@@ -1351,7 +1324,7 @@ def updateOWW2sit():
 	a = scale(temp, (t["min"], t["max"]), (r["min"], r["max"]))
 	# sample temperature to interval 10min ~ 360min (at -35/at 35 'C)
 	# so warning will be fired after 10 mins at -35, and after 360 mins at 35 'C
-	# sampled through exp function  
+	# sampled through exp function
 	b = int(scale(exp(a), (exp(r["min"]), exp(r["max"])), (w["min"], w["max"])))
 	# and maybe we need take care of humidity here :) oooh next time
 	# humidity code
@@ -1399,7 +1372,7 @@ def dayMode():
 			stp.valve_num = kv[5]
 			# just sleep value, always calculated as max[0] / slp[1]
 			stp.intervals["slp"][0] = int(kv[4] / stp.intervals["slp"][1])
-# beta end 
+# beta end
 
 
 def doLoop():
@@ -1407,7 +1380,7 @@ def doLoop():
 		# do upgrade according schedule
 		if rightTime("upg"):
 			doUpdate()
-		# do update variables according schedule					
+		# do update variables according schedule
 		if rightTime("var"):
 			updateAllTimes()
 			saveBridge()
@@ -1416,14 +1389,14 @@ def doLoop():
 				logstr = "Local"
 			else:
 				logstr = "Public"
-			var.logger.debug(logstr + " IP address: " + stp.myip)			
-			updateOWW2sit()			
+			var.logger.debug(logstr + " IP address: " + stp.myip)
+			updateOWW2sit()
 		# check max according schedule
 		if rightTime("max"):
 			# beta features here
 			if tryRead("beta", "no", False).upper() == "YES":
 				dayMode()
-			# end of beta			
+			# end of beta
 			cmd = getCMD()
 			if cmd == "init":
 				closeMAX()
@@ -1432,24 +1405,20 @@ def doLoop():
 				sendStatus()
 			elif cmd == "quit":
 				break
-			elif cmd == "dump":
-				dumpMAX(0)
 			elif cmd == "log_debug":
 				var.logger.info("Logging level set to DEBUG")
 				var.logger.setLevel(logging.DEBUG)
 			elif cmd == "log_info":
 				var.logger.info("Logging level set to INFO")
 				var.logger.setLevel(logging.INFO)
-			elif cmd == "ssdebugon":
-				stp.globalDebugSS = not stp.globalDebugSS
-			elif cmd == "uptime":
-				updateUptime()
 			elif cmd[0:4] == "mute":
 				key = cmd[4:]
 				if key in var.d_W:
 					var.d_W[key][0] = datetime.datetime.now()
 					var.d_W[key][1] = True
-					var.logger.debug("OWW for key " + str(key) + " is muted for " + str(stp.intervals["oww"][2]) + " seconds.")
+					var.logger.debug("OWW for key " + str(key) + \
+						" is muted for " + \
+						str(stp.intervals["oww"][2]) + " seconds.")
 			elif cmd == "rebridge":
 				loadBridge()
 			elif cmd == "updatetime":
@@ -1460,7 +1429,7 @@ def doLoop():
 				else:
 					queueMsg("S")
 			elif cmd == "upgrade":
-				doUpdate()			
+				doUpdate()
 			readMAXData(False)
 			if not var.error:
 				getControlValues()
@@ -1485,7 +1454,6 @@ def getControlValues():
 	stp.valve_num = tryRead("valves", 1, True)
 	# try read if autoupdate is OK
 	stp.au = tryRead("au", True, True)
-
 	# try read how many minutes you can ignore valve after closing window
 	var.ignore_time = tryRead("ign_op", 30, True)
 	# and if open windows warning is disabled, 0 = enables, 1 = disabled
@@ -1497,22 +1465,22 @@ def prepare():
 	stp.initPaths()
 	startLog()
 
-	updateStatus("start")	
-	# initialize variables	
+	updateStatus("start")
+	# initialize variables
 	getControlValues()
 
 	# initialize bridge values
 	loadBridge()
 	queueMsg("S")
 
-	exportCSV("init")	
+	exportCSV("init")
 	readMAXData(True)
 	updateCounters(False)
-	
+
 if __name__ == '__main__':
 	# values for setup system
 	stp = setup()
-	# variables	
+	# variables
 	var = variables()
 
 	if os.path.ismount("/mnt/sda1"):
@@ -1542,7 +1510,7 @@ if __name__ == '__main__':
 
 	# redir stderr to file
 	redirErr(True)
-	
+
 	prepare()
 	sendErrorLog()
 
@@ -1556,7 +1524,7 @@ if __name__ == '__main__':
 	# this is it
 	doLoop()
 
-	# end show 
+	# end show
 	var.logger.close()
 	updateStatus("dead")
 	closeMAX()
