@@ -1,10 +1,13 @@
-﻿#thermeq3
+#thermeq3
 Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
 
 ##Check betabeat directory
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Mar-15
+* updating valve ingnore interval according to outer temperature
+
 ###2015-Jan-18
 * more pythonic code, classes etc.
 

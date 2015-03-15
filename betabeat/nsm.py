@@ -27,7 +27,7 @@ from math import exp
 
 class setup(object):
 	def __init__(self):
-		self.version = 136
+		self.version = 137
 		self.appStartTime = time.time()
 		# required values, if any error in bridge then defaults is used [1]
 		self.cw = {
@@ -36,7 +36,7 @@ class setup(object):
 			"total": ["total_switch", 150],
 			"pref":  ["preference", "per"],
 			"int":   ["interval", 90],
-			"ign_op": ["ignore_opened", 20],
+			"ign_op": ["ignore_opened", 30],
 			"au": ["autoupdate", True],
 			"beta": ["beta", "no"],
 			"no_oww": ["no_oww", 0],
@@ -1271,6 +1271,14 @@ def weather_for_woeid(woeid):
 	try:
 		rss = parse(urllib2.urlopen(url)).getroot()
 	except Exception:
+		return {
+			"current_condition": "error",
+			"current_temp": "0",
+			"forecasts": "",
+			"title": "No title",
+			"humidity": "50",
+			"city": "No city"
+		}		
 		pass
 	else:
 		humidity = rss.find("channel/{%s}atmosphere" % WEATHER_NS)
@@ -1303,34 +1311,57 @@ def scale(val, src, dst):
 	return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
 
 
-def updateOWW2sit():
+def scaleOWW(temp):
 	# update open window warning interval according to outside temperature
 	# minimum and maximum temperature to be considered
-	t = {"min": -35, "max": 35}
+	t = {"min": -35.0, "max": 35.0}
 	# remap values on x scale
 	r = {"min": 0, "max": 10}
 	# minimum and maximum value for open window warning
 	w = {"min": 10, "max": 360}
-	var.sit = weather_for_woeid(stp.location)
-
-	# check if current temperature is in interval
-	temp = int(var.sit["current_temp"])
 
 	if temp < t["min"]:
 		temp = t["min"]
 	elif temp > t["max"]:
 		temp = t["max"]
-
+	
 	a = scale(temp, (t["min"], t["max"]), (r["min"], r["max"]))
 	# sample temperature to interval 10min ~ 360min (at -35/at 35 'C)
 	# so warning will be fired after 10 mins at -35, and after 360 mins at 35 'C
 	# sampled through exp function
 	b = int(scale(exp(a), (exp(r["min"]), exp(r["max"])), (w["min"], w["max"])))
-	# and maybe we need take care of humidity here :) oooh next time
-	# humidity code
-	#
-	stp.intervals["oww"] =  [b * 60, (3 * b) * 60, (3 * b) * 60]
+	
+	return b
+
+
+def scaleIgnore(temp):
+	# minimum and maximum temperature to be considered
+	t = {"min": 0.0, "max": 35.0}
+	# remap values on x scale
+	r = {"min": 1, "max": 3}
+	# minimum and maximum value for open window warning
+	w = {"min": 0, "max": 60}
+	
+	a = scale(temp, (t["min"], t["max"]), (r["min"], r["max"]))
+	# sampled through exp function
+	b = int(scale(exp(a), (exp(r["min"]), exp(r["max"])), (w["min"], w["max"])))
+	
+	return b
+
+	
+def updateOWW2sit():
+	var.sit = weather_for_woeid(stp.location)
+
+	temp = int(var.sit["current_temp"])
+
+	tmr = scaleOWW(temp)
+	stp.intervals["oww"] =  [tmr * 60, (3 * tmr) * 60, (3 * tmr) * 60]
 	var.logger.debug("OWW interval updated to " + str(stp.intervals["oww"]))
+	# and now modify ignore time
+	tmr = scaleIgnore(temp)
+	var.ignore_time = 30 + tmr 
+	var.value.put(rCW("ign_op"), str(var.ignore_time))
+	var.logger.debug("Ignore interval updated to " + str(var.ignore_time))
 
 
 def time_in_range(start, end, x):
