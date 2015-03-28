@@ -7,7 +7,7 @@ There's always new code, which seems to work on my development thermeq :)
 ##What is new?
 ###2015-Mar-23
 * minor updates
-* 
+
 ###2015-Mar-15
 * updating valve ignore interval according to outer temperature
 
