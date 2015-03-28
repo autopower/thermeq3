@@ -29,6 +29,8 @@ class setup(object):
 	def __init__(self):
 		self.version = 137
 		self.appStartTime = time.time()
+		# window ignore time
+		self.window_ignore_time = 30
 		# required values, if any error in bridge then defaults is used [1]
 		self.cw = {
 			"valve": ["valve_pos", 35],
@@ -36,7 +38,7 @@ class setup(object):
 			"total": ["total_switch", 150],
 			"pref":  ["preference", "per"],
 			"int":   ["interval", 90],
-			"ign_op": ["ignore_opened", 30],
+			"ign_op": ["ignore_opened", self.window_ignore_time],
 			"au": ["autoupdate", True],
 			"beta": ["beta", "no"],
 			"no_oww": ["no_oww", 0],
@@ -364,6 +366,16 @@ def updateStatus(statusMsg):
 	var.value.put(rCW("status"), str(stp.statusMsg[statusMsg]))
 
 
+def composeMessage(m_subject, m_body):
+	c_msg = MIMEMultipart()
+	c_msg["From"] = "\"" + stp.devname + "\" <" + stp.fromaddr + ">"
+	c_msg["To"] = ', '.join(stp.toaddr)
+	c_msg["Subject"] = m_subject
+	body = """<html><body><font face="arial,sans-serif">""" + m_body + "</p></body></html>"
+	c_msg.attach(MIMEText(body, "html"))
+	
+	return c_msg
+	
 def sendEmail(sendTxt):
 	try:
 		server = smtplib.SMTP(stp.mailserver, stp.mailport)
@@ -541,12 +553,10 @@ def doUpdate():
 		if chk == 2:
 			os.rename(stp.homedir + "nsm.upd", stp.homedir + "nsm.py")
 			temp_key = stp.maxid["sn"]
-			body = """<html><body><font face="arial,sans-serif">
-			<h1>Device upgrade information.</h1>
+			body = """<h1>Device upgrade information.</h1>
 			<p>Hello, I'm your thermostat and I have a information for you.<br/>
 			Please take a note, that I found new version of my control script and I'll be upgraded in few seconds.</br>
-			Resistance is futile :).<br/>
-			</p></body></html>"""
+			Resistance is futile :).<br/>"""
 			sendWarning("upgrade", temp_key, body)
 			queueMsg("R")
 	else:
@@ -557,17 +567,10 @@ def doUpdate():
 def sendErrorLog():
 	if os.path.getsize(stp.stderr_log) > 0:
 		devname = stp.devname
-		msg = MIMEMultipart()
-		msg["From"] = stp.fromaddr
-		msg["To"] = ''.join(stp.toaddr)
-		msg["Subject"] = devname + " log email (thermeq3 device)"
-
-		body = """<html><body><font face="arial,sans-serif">
-		<h1>%(a0)s status email.</h1>
-		<p>Hello, I'm your thermostat and I sending you this email with error logfile as attachment.<br/>
-		</p></body></html>""" % \
+		body = """<h1>%(a0)s status email.</h1>
+		<p>Hello, I'm your thermostat and I sending you this email with error logfile as attachment.<br/>""" % \
 		{"a0": str(devname)}
-		msg.attach(MIMEText(body, "html"))
+		msg = composeMessage(devname + " log email (thermeq3 device)", body)
 
 		part = MIMEBase("application", "octet-stream")
 		part.set_payload(open(stp.stderr_log, "rb").read())
@@ -595,15 +598,9 @@ def sendStatus():
 	uptime_string = getUptime()
 
 	var.value.put(rCW("terrs"), str(totalerrs + error))
-	msg = MIMEMultipart()
-	msg["From"] = stp.fromaddr
-	msg["To"] = ''.join(stp.toaddr)
-	msg["Subject"] = devname + " status email (thermeq3 device)"
-
 	heat_str = var.value.get(rCW("htstr"))
 
-	body = """<html><body><font face="arial,sans-serif">
-	<h1>%(a0)s status email.</h1>
+	body = """<h1>%(a0)s status email.</h1>
 	<p>Hello, I'm your thermostat and I sending you this status email.<br/>
 	Actual system status <b>%(a1)s</b> is checked every <b>%(a5)02d</b> seconds
 	for valve position of <b>%(a6)02d%%</b>.<br/>
@@ -611,8 +608,7 @@ def sendStatus():
 	Errors from last status mail: <b>%(a2)s</b><br/>
 	Total errors since start: <b>%(a7)d</b><br/>
 	Device uptime: <b>%(a8)s</b><br/>
-	Application uptime: <b>%(a9)s</b><br/>
-	</p></body></html>""" % \
+	Application uptime: <b>%(a9)s</b><br/>""" % \
 	{'a0': str(devname),
 	 'a1': status,
 	 'a2': str(error),
@@ -624,7 +620,7 @@ def sendStatus():
 	 'a9': str(datetime.timedelta(seconds=int(time.time() - stp.appStartTime)))
 	}
 
-	msg.attach(MIMEText(body, "html"))
+	msg = composeMessage(devname + " status email (thermeq3 device)", body)
 
 	if sendEmail(msg.as_string()) == 0:
 		var.value.put(rCW("errs"), "0")
@@ -680,8 +676,8 @@ def itsWarnTime():
 
 
 def sendWarning(selector, dev_key, body_txt):
-	# var.logger.debug("sendWarning(" + str(selector) + ", " + str(dev_key) + ", " + str(body_txt) + ")")
 	devname = stp.devname
+	subject = ""
 	if selector != "openmax" and selector != "upgrade":
 		d = stp.devices[dev_key]
 		dn = d[2]
@@ -693,24 +689,19 @@ def sendWarning(selector, dev_key, body_txt):
 		return
 
 	mutestr = "http://" + stp.myip + ":" + str(stp.extport) + "/data/put/command/mute" + str(dev_key)
-	msg = MIMEMultipart()
-	msg["From"] = stp.fromaddr
-	msg["To"] = stp.toaddr
 
 	if selector == "window":
 		owd = int((datetime.datetime.now() - stp.devices[dev_key][5]).total_seconds())
 		oww = int((datetime.datetime.now() - var.d_W[dev_key][0]).total_seconds())
 		if sil == 0 and oww < stp.intervals["oww"][1]:
 			return
-		msg["Subject"] = "Open window in room " + str(rn[0]) + ". Warning from " + devname + " (thermeq3 device)"
-		body = """<html><body><font face="arial,sans-serif">
-		<h1>Device %(a0)s warning.</h1>
+		subject = "Open window in room " + str(rn[0]) + ". Warning from " + devname + " (thermeq3 device)"
+		body = """<h1>Device %(a0)s warning.</h1>
 		<p>Hello, I'm your thermostat and I have a warning for you.<br/>
 		Please take a care of window <b>%(a0)s</b> in room <b>%(a1)s</b>.
 		Window in this room is now opened more than <b>%(a2)d</b> mins.<br/>
 		Threshold for warning is <b>%(a3)d</b> mins.<br/>
-		</p><p>You can <a href="%(a4)s">mute this warning</a> for %(a5)s mins. \
-		</p></body></html>""" % \
+		</p><p>You can <a href="%(a4)s">mute this warning</a> for %(a5)s mins.""" % \
 		{'a0': str(dn), 
 		 'a1': str(rn[0]), 
 		 'a2': int(owd / 60), 
@@ -721,39 +712,36 @@ def sendWarning(selector, dev_key, body_txt):
 		if sil == 0 and not rightTime("wrn"):
 			return
 		if selector == "battery":
-			msg["Subject"] = "Battery status for device " + str(dn) + ". Warning from " + devname + " (thermeq3 device)"
-			body = """<html><body><font face="arial,sans-serif">
-			<h1>Device %(a0)s battery status warning.</h1>
+			subject = "Battery status for device " + str(dn) + ". Warning from " + devname + " (thermeq3 device)"
+			body = """<h1>Device %(a0)s battery status warning.</h1>
 			<p>Hello, I'm your thermostat and I have a warning for you.<br/>
 			Please take a care of device <b>%(a0)s</b> in room <b>%(a1)s</b>.
 			This device have low batteries, please replace batteries.<br/>
-			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins. \
-			</p></body></html>""" % \
+			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins.""" % \
 			{'a0': str(dn), 
 			'a1': str(rn[0]), 
 			'a2': str(mutestr), 
 			'a3': int(stp.intervals["wrn"][1] / 60)}
 		elif selector == "error":
-			msg["Subject"] = "Error report for device " + str(dn) + ". Warning from " + devname + " (thermeq3 device)"
-			body = """<html><body><font face="arial,sans-serif">
-			<h1>Device %(a0)s radio error.</h1>
+			subject = "Error report for device " + str(dn) + ". Warning from " + devname + " (thermeq3 device)"
+			body = """<h1>Device %(a0)s radio error.</h1>
 			<p>Hello, I'm your thermostat and I have a warning for you.<br/>
 			Please take a care of device <b>%(a0)s</b> in room <b>%(a1)s</b>.
 			This device reports error.<br/>
-			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins. \
-			</p></body></html>""" % \
+			</p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins.""" % \
 			{'a0': str(dn), 
 			'a1': str(rn[0]), 
 			'a2': str(mutestr),
 			'a3': int(stp.intervals["wrn"][1] / 60)}
 		elif selector == "openmax":
-			msg["Subject"] = "Can't connect to MAX! Cube! Warning from " + devname + " (thermeq3 device)"
+			subject = "Can't connect to MAX! Cube! Warning from " + devname + " (thermeq3 device)"
 			body = body_txt
 		elif selector == "upgrade":
-			msg["Subject"] = devname + " (thermeq3 device) is going to be upgraded"
+			subject = devname + " (thermeq3 device) is going to be upgraded"
 			body = body_txt
 
-	msg.attach(MIMEText(body, "html"))
+	msg = composeMessage(subject, body)
+	
 	if sendEmail(msg.as_string()) == 0 and selector == "window":
 		var.d_W[dev_key][0] = datetime.datetime.now()
 
@@ -819,14 +807,12 @@ def openMAX():
 
 	var.logger.error("Error opening connection to MAX Cube. Error: " + str(e))
 	var.logger.error("Traceback: " + str(traceback.format_exc()))
-	body = """<html><body><font face="arial,sans-serif">
-	<h1>Device %(a0)s warning.</h1>
+	body = """<h1>Device %(a0)s warning.</h1>
 	<p>Hello, I'm your thermostat and I have a warning for you.<br/>
 	Please take a care of connection to MAX! Cube.</br>
 	I can't connect to Cube at address <b>%(a1)s</b>.<br/>
 	Error: %(a2)s<br/>
-	Traceback: %(a3)s<br/>
-	</p></body></html>""" % \
+	Traceback: %(a3)s<br/>""" % \
 	{'a0': str(stp.devname),
 	 'a1': str(stp.max_ip),
 	 'a2': str(e),
@@ -1311,55 +1297,31 @@ def scale(val, src, dst):
 	return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
 
 
-def scaleOWW(temp):
-	# update open window warning interval according to outside temperature
-	# minimum and maximum temperature to be considered
-	t = {"min": -35.0, "max": 35.0}
-	# remap values on x scale
-	r = {"min": 0, "max": 10}
-	# minimum and maximum value for open window warning
-	w = {"min": 10, "max": 360}
-
-	if temp < t["min"]:
-		temp = t["min"]
-	elif temp > t["max"]:
-		temp = t["max"]
+def interval_scale(temp, t, r, w, test):
+	if test:
+		if temp < t[0]:
+			temp = t[0]
+		elif temp > t[1]:
+			temp = t[1]
 	
-	a = scale(temp, (t["min"], t["max"]), (r["min"], r["max"]))
-	# sample temperature to interval 10min ~ 360min (at -35/at 35 'C)
-	# so warning will be fired after 10 mins at -35, and after 360 mins at 35 'C
-	# sampled through exp function
-	b = int(scale(exp(a), (exp(r["min"]), exp(r["max"])), (w["min"], w["max"])))
+	a = scale(temp, t, r)
+	b = int(scale(exp(a), (exp(r[0]), exp(r[1])), w))
 	
 	return b
 
 
-def scaleIgnore(temp):
-	# minimum and maximum temperature to be considered
-	t = {"min": 0.0, "max": 35.0}
-	# remap values on x scale
-	r = {"min": 1, "max": 3}
-	# minimum and maximum value for open window warning
-	w = {"min": 0, "max": 60}
-	
-	a = scale(temp, (t["min"], t["max"]), (r["min"], r["max"]))
-	# sampled through exp function
-	b = int(scale(exp(a), (exp(r["min"]), exp(r["max"])), (w["min"], w["max"])))
-	
-	return b
-
-	
-def updateOWW2sit():
+def update_ignores_2sit():
 	var.sit = weather_for_woeid(stp.location)
-
 	temp = int(var.sit["current_temp"])
 
-	tmr = scaleOWW(temp)
+	# modify OWW
+	tmr = interval_scale(temp, (-35.0, 35.0), (0, 10), (10, 360), True)
 	stp.intervals["oww"] =  [tmr * 60, (3 * tmr) * 60, (3 * tmr) * 60]
 	var.logger.debug("OWW interval updated to " + str(stp.intervals["oww"]))
-	# and now modify ignore time
-	tmr = scaleIgnore(temp)
-	var.ignore_time = 30 + tmr 
+	
+	# and now modify valve ignore time
+	tmr = interval_scale(temp, (0.0, 35.0), (14, 3.0), (15, 120), False)
+	var.ignore_time = stp.window_ignore_time + tmr 
 	var.value.put(rCW("ign_op"), str(var.ignore_time))
 	var.logger.debug("Ignore interval updated to " + str(var.ignore_time))
 
@@ -1421,7 +1383,7 @@ def doLoop():
 			else:
 				logstr = "Public"
 			var.logger.debug(logstr + " IP address: " + stp.myip)
-			updateOWW2sit()
+			update_ignores_2sit()
 		# check max according schedule
 		if rightTime("max"):
 			# beta features here

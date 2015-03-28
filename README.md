@@ -5,8 +5,11 @@ Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Mar-23
+* minor updates
+* 
 ###2015-Mar-15
-* updating valve ingnore interval according to outer temperature
+* updating valve ignore interval according to outer temperature
 
 ###2015-Jan-18
 * more pythonic code, classes etc.
@@ -71,7 +74,7 @@ thermostat's valve is opened above `valve_pos` value, the relay is switched on, 
 This is done by saving char into the 'msg' bridge value, which is readable at Arduino side.
 Heating also can be started if sum of radiator valves positions are geater than `num_of_valves * stp.per_switch`, 
 where `stp.per_switch` is value in %. So if you have 10 valves in house and `stp.per_switch=8`, and sum of these
-valves positions are 80+, relay is switched on. You can turn on this feature byt `stp.preference="per"` in python code.
+valves positions are 80+, relay is switched on. You can turn on this feature by `stp.preference="per"` in python code.
 If you need only simple total value, set `stp.preference="total"` and setup `total_switch` variable.
 
 On start LEDs blink 4 times, then remains lit until arduino yun bridge component is initialized. 
