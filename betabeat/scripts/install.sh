@@ -38,13 +38,16 @@ cd $DIR/www
 mkdir cgi-bin
 cd cgi-bin
 
-echo "echo \"Content-type: application/json\"
+echo "#!/bin/sh
+	echo \"Content-type: application/json\"
 	echo \"\"
 	cat $DIR/www/status.xml" > status
-echo "echo \"Content-type: application/json\"
+echo "#!/bin/sh
+	echo \"Content-type: application/json\"
 	echo \"\"
 	cat $DIR/www/owl.xml" > owl
-echo "echo \"Content-type: text/html\"
+echo "#!/bin/sh
+	echo \"Content-type: text/html\"
 	echo \"\"
 	cat $DIR/www/nice.html" > nice
 chmod +x status

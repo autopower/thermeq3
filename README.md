@@ -14,6 +14,9 @@ thermeq3 features:
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Oct-10
+* minor updates, betabeat and production is the same version
+
 ###2015-Mar-23
 * minor updates
 
