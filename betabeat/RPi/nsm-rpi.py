@@ -313,6 +313,7 @@ def queueMsg(msg):
 			var.logger.info("Clearing error LED")
 		elif tosend == "R":
 			saveBridge()
+		""" Placeholder for GPIO commands """
 		var.value.put(rCW("msg"), str(tosend))
 
 

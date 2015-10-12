@@ -1,7 +1,8 @@
 #thermeq3
 Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
 thermeq3 features:
-* switching DHW/Boiler according to valve position, you can set how many valves must be opened for how many %, or sum of the all valves in house to swhitch on DHW/Boiler
+* switching DHW/Boiler according to valve position, you can set how many valves must be opened for how many %, or sum of the all valves in house to switch on DHW/Boiler
+* profiles to choose right control values for any daypart
 * senses open windows and start heating after safe time to eliminate "panic" heating after forced ventilation
 * any event on MAX! cube tracked down to log file
 * notifies owner about opened windows after defined period, this period is automatically set according to external temperature
@@ -10,6 +11,7 @@ thermeq3 features:
 * simple self diagnostics
 * can be remote controlled via standard yún features (http/https)
 * daily summary
+* simple html status on user selectable port (via uhttpd)
 
 ##Check betabeat directory
 There's always new code, which seems to work on my development thermeq :)
@@ -17,7 +19,7 @@ There's always new code, which seems to work on my development thermeq :)
 ##What is new?
 ###2015-Oct-10
 * minor updates, betabeat and production are the same version
-* alpha RPi version, only change is the abstraction code replacing bridgeclient 
+* alpha RPi version, only change is the abstraction code replacing bridgeclient (but as reported from users, it works! :)) 
 
 ###2015-Mar-23
 * minor updates
