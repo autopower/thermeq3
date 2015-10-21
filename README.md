@@ -17,6 +17,11 @@ thermeq3 features:
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Oct-21
+* some fix in RPi version, please check commented code and uncomment (setblocking)
+* if anyone need room names in CSV, uncomment code in exportCSV()
+* minor updates 
+
 ###2015-Oct-10
 * minor updates, betabeat and production are the same version
 * alpha RPi version, only change is the abstraction code replacing bridgeclient (but as reported from users, it works! :)) 

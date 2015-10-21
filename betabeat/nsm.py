@@ -27,20 +27,21 @@ from math import exp
 
 class setup(object):
 	def __init__(self):
-		self.version = 139
+		self.version = 140
 		self.appStartTime = time.time()
 		# window ignore time
 		self.window_ignore_time = 30
 		# required values, if any error in bridge then defaults is used [1]
 		self.cw = {
 			"valve": ["valve_pos", 35],
-			"valves": ["valves", 1],
+			"valves": ["valves", 2],
 			"total": ["total_switch", 150],
 			"pref": ["preference", "per"],
 			"int": ["interval", 90],
 			"ign_op": ["ignore_opened", self.window_ignore_time],
 			"au": ["autoupdate", True],
 			"beta": ["beta", "no"],
+			"profile": ["profile", "time"],
 			"no_oww": ["no_oww", 0],
 			# optional values
 			"ht": ["heattime", '{"total": [0, 0.0], \
@@ -122,6 +123,14 @@ class setup(object):
 			["10:00", "14:00", 30, "per", 120, 2],
 			["14:00", "22:00", 36, "per", 120, 1],
 			["22:00", "23:59", 35, "per", 120, 1]]
+		# temperature table
+		self.temp = [
+			[-30, -20, 20, "per",  90, 2],
+			[-20, -10, 25, "per", 120, 2],
+			[-10,   0, 28, "per", 120, 2],
+			[  0,  10, 30, "per", 180, 2],
+			[ 10,  20, 40, "per", 240, 2],					
+		]          
 
 	def initPaths(self):
 		self.log_filename = self.place + self.devname + ".log"
@@ -145,8 +154,10 @@ class variables(object):
 		self.value = BridgeClient()
 		# open window dictionary
 		self.d_W = {}
-		# index in day table
-		self.actDayIndex = -1
+		# which mode is selected
+		self.selectedMode = "TIME"
+		# index in mode table
+		self.actModeIndex = -1
 		# dictionary for ignoring valves after closing window
 		self.d_ignore = {}
 		# variable for weather situation
@@ -539,7 +550,7 @@ def checkUpdate():
 					var.logger.info("V" + str(tmp_ver) + " downloaded. Hash is " + str(t[3]))
 					return 2
 				else:
-					var.logger.error("Problems downloading new version. Result=" + str(down_result) + ", file=" + str(t[1]))
+					var.logger.error("Problem downloading new version. Result=" + str(down_result) + ", file=" + str(t[1]))
 			else:
 				return 1
 
@@ -658,7 +669,7 @@ def silence(key, isWin):
 				# silence is over
 				var.d_W[key][1] = False
 
-	# increment counter of warning for this key
+	# increment warning counter for this key
 	var.d_W[key][2] += 1
 	if var.d_W[key][2] > stp.abnormalCount:
 		var.logger.critical("Abnormal count of warnings for device [" + str(key) + "], name [" + str(stp.devices[key][2]) + "]")
@@ -772,7 +783,11 @@ def exportCSV(onoff):
 		except Exception:
 			raise
 		else:
-			for k, v in stp.valves.iteritems():
+			for k, v in stp.valves.iteritems(): 		
+				# to get headers like rooma name - valve name use this (uncomment)
+				# room_id = str(getName(k)[0]) 
+				# name = rooms[room_id][0] + "-" + stp.devices[k][2]
+				# and comment line below
 				name = stp.devices[k][2]
 				var.csv.write(name + "," + name + ",")
 			var.csv.write("\r\n")
@@ -787,6 +802,8 @@ def exportCSV(onoff):
 def openMAX():
 	""" open communication to MAX! Cube """
 	var.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	# on some system use code below:
+	# var.client_socket.setblocking(0)
 	var.client_socket.settimeout(int(stp.timeout / 2))
 	temp_key = stp.maxid["sn"]
 
@@ -825,7 +842,7 @@ def setIgnoredValves(key):
 	room = stp.devices[key][3]
 	for k, v in stp.devices.iteritems():
 		# this is heating thermostat and is in room where we want ignore all heating thermostats and is not in d_ignore dictionary
-		# it means, it not ignored now
+		# it means, is not ignored now
 		if v[0] == 1 and v[3] == room and k not in var.d_ignore:
 			# don't heat X*60 seconds after closing window
 			var.d_ignore.update({k: time.time() + var.ignore_time * 60})
@@ -1149,7 +1166,6 @@ def countValve(key):
 		if var.d_ignore[key] < time.time():
 			del var.d_ignore[key]
 		else:
-			# var.logger.debug("Valve " + str(key) + " ignored,")
 			return False
 	return True
 
@@ -1183,9 +1199,6 @@ def doControl():
 			sendWarning("error", k, "")
 
 	# check if ventilate and if not then send warning
-
-	var.logger.debug(str(len(open_windows)) + "/" + str(stp.ventilate_num))
-
 	if var.no_oww == 0 and len(open_windows) < stp.ventilate_num:
 		for idx, k in enumerate(open_windows):
 			sendWarning("window", k, "")
@@ -1357,23 +1370,49 @@ def isTime():
 	return -1
 
 
-def dayMode():
+def setMode(value):
+	if value[3] == "total":
+		stp.total_switch = value[2]
+	else:
+		stp.valve_switch = value[2]
+	stp.preference = value[3]
+	stp.intervals["max"][0] = value[4]
+	stp.valve_num = value[5]
+	# just sleep value, always calculated as max[0] / slp[1]
+	stp.intervals["slp"][0] = int(value[4] / stp.intervals["slp"][1])
+
+
+def timeMode():
 	# day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
 	md = isTime()
 	if md != -1:
-		if md != var.actDayIndex:
+		if md != var.actModeIndex:
 			kv = stp.day[md]
-			var.actDayIndex = md
+			var.actModeIndex = md
 			var.logger.debug("Switching day mode to " + str(md) + " = " + str(kv))
-			if kv[3] == "total":
-				stp.total_switch = kv[2]
-			else:
-				stp.valve_switch = kv[2]
-			stp.preference = kv[3]
-			stp.intervals["max"][0] = kv[4]
-			stp.valve_num = kv[5]
-			# just sleep value, always calculated as max[0] / slp[1]
-			stp.intervals["slp"][0] = int(kv[4] / stp.intervals["slp"][1])
+			setMode(kv)
+
+
+def tempMode():
+	c_temp = int(var.sit["current_temp"])
+	for k in stp.temp:
+		kv = stp.temp[k]
+		if c_temp >= kv[0] and c_temp < kv[1]:
+			var.actModeIndex = k
+			var.logger.debug("Switching temp mode to " + str(kv[0]) + " ~ " + str(kv[1]))
+			setMode(kv)
+			
+
+def doProfiles():
+	tmp_prof = tryRead("profile", "time", False).upper()
+	if tmp_prof != var.selectedMode:
+		var.selectedMode = tmp_prof
+		var.actModeIndex = -1		    
+	if tmp_prof == "TIME":
+		timeMode()
+	elif tmp_prof == "TEMP":
+		tempMode() 
+
 # beta end
 
 
@@ -1397,7 +1436,7 @@ def doLoop():
 		if rightTime("max"):
 			# beta features here
 			if tryRead("beta", "no", False).upper() == "YES":
-				dayMode()
+				doProfiles()
 			# end of beta
 			cmd = getCMD()
 			if cmd == "init":
