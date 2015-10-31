@@ -17,6 +17,11 @@ thermeq3 features:
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Oct-31
+* minor fixes
+* new status messages
+* JSON formated string in current status
+
 ###2015-Oct-21
 * some fix in RPi version, please check commented code and uncomment (setblocking)
 * if anyone need room names in CSV, uncomment code in exportCSV()

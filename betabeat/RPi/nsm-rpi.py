@@ -41,7 +41,7 @@ class BridgeClient:
 
 class setup(object):
 	def __init__(self):
-		self.version = 140
+		self.version = 141
 		self.appStartTime = time.time()
 		# window ignore time
 		self.window_ignore_time = 30
@@ -58,8 +58,7 @@ class setup(object):
 			"profile": ["profile", "time"],
 			"no_oww": ["no_oww", 0],
 			# optional values
-			"ht": ["heattime", '{"total": [0, 0.0], \
-				{datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"): [0, time.time()]}'],
+			"ht": ["heattime", {"total": [0, 0.0], datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"): [0, time.time()]}],
 			"errs": ["error", 0],
 			"terrs": ["totalerrors", 0],
 			"cmd": ["command", ""],
@@ -77,7 +76,9 @@ class setup(object):
 			"idle": "idle",
 			"heat": "heating",
 			"start": "starting",
-			"dead": "dead"}
+			"dead": "dead",
+			"hv": "heating and ventilating",
+			"iv": "idle and ventilating"}
 		# my IP address
 		self.myip = "127.0.0.1"
 		# sd card or usb key mount point, default is /mnt/sda1/
@@ -1077,8 +1078,8 @@ def writeStrings():
 		rooms[room_id][0] = roomStr
 		var.csv.write(str(v[0]) + "," + str(v[1]) + ",")
 
-		current[room_id].update({str(k): [str(stp.devices[k][2]), str(v[0]), str(v[1]), str(v[2]),
-			str(1 if cv else 0)]})
+		current[room_id].update({str(k): [str(stp.devices[k][2]), str(v[0]),
+			str(v[1]), str(v[2]), str(1 if cv else 0)]})
 
 	var.csv.write("\r\n")
 
@@ -1094,6 +1095,8 @@ def writeStrings():
 	# second web
 	# JSON formated status
 	secWebFile("status", current)
+	# and bridge variable
+	var.value.put(rCW("cur"), str(current))
 	# nice text web
 	logstr.replace("\r\n", "<br/>")
 	logstr.replace("\t", "&#9;")
@@ -1216,6 +1219,12 @@ def doControl():
 	if var.no_oww == 0 and len(open_windows) < stp.ventilate_num:
 		for idx, k in enumerate(open_windows):
 			sendWarning("window", k, "")
+	# else check if ventilating and update status
+	elif len(open_windows) >= stp.ventilate_num:
+		if var.heating:
+			updateStatus("hv")
+		else:
+			updateStatus("iv")
 
 	# second web
 	secWebFile("owl", tmp)
@@ -1271,6 +1280,12 @@ def doControl():
 		else:
 			var.logger.info("heating stopped.")
 			doheat(False)
+			
+	# update status, this was added due to some issues in status update
+	if var.heating:
+		updateStatus("heat")
+	else:
+		updateStatus("idle")
 
 
 # check if its right time to update
