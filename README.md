@@ -17,6 +17,10 @@ thermeq3 features:
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Nov-01
+* new arduino command A, clears LED
+* some cleanup, codeword dump removed
+
 ###2015-Oct-31
 * minor fixes
 * new status messages
@@ -124,7 +128,6 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
 * `command` = can be:
   * `quit` quits application
   * `mail` sends status report via mail
-  * `dump` dumps valves into the `dumpdata` variable
   * `init` reinits python app
   * `uptime` updates uptime value
   * `log_debug` turns on logging on debug level
@@ -164,6 +167,7 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
 * `S` stop heating!
 * `E` error, error LED is lit
 * `C` clear error LED
+* `A` clear all LEDs
 * `Q` fatal error, lit some disco effects on LEDs
 * `D` dead! status LED breathing
 * `R` restart app, eg. after upgrade

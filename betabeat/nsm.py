@@ -43,13 +43,16 @@ class setup(object):
 			"beta": ["beta", "no"],
 			"profile": ["profile", "time"],
 			"no_oww": ["no_oww", 0],
+			#
 			# optional values
+			#
 			"ht": ["heattime", {"total": [0, 0.0], datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"): [0, time.time()]}],
+			# communication errors, this states how many times failed communication between thermeq3 and MAX!Cube, cleared after sending status
 			"errs": ["error", 0],
+			# same as above, but cumulative number
 			"terrs": ["totalerrors", 0],
 			"cmd": ["command", ""],
 			"msg": ["msg", ""],
-			"dump": ["dumpdata", ""],
 			"uptime": ["uptime", ""],
 			"appuptime": ["app_uptime", 0],
 			"htstr": ["heattime_string", str(datetime.timedelta(seconds=0))],
@@ -421,14 +424,13 @@ def saveBridge():
 		var.logger.error("Error writing to bridgefile!")
 	else:
 		for k, v in stp.cw.iteritems():
-			if k != "dump":
-				try:
-					tmp = var.value.get(v[0])
-				except Exception:
-					tmp = ""
-				if tmp == "None" or tmp is None:
-					tmp = str(v[1])
-				f.write(v[0] + "=" + str(tmp) + "\r\n")
+			try:
+				tmp = var.value.get(v[0])
+			except Exception:
+				tmp = ""
+			if tmp == "None" or tmp is None:
+				tmp = str(v[1])
+			f.write(v[0] + "=" + str(tmp) + "\r\n")
 		f.close()
 		var.logger.debug("Bridge file saved.")
 
@@ -447,7 +449,7 @@ def loadBridge():
 						var.ht = literal_eval(t[1])
 					except Exception:
 						var.ht = {"total": [0, 0.0]}
-				elif not rCW("dump") in line:
+				else:
 					if t[0] in cw:
 						var.value.put(t[0], t[1])
 						if t[1] == "" or t[1] is None:
