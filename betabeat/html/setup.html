@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>thermeq</title>
+  
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/ui-lightness/jquery-ui.css">
+  <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+  <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+  <script>
+  var deviceIP = "http://10.60.0.11"
+  
+  function normTime(totalSec) {
+		var hours = parseInt( totalSec / 3600 ) % 24;
+		var minutes = parseInt( totalSec / 60 ) % 60;
+		var seconds = totalSec % 60;
+	
+		result = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds  < 10 ? "0" + seconds : seconds);
+		return result;
+	}
+	
+	function getJSON(text) {
+		if (!$.isPlainObject(text)) {
+			reg = new RegExp("'", "g");
+  		get_json = $.parseJSON(text.replace(reg, "\""));
+  	} else {
+  		get_json = text;
+		}
+		return get_json;
+	}
+
+  function doAJAX(p1) {
+		$.ajax({
+			url: p1,
+			dataType: "jsonp",
+			jsonp: "jsonp",
+		})
+		.done(function(data) {
+			console.log(data);
+		});
+	}
+	
+	function loadData() {
+		// init accordion
+		$("#status").empty();	
+		
+		$.ajax({
+			url: "http://10.60.0.11/data/get",
+			dataType: "jsonp",
+			jsonp: "jsonp",
+		})
+			.done(function(data ) {
+  				$.each($.parseJSON(data)["value"], function(k, v) {
+  					switch (k) {
+  						case "app_uptime":
+  						  $( "#appuptime_data").val(v);
+  							break;
+  						case "heattime":
+  							x = getJSON(v);
+  							total = x[Object.keys(x)[1]];
+								$( "#totalheat_data").val(normTime(total[0])); 
+  							daily = x[Object.keys(x)[0]];
+  							$( "#dailyheat_data").val(normTime(daily[0]));
+  							break;
+  						case "beta":
+  							if (v == "no") {
+  								$( "#beta" ).prop('checked', false);
+								} else {
+									$( "#beta" ).prop('checked', true);
+								}
+								$("#beta").button("refresh");
+  							break;
+  						case "no_oww":
+  							if (v == "1") {
+									$( "#oww" ).prop('checked', true);  								
+								} else {
+									$( "#oww" ).prop('checked', false);
+								}
+								$("#oww").button("refresh");
+  							break;
+  						case "autoupdate":
+  							if (v == "True") {
+									$( "#autoupdate" ).prop('checked', true);  								
+								} else {
+									$( "#autoupdate" ).prop('checked', false);
+								}
+								$("#autoupdate").button("refresh");
+  							break;
+  						case "ignore_opened":
+  							$( "#oww_interval" ).slider( "value", v);
+        				$( "#oww_interval_data" ).val( $( "#oww_interval" ).slider( "value" ) );
+  							break;
+  						case "valves":
+  							$( "#valves" ).slider( "value", v);
+        				$( "#valves_data" ).val( $( "#valves" ).slider( "value" ) );
+  							break;
+  						case "interval":
+  							$( "#max_timeout" ).slider( "value", v);
+  							$( "#max_timeout_data" ).val( $( "#max_timeout" ).slider( "value" ) );
+  							break;
+  						case "valve_pos":
+  							$( "#valve_pos" ).slider( "value", v);
+  							$( "#valvepos_data" ).val( $( "#valve_pos" ).slider( "value" ) );							 
+  							break;
+  						case "svpnmw":
+  							$( "#svpnmw" ).slider( "value", v);
+  							$( "#svpnmw_data" ).val( $( "#svpnmw" ).slider( "value" ) );							 
+  							break;
+  						case "preference":
+  							if (v == "per") {
+  								$( "#v_mode1").prop('checked', true).button('refresh');
+								} else {
+									$( "#v_mode2").prop('checked', true).button('refresh');
+								}
+  							break;
+  						case "status":
+  							$( "#status_data").val(v);
+  							break;
+  						case "current_status": {
+  							$.each(getJSON(v), function(room_k, room_v) {
+  								percentage = 0;
+  								cnt = 0;
+  								tmp_str = "";
+  								$.each(room_v, function (x, y) {
+  									tmp_str = tmp_str + "Valve name: <b>" + y[0] + "</b> (ID:" + x + "), position " +
+										y[1] + "%<br/>" +
+										"Set temp: " + y[2] + ", Current temp: " + y[3] + "<br/>" +
+										"Enabled: " + y[4] + "<br/>";
+										percentage = percentage + parseInt(y[1]);
+										cnt++;
+									});
+									tmp_str = tmp_str + "</div>";
+									tmp_str = "<h3>" + room_k + " (" + (percentage/cnt) + "%)</h3><div>" + tmp_str;
+									$( "#status" ).append(tmp_str);
+								});
+								$( "#status" ).accordion( "refresh" );
+  							break;
+							}
+						}
+					}); 
+  		})
+			.fail(function( jqxhr, textStatus, error ) {
+    		var err = textStatus + ", " + error;
+    		console.log("Request Failed: " + err );
+    		console.log("Incoming Text " + JSON.stringify(jqxhr));
+    	});
+	}
+	
+	function constructURL(p1, p2) {
+		if (p1 == "put") {
+			tmpstr = deviceIP + "/data/put/" + p2;
+		} else {
+			tmpstr = deviceIP + "/data/get/" + p2
+		}
+		console.log(tmpstr);
+		return tmpstr;
+	}
+		
+	function resetDevice() {
+		doAJAX(constructURL("put", "msg/R"));
+	}
+	
+	function clearLED() {
+		doAJAX(constructURL("put", "msg/C"));
+	}
+	
+	function clearAll() {
+		doAJAX(constructURL("put", "msg/A"));
+	}
+		
+	function saveDevice() {
+	}
+	
+	function heat(onoff) {
+		if (onoff) {
+			doAJAX(constructURL("put", "msg/H"));	
+		} else {
+			doAJAX(constructURL("put", "msg/S"));
+		}
+	}
+	
+  $(function() {
+    $( "#menu" ).menu({
+    	select: function(event, ui){
+    		console.log(ui.item.text());
+    		switch (ui.item.text()) {
+    			case "Reset":
+    				resetDevice();
+    				break;
+    			case "Start":
+    				heat(True);
+    				break;
+    			case "Stop":
+    				heat(False);
+    				break;
+    			case "Clear Error LED":
+    				clearLED();
+    				break;
+    			case "Clear All LEDs":
+    				clearAll();
+    				break;
+					case "Reload":
+						loadData();
+						break;
+				};
+			}
+		});
+
+    
+  	$( "#error_data").val("0")
+  	$( "#appuptime_data").val("00:00:00")
+  	$( "#totalheat_data").val("00:00:00")
+  	$( "#dailyheat_data").val("00:00:00")
+  	
+    $( "#max_timeout" ).slider({
+      range: "min",
+      min: 30,
+      max: 600,
+      value: 120,
+      step: 10,
+      slide: function( event, ui ) {
+        $( "#max_timeout_data" ).val( ui.value );
+      }
+    });
+    $( "#max_timeout_data" ).val( $( "#max_timeout" ).slider( "value" ) );
+   
+    $( "#oww_interval" ).slider({
+      range: "min",
+      min: 0,
+      max: 360,
+      value: 10,
+      step: 5,
+      slide: function( event, ui ) {
+        $( "#oww_interval_data" ).val( ui.value );
+      }
+    });
+    $( "#oww_interval_data" ).val( $( "#oww_interval" ).slider( "value" ) );
+ 
+    $( "#valve_pos" ).slider({
+      range: "min",
+      min: 1,
+      max: 100,
+      value: 20,
+      slide: function( event, ui ) {
+        $( "#valvepos_data" ).val( ui.value );
+      }
+    });
+    $( "#valvepos_data" ).val( $( "#valve_pos" ).slider( "value" ) );
+    
+    // single valve position no matter what
+    $( "#svpnmw" ).slider({
+      range: "min",
+      min: 1,
+      max: 100,
+      value: 20,
+      slide: function( event, ui ) {
+        $( "#svpnmw_data" ).val( ui.value );
+      }
+    });
+    $( "#svpnmw_data" ).val( $( "#svpnmw" ).slider( "value" ) );
+    $( "#svpnmw_default" )
+      .button()
+      .click(function( event ) {
+      	sv = (parseInt($( "#valvepos_data" ).val()) * 2) + 5;  
+      	if (sv > 85) {
+      		sv = 85;
+				}
+				if ( parseInt($("#valvepos_data").val()) > parseInt($("#svpnmw_data").val())) {
+					sv = parseInt( $("#svpnmw_data").val() - 20); 
+					$("#valvepos_data").val(sv);					
+				} 
+        $( "#svpnmw" ).slider( "value", sv);
+        $( "#svpnmw_data" ).val( $( "#svpnmw" ).slider( "value" ) );
+      });
+
+		// number of valves    
+    $( "#valves" ).slider({
+      range: "min",
+      min: 1,
+      max: 10,
+      value: 2,
+      slide: function( event, ui ) {
+        $( "#valves_data" ).val( ui.value );
+      }
+    });
+    $( "#valves_data" ).val( $( "#valves" ).slider( "value" ) );
+
+		// max timeout 
+    $( "#max_timeout_default" )
+      .button()
+      .click(function( event ) {
+        $( "#max_timeout" ).slider( "value", 120);
+        $( "#max_timeout_data" ).val( $( "#max_timeout" ).slider( "value" ) );
+      });
+      
+    $( "#oww_interval_default" )
+      .button()
+      .click(function( event ) {
+        $( "#oww_interval" ).slider( "value", 10);
+        $( "#oww_interval_data" ).val( $( "#oww_interval" ).slider( "value" ) );
+      });
+
+    $( "#day_mode" ).buttonset();
+    $( "#valve_mode" ).buttonset();
+    
+    $( "#autoupdate" ).button();
+    $( "#oww").button();
+    $( "#beta").button();
+    
+    $( "#status" ).accordion();
+    
+    loadData();
+  });
+	</script>
+	<style>
+		#wrap {
+			max-width:1000px;
+			margin:0 auto;
+		}
+		#header {
+			background: #AAAAAA;
+		}
+    #menubar {
+    	float:left;
+    	min-width: 150px;
+		}
+		#main {
+			float:right;
+		}
+		#footer {
+			background: #AAAAAA;
+			clear: both;
+		}
+		#mainline {
+			padding: 1em;
+			clear: both;
+		}
+		#ml_left {
+			float: left;
+			padding: 0.5em;
+		}
+		#ml_right {
+			float: right;
+			padding: 0.5em;
+			min-width: 12em;			
+		}
+  	.ui-menu { 
+			width: 150px; 
+		}
+  	
+		.ui-slider .ui-slider-horizontal { 
+    	width: 550px !important;
+	}
+  </style>
+
+</head>
+
+<body>
+<div id="wrap">
+	<div id="header">
+	<h1>thermeq3 setup</h1>
+	</div>
+	<div id="menubar">
+		<ul id="menu" style="float:left; vertical-align: top;">
+		  <li class="ui-widget-header">Main Menu</li>
+		  <li><a href="#">Save</a></li>
+		  <li><a href="#">Reset</a></li>
+		  <li>Heating
+		    <ul>
+		      <li><a href="#">Start</a></li>
+		      <li><a href="#">Stop</a></li>
+		    </ul>
+		  </li>
+		  <li><a href="#">Clear Error LED</a></li>
+		  <li><a href="#">Clear All LED</a></li>
+		  <li><a href="#">Reload</a></li>
+		</ul>
+	</div>
+
+<div id="main">
+	<div id="mainline">
+		<label for="status_data">Status:</label>
+		<input type="text" id="status_data" readonly style="border:0; font-weight:bold;">
+		<label for="error_data">Errors:</label>
+		<input type="text" id="error_data" readonly style="border:0; font-weight:bold;">
+	</div>
+
+	<div id="mainline">
+		<label for="appuptine_data">App uptime:</label>
+		<input type="text" id="appuptime_data" readonly style="border:0; font-weight:bold;">
+		<label for="totalheat_data">Total heat time:</label>
+		<input type="text" id="totalheat_data" readonly style="border:0; font-weight:bold;">
+		<label for="dailyheat_data">Daily heat time:</label>
+		<input type="text" id="dailyheat_data" readonly style="border:0; font-weight:bold;">
+	</div>
+	
+	<div id="mainline">
+		<div id="ml_left">
+	  	<label for="max_timeout_data">MAX!Cube read interval [sec]:</label>
+	  	<input type="text" id="max_timeout_data" readonly style="border:0; color:red; font-weight:bold;">
+	  	<div id="max_timeout"></div>
+	  </div>
+	  <div id="ml_right">
+	  	<button id="max_timeout_default">Default</button>
+		</div>		
+	</div>
+	
+	<div id="mainline">
+		<div id="ml_left">
+	  	<label for="valvepos_data">Valve position [%]:</label>
+	  	<input type="text" id="valvepos_data" readonly style="border:0; color:red; font-weight:bold;">
+			<div id="valve_pos"></div>
+		</div>
+	</div>
+	
+	<div id="mainline">
+		<div id="ml_left">
+	  	<label for="svpnmw_data">Single valve position (panic) [%]:</label>
+	  	<input type="text" id="svpnmw_data" readonly style="border:0; color:red; font-weight:bold;">
+	  	<div id="svpnmw"></div>
+	  </div>
+		<div id="ml_right">	  
+  		<button id="svpnmw_default">Default</button>
+  	</div>
+	</div>
+	
+	<div id="mainline"> 
+		<div id="ml_left">
+  		<label for="oww_interval_data">Open window warning interval [min]:</label>
+  		<input type="text" id="oww_interval_data" readonly style="border:0; color:red; font-weight:bold;">
+			<div id="oww_interval"></div>
+		</div>
+		<div id="ml_right">
+			<button id="oww_interval_default">Default</button>
+		</div>
+	</div>
+	
+	<div id="mainline">
+		<div id="ml_left">
+		  <div id="day_mode">
+		  	<label for="r_mode">Day mode:</label>
+		    <input type="radio" id="d_mode1" name="r_mode" checked="checked"><label for="d_mode1">Time</label>
+		    <input type="radio" id="d_mode2" name="r_mode"><label for="d_mode2">Temperature</label>
+		  </div>
+		</div>
+	</div>
+	
+	<div id="mainline">
+	<div id="ml_left">
+	  <div id="valve_mode">
+	  	<label for="v_mode">Valve mode:</label>
+	    <input type="radio" id="v_mode1" name="v_mode"><label for="v_mode1">Per</label>
+	    <input type="radio" id="v_mode2" name="v_mode"><label for="v_mode2">Total</label>
+	  </div>
+	</div>
+	</div>
+	
+	<div id="mainline">
+	<div id="ml_left">
+		<input type="checkbox" id="autoupdate"><label for="autoupdate">Autoupdate</label>
+		<input type="checkbox" id="oww"><label for="oww">Disable OWW</label>
+		<input type="checkbox" id="beta"><label for="beta">Beta functions</label>
+	</div>
+	</div>
+	
+	<div id="mainline">
+	<div id="ml_left">
+		<label for="valves_data">Valves:</label>
+	  <input type="text" id="valves_data" readonly style="border:0; color:red; font-weight:bold;">
+		<div id="valves"></div>
+	</div>
+	</div>
+	
+	<div id="mainline">
+		<div id="status"></div>
+	</div>	
+</div>
+
+<div id="footer">
+	Footer
+</div>
+
+</div>
+
+
+
+</body>
+
+
+</html>

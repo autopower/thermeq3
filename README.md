@@ -17,6 +17,10 @@ thermeq3 features:
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Nov-02
+* some javascript code (based on jquery ui) to control device, ugly, not fully functional, first steps with JS and CSS ;)
+* code cleanup
+
 ###2015-Nov-01
 * new arduino command A, clears LED
 * some cleanup, codeword dump removed
