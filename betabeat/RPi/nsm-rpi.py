@@ -41,35 +41,52 @@ class BridgeClient:
 
 class setup(object):
 	def __init__(self):
-		self.version = 141
+		self.version = 142
 		self.appStartTime = time.time()
 		# window ignore time
 		self.window_ignore_time = 30
-		# required values, if any error in bridge then defaults is used [1]
 		self.cw = {
+			#
+			# required values, if any error in bridge then defaults is used [1]
+			#
+			# thermeq3 mode, auto or manual
+			"mode": ["mode", "auto"],
+			# valve position in % to start heating
 			"valve": ["valve_pos", 35],
+			# start heating if single valve position in %, no matter how many valves are needed to start to heating
+			"svpnmw": ["svpnmw", 75],
+			# how many valves must be in position stated above
 			"valves": ["valves", 2],
+			# if in total mode, sum of valves position to start heating
 			"total": ["total_switch", 150],
+			# preference, "per" = per valve, "total" to total mode
 			"pref": ["preference", "per"],
+			# interval, seconds to read MAX!Cube
 			"int": ["interval", 90],
+			# 
 			"ign_op": ["ignore_opened", self.window_ignore_time],
+			# use autoupdate function?
 			"au": ["autoupdate", True],
+			# beta features on (yes) or off (no)
 			"beta": ["beta", "no"],
+			# profile type, time or temp, temp profile type means that external temperature (yahoo weather) is used 
 			"profile": ["profile", "time"],
 			"no_oww": ["no_oww", 0],
+			#
 			# optional values
+			#
 			"ht": ["heattime", {"total": [0, 0.0], datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"): [0, time.time()]}],
+			# communication errors, this states how many times failed communication between thermeq3 and MAX!Cube, cleared after sending status
 			"errs": ["error", 0],
+			# same as above, but cumulative number
 			"terrs": ["totalerrors", 0],
 			"cmd": ["command", ""],
 			"msg": ["msg", ""],
-			"dump": ["dumpdata", ""],
 			"uptime": ["uptime", ""],
 			"appuptime": ["app_uptime", 0],
 			"htstr": ["heattime_string", str(datetime.timedelta(seconds=0))],
 			"daily": ["daily", ""],
 			"status": ["status", "defaults"],
-			"owl": ["openwinlist", "{}"],
 			"cur": ["current_status", "{}"]}
 		# status messages
 		self.statusMsg = {
@@ -403,6 +420,23 @@ def composeMessage(m_subject, m_body):
 	return c_msg
 
 
+def checkVar():
+	if stp.valve_num > len(stp.valves):
+		var.logger.error("You have only " + str(len(stp.valves)) + 
+			" valves, but you want to " + str(stp.valve_num) + " of them be checked to turn on heating!")
+		stp.valve_num = len(stp.valves)
+	if stp.valve_switch > 90:
+		var.logger.error("Valve switch position over 90%!")
+		stp.valve_switch = 90
+	if stp.svpnmw > 100:
+		var.logger.error("Single valve switch position over 100%!")
+		stp.svpnmw = 100
+	if stp.valve_switch > stp.svpnmw:
+		var.logger.error("svpnmw (" + str(stp.svpnmw) + 
+			"%) is less or equal to valve switch setup (" + str(stp.valve_switch) + "%)!")
+		stp.svpnmw = stp.valve_switch		
+
+
 def sendEmail(sendTxt):
 	try:
 		server = smtplib.SMTP(stp.mailserver, stp.mailport)
@@ -435,14 +469,13 @@ def saveBridge():
 		var.logger.error("Error writing to bridgefile!")
 	else:
 		for k, v in stp.cw.iteritems():
-			if k != "dump":
-				try:
-					tmp = var.value.get(v[0])
-				except Exception:
-					tmp = ""
-				if tmp == "None" or tmp is None:
-					tmp = str(v[1])
-				f.write(v[0] + "=" + str(tmp) + "\r\n")
+			try:
+				tmp = var.value.get(v[0])
+			except Exception:
+				tmp = ""
+			if tmp == "None" or tmp is None:
+				tmp = str(v[1])
+			f.write(v[0] + "=" + str(tmp) + "\r\n")
 		f.close()
 		var.logger.debug("Bridge file saved.")
 
@@ -461,13 +494,15 @@ def loadBridge():
 						var.ht = literal_eval(t[1])
 					except Exception:
 						var.ht = {"total": [0, 0.0]}
-				elif not rCW("dump") in line:
+				else:
 					if t[0] in cw:
-						var.value.put(t[0], t[1])
+						# check if correct values are loaded						
 						if t[1] == "" or t[1] is None:
 							defValue = str(cw[t[0]])
 							var.logger.info("CW [" + str(t[0]) + "] empty, using default [" + str(t[1]) + "]")
 							var.value.put(t[0], defValue)
+						else:
+							var.value.put(t[0], t[1])
 					else:
 						var.logger.error("Bridge error codeword @[" + str(t[0]) + "] value [" + str(t[1]) + "]")
 			f.close()
@@ -1198,6 +1233,9 @@ def checkDayTable():
 
 
 def doControl():
+	# check if variables are set correctly
+	checkVar()
+	# initialize
 	tmp = {}
 	open_windows = []
 
@@ -1241,25 +1279,30 @@ def doControl():
 	# and now showtime
 	stp.total = getTotal()
 	# grand total
-	heat = False
+	# heat: 0 = disable, 1 = heat per, 2 = total, 3 = svpnmw
+	heat = 0 
 	grt = 0
 	valve_count = 0
 	valve_key = {}
 
-	if stp.valve_num > len(stp.valves):
-		var.logger.error("Something is wrong, you have only " + str(len(stp.valves)) + " valves, but you want to " + str(stp.valve_num) + " of them be checked to turn on heating!")
-		stp.valve_num = len(stp.valves)
 	for k, v in stp.valves.iteritems():
-		is_ok = countValve(k)
-		if stp.preference == "per" and v[0] > stp.valve_switch and is_ok:
-			valve_count += 1
-			if valve_count >= stp.valve_num:
-				heat = True
-				valve_key.update(getKeyName(k))
-		elif stp.preference == "total" and is_ok:
-			grt += v[0]
-			if grt >= stp.total:
-				heat = True
+		# if valve is ok to evaluate
+		if countValve(k):
+			# if preference is per valve
+			if stp.preference == "per":
+				# and valve position is over single valve position no matter what
+				if v[0] > stp.svpnmw:
+					heat = 3
+				# or valve is over desired position to switch heating on
+				elif v[0] > stp.valve_switch:
+					valve_count += 1
+					if valve_count >= stp.valve_num:
+						heat = 1
+						valve_key.update(getKeyName(k))
+			elif stp.preference == "total":
+				grt += v[0]
+				if grt >= stp.total:
+					heat = 2
 
 	# increment number of readings with heat on
 	if heat:
@@ -1267,14 +1310,16 @@ def doControl():
 
 	# var.logger.debug("Control: " + str(var.heating) + "=" + str(heat) + ", " + str(grt) + "; " + str(stp.valve_num) + " , " + str(valve_count))
 
-	if heat != var.heating:
-		if heat:
+	if bool(heat) != var.heating:
+		if heat > 0:
 			txt = "heating started due to"
-			if stp.preference == "per" and valve_count >= stp.valve_num:
+			if heat == 1 and valve_count >= stp.valve_num:
 				for k, v in valve_key.iteritems():
 					txt += " room " + str(v[0]) + ", valve " + str(v[1]) + "@" + str(v[2])
-			elif stp.preference == "total":
+			elif heat == 2:
 					txt += " sum of valve positions = " + str(grt)
+			elif heat == 3:
+					txt += " single valve position, no matter what " + str(stp.svpnmw) + "%"
 			var.logger.info(txt)
 			doheat(True)
 		else:
@@ -1502,7 +1547,8 @@ def doLoop():
 			readMAXData(False)
 			if not var.error:
 				getControlValues()
-				doControl()
+				if tryRead("mode", "auto", True).upper() == "AUTO":
+					doControl()
 				doDevLogging()
 
 		time.sleep(stp.intervals["slp"][0])
@@ -1513,6 +1559,7 @@ def getControlValues():
 	stp.preference = tryRead("pref", "per", True)
 	# try read % valve for heat command
 	stp.valve_switch = tryRead("valve", 35, True)
+	stp.svpnmw = tryRead("svpnmw", 75, True)
 	stp.total_switch = tryRead("total", 150, True)
 	# setup total variable as integer
 	stp.total = 100
@@ -1562,7 +1609,6 @@ if __name__ == '__main__':
 		var.value.put(rCW("msg"), "Q")
 		exit()
 
-	# warning, if you have dynamic IP, don't use pif.get_public_ip, must be moved to function and checked periodically (to be implemented)
 	result = getPublicIP()
 	if result == 255:
 		err_str = "Error getting IP address from hostname, please check resolv.conf or hosts or both!\r\n"

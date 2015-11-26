@@ -31,8 +31,12 @@ class setup(object):
 		self.appStartTime = time.time()
 		# window ignore time
 		self.window_ignore_time = 30
-		# required values, if any error in bridge then defaults is used [1]
 		self.cw = {
+			#
+			# required values, if any error in bridge then defaults is used [1]
+			#
+			# thermeq3 mode, auto or manual
+			"mode": ["mode", "auto"],
 			# valve position in % to start heating
 			"valve": ["valve_pos", 35],
 			# start heating if single valve position in %, no matter how many valves are needed to start to heating
@@ -69,7 +73,6 @@ class setup(object):
 			"htstr": ["heattime_string", str(datetime.timedelta(seconds=0))],
 			"daily": ["daily", ""],
 			"status": ["status", "defaults"],
-			"owl": ["openwinlist", "{}"],
 			"cur": ["current_status", "{}"]}
 		# status messages
 		self.statusMsg = {
@@ -1262,30 +1265,30 @@ def doControl():
 	# and now showtime
 	stp.total = getTotal()
 	# grand total
-	heat = False
+	# heat: 0 = disable, 1 = heat per, 2 = total, 3 = svpnmw
+	heat = 0 
 	grt = 0
 	valve_count = 0
 	valve_key = {}
 
 	for k, v in stp.valves.iteritems():
-		is_ok = countValve(k)
 		# if valve is ok to evaluate
-		if is_ok:
+		if countValve(k):
 			# if preference is per valve
 			if stp.preference == "per":
 				# and valve position is over single valve position no matter what
 				if v[0] > stp.svpnmw:
-					heat = True
+					heat = 3
 				# or valve is over desired position to switch heating on
 				elif v[0] > stp.valve_switch:
 					valve_count += 1
 					if valve_count >= stp.valve_num:
-						heat = True
+						heat = 1
 						valve_key.update(getKeyName(k))
 			elif stp.preference == "total":
 				grt += v[0]
 				if grt >= stp.total:
-					heat = True
+					heat = 2
 
 	# increment number of readings with heat on
 	if heat:
@@ -1293,14 +1296,16 @@ def doControl():
 
 	# var.logger.debug("Control: " + str(var.heating) + "=" + str(heat) + ", " + str(grt) + "; " + str(stp.valve_num) + " , " + str(valve_count))
 
-	if heat != var.heating:
-		if heat:
+	if bool(heat) != var.heating:
+		if heat > 0:
 			txt = "heating started due to"
-			if stp.preference == "per" and valve_count >= stp.valve_num:
+			if heat == 1 and valve_count >= stp.valve_num:
 				for k, v in valve_key.iteritems():
 					txt += " room " + str(v[0]) + ", valve " + str(v[1]) + "@" + str(v[2])
-			elif stp.preference == "total":
+			elif heat == 2:
 					txt += " sum of valve positions = " + str(grt)
+			elif heat == 3:
+					txt += " single valve position, no matter what " + str(stp.svpnmw) + "%"
 			var.logger.info(txt)
 			doheat(True)
 		else:
@@ -1528,7 +1533,8 @@ def doLoop():
 			readMAXData(False)
 			if not var.error:
 				getControlValues()
-				doControl()
+				if tryRead("mode", "auto", True).upper() == "AUTO":
+					doControl()
 				doDevLogging()
 
 		time.sleep(stp.intervals["slp"][0])
