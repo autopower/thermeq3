@@ -18,7 +18,7 @@ There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
 ###2015-Nov-26
-* new codeword, mode, can be auto or manual, added after request, in auto mode thermeq3 sending H/S commands to arduino part, in manual mode doing nothing :)
+* new codeword, mode, can be auto or manual, added after request, in auto mode thermeq3 sends H/S commands to arduino part, in manual mode do nothing :)
 
 ###2015-Nov-02
 * some javascript code (based on jquery ui) to control device, ugly, not fully functional, first steps with JS and CSS ;)

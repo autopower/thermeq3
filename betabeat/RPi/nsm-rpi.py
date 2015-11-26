@@ -41,7 +41,7 @@ class BridgeClient:
 
 class setup(object):
 	def __init__(self):
-		self.version = 142
+		self.version = 143
 		self.appStartTime = time.time()
 		# window ignore time
 		self.window_ignore_time = 30
@@ -1321,10 +1321,12 @@ def doControl():
 			elif heat == 3:
 					txt += " single valve position, no matter what " + str(stp.svpnmw) + "%"
 			var.logger.info(txt)
-			doheat(True)
+			if tryRead("mode", "auto", True).upper() == "AUTO":
+				doheat(True)
 		else:
 			var.logger.info("heating stopped.")
-			doheat(False)
+			if tryRead("mode", "auto", True).upper() == "AUTO":
+				doheat(False)
 			
 	# update status, this was added due to some issues in status update
 	if var.heating:
@@ -1547,8 +1549,7 @@ def doLoop():
 			readMAXData(False)
 			if not var.error:
 				getControlValues()
-				if tryRead("mode", "auto", True).upper() == "AUTO":
-					doControl()
+				doControl()
 				doDevLogging()
 
 		time.sleep(stp.intervals["slp"][0])
