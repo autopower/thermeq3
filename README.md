@@ -17,6 +17,9 @@ thermeq3 features:
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Nov-27
+* new weather API used, yahoo YQL and OWM, API key for OWM is from OWM example page, please change it
+
 ###2015-Nov-26
 * new codeword, mode, can be auto or manual, added after request, in auto mode thermeq3 sends H/S commands to arduino part, in manual mode do nothing :)
 

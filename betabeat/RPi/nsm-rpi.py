@@ -10,16 +10,19 @@ import smtplib
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import traceback
+import urllib
 import urllib2
 import hashlib
 import httplib
 import struct
+import json
+sys.path.insert(0, "/usr/lib/python2.7/bridge/")
+from bridgeclient import BridgeClient
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email.encoders import encode_base64
 from ast import literal_eval
-from xml.etree.ElementTree import parse
 from math import exp
 
 
@@ -41,7 +44,7 @@ class BridgeClient:
 
 class setup(object):
 	def __init__(self):
-		self.version = 143
+		self.version = 144
 		self.appStartTime = time.time()
 		# window ignore time
 		self.window_ignore_time = 30
@@ -1348,45 +1351,45 @@ def rightTime(what):
 # beta features
 def weather_for_woeid(woeid):
 	""" returns weather from yahoo weather from given WOEID """
-	# please change u=c to u=f for farenheit below
-	WEATHER_URL = "http://xml.weather.yahoo.com/forecastrss?w=%s&u=c"
-	WEATHER_NS = "http://xml.weather.yahoo.com/ns/rss/1.0"
-	url = WEATHER_URL % woeid
+	# please change u='c' to u='f' for farenheit below
+	baseurl = "https://query.yahooapis.com/v1/public/yql?"
+	yql_query = "select * from weather.forecast where woeid=" + str(woeid) + " and u='c'"
+	yql_url = baseurl + urllib.urlencode({'q':yql_query}) + "&format=json"
+	
 	try:
-		rss = parse(urllib2.urlopen(url)).getroot()
-	except Exception:
-		return {
-			"current_condition": "error",
-			"current_temp": "0",
-			"forecasts": "",
-			"title": "No title",
-			"humidity": "50",
-			"city": "No city"
-		}
-		pass
+		result = urllib2.urlopen(yql_url).read()
+		data = json.loads(result)
+	except Exception, error:
+		var.logger.error("Yahoo communication error: "+ str(error))
+		var.logger.error("Traceback: " + str(traceback.format_exc()))
+		city = "Error city"
+		temp = 0
+		humidity = 50
 	else:
-		humidity = rss.find("channel/{%s}atmosphere" % WEATHER_NS)
+		city = data["query"]["results"]["channel"]["location"]["city"]
+		temp = int(data["query"]["results"]["channel"]["item"]["condition"]["temp"]) 
+		humidity = int(data["query"]["results"]["channel"]["atmosphere"]["humidity"])
+		
+		# and check if yahoo is correct, PLEASE USE OWN API KEY!!!
+		url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + "&appid=2de143494c0b295cca9337e1e96b00e0"
+		try:
+			result = json.load(urllib2.urlopen(url))
+		except Exception, error:
+			var.logger.error("OWM communication error: "+ str(error))
+			var.logger.error("Traceback: " + str(traceback.format_exc()))
+		else:
+			owm_temp = round(result["main"]["temp"] / 100)
+			yho_temp = round(temp) 
+			if abs(yho_temp / owm_temp) > 0.1:
+				var.logger.info("Difference between Yahoo and OWM temperatures. Yahoo=" + str(yho_temp) + \
+					" OWM=" + str(owm_temp)) 
+		# end check
+		var.logger.info("Current temperature in " + str(city) + " is " + str(temp) + ", humidity " + str(humidity) + "%")
 
-		forecasts = []
-		for element in rss.findall("channel/item/{%s}forecast" % WEATHER_NS):
-			forecasts.append({
-				"date": element.get("date"),
-				"low": element.get("low"),
-				"high": element.get("high"),
-				"condition": element.get("text")
-			})
-		ycondition = rss.find("channel/item/{%s}condition" % WEATHER_NS)
-
-		city = rss.find("channel/{%s}location" % WEATHER_NS)
-		var.logger.info("Current temperature in " + str(city.get("city")) + " is " + str(ycondition.get("temp")) + ", humidity " + str(humidity.get("humidity")) + "%")
-
-		return {
-			"current_condition": ycondition.get("text"),
-			"current_temp": ycondition.get("temp"),
-			"forecasts": forecasts,
-			"title": rss.findtext("channel/title"),
-			"humidity": humidity.get("humidity"),
-			"city": city.get("city")
+ 		return {
+			"current_temp": temp,
+			"city": city,
+			"humidity": humidity
 		}
 
 
@@ -1560,7 +1563,7 @@ def getControlValues():
 	stp.preference = tryRead("pref", "per", True)
 	# try read % valve for heat command
 	stp.valve_switch = tryRead("valve", 35, True)
-	stp.svpnmw = tryRead("svpnmw", 75, True)
+	stp.svpnmw = tryRead("svpnmw", 80, True)
 	stp.total_switch = tryRead("total", 150, True)
 	# setup total variable as integer
 	stp.total = 100
