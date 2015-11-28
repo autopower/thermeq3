@@ -17,19 +17,24 @@ thermeq3 features:
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Nov-28
+* betabeat: bridge routine rewrited, some support for literal processing
+* betabeat: ignore intervals corrected
+
 ###2015-Nov-27
-* new weather API used, yahoo YQL and OWM, API key for OWM is from OWM example page, please change it
+* betabeat: new weather API used, yahoo YQL and OWM, API key for OWM is from OWM example page, please change it
+* just for sure, use "new" bridge python library from https://codeload.github.com/arduino/YunBridge/zip/master
 
 ###2015-Nov-26
 * new codeword, mode, can be auto or manual, added after request, in auto mode thermeq3 sends H/S commands to arduino part, in manual mode do nothing :)
 
 ###2015-Nov-02
-* some javascript code (based on jquery ui) to control device, ugly, not fully functional, first steps with JS and CSS ;)
-* code cleanup
+* betabeat: some javascript code (based on jquery ui) to control device, ugly, not fully functional, first steps with JS and CSS ;)
+* betabeat: code cleanup
 
 ###2015-Nov-01
-* new arduino command A, clears LED
-* some cleanup, codeword dump removed
+* betabeat: new arduino command A, clears LED
+* betabeat: some cleanup, codeword dump removed
 
 ###2015-Oct-31
 * minor fixes

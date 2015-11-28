@@ -44,53 +44,57 @@ class BridgeClient:
 
 class setup(object):
 	def __init__(self):
-		self.version = 144
+		self.version = 145
 		self.appStartTime = time.time()
-		# window ignore time
-		self.window_ignore_time = 30
+		# window ignore time, in minutes
+		self.window_ignore_time = 15
 		self.cw = {
 			#
 			# required values, if any error in bridge then defaults is used [1]
+			# format:
+			# codeword: ["codeword in bridge", default value, literal processing]
 			#
 			# thermeq3 mode, auto or manual
-			"mode": ["mode", "auto"],
+			"mode": ["mode", "auto", False],
 			# valve position in % to start heating
-			"valve": ["valve_pos", 35],
+			"valve": ["valve_pos", 35, False],
 			# start heating if single valve position in %, no matter how many valves are needed to start to heating
-			"svpnmw": ["svpnmw", 75],
+			"svpnmw": ["svpnmw", 75, False],
 			# how many valves must be in position stated above
-			"valves": ["valves", 2],
+			"valves": ["valves", 2, False],
 			# if in total mode, sum of valves position to start heating
-			"total": ["total_switch", 150],
+			"total": ["total_switch", 150, False],
 			# preference, "per" = per valve, "total" to total mode
-			"pref": ["preference", "per"],
+			"pref": ["preference", "per", False],
 			# interval, seconds to read MAX!Cube
-			"int": ["interval", 90],
+			"int": ["interval", 90, False],
 			# 
-			"ign_op": ["ignore_opened", self.window_ignore_time],
+			"ign_op": ["ignore_opened", self.window_ignore_time, False],
 			# use autoupdate function?
-			"au": ["autoupdate", True],
+			"au": ["autoupdate", True, False],
 			# beta features on (yes) or off (no)
-			"beta": ["beta", "no"],
+			"beta": ["beta", "no", False],
 			# profile type, time or temp, temp profile type means that external temperature (yahoo weather) is used 
-			"profile": ["profile", "time"],
-			"no_oww": ["no_oww", 0],
+			"profile": ["profile", "time", False],
+			"no_oww": ["no_oww", 0, False],
 			#
 			# optional values
 			#
-			"ht": ["heattime", {"total": [0, 0.0], datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"): [0, time.time()]}],
+			"ht": ["heattime", {"total": [0, 0.0], datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"): [0, time.time()]}, True],
 			# communication errors, this states how many times failed communication between thermeq3 and MAX!Cube, cleared after sending status
-			"errs": ["error", 0],
+			"errs": ["error", 0, False],
 			# same as above, but cumulative number
-			"terrs": ["totalerrors", 0],
-			"cmd": ["command", ""],
-			"msg": ["msg", ""],
-			"uptime": ["uptime", ""],
-			"appuptime": ["app_uptime", 0],
-			"htstr": ["heattime_string", str(datetime.timedelta(seconds=0))],
-			"daily": ["daily", ""],
-			"status": ["status", "defaults"],
-			"cur": ["current_status", "{}"]}
+			"terrs": ["totalerrors", 0, False],
+			"cmd": ["command", "", False],
+			"msg": ["msg", "", False],
+			"uptime": ["uptime", "", False],
+			"appuptime": ["app_uptime", 0, False],
+			"htstr": ["heattime_string", str(datetime.timedelta(seconds=0)), False],
+			"daily": ["daily", "", False],
+			"status": ["status", "defaults", False],
+			"cur": ["current_status", "{}", False],
+			# list of ignored devices
+			"ign": ["ignored", "{}", True]}
 		# status messages
 		self.statusMsg = {
 			"idle": "idle",
@@ -483,37 +487,51 @@ def saveBridge():
 		var.logger.debug("Bridge file saved.")
 
 
+def processBridgeCodeWord(is_literal, defValue, setValue):
+	result = ""					
+	# if we need literal processing
+	if is_literal:
+		try:
+			result = literal_eval(setValue)
+		except Exception:
+			try:
+				result = literal_eval(defValue)
+			except Exception:
+				result = "Error"
+	else:
+		# check if correct values are loaded
+		if setValue == "" or setValue is None:
+			result = defValue
+		else:
+			result = setValue
+	return result
+
 def loadBridge():
+	# prepare dictionary
+	cw = {}
+	for k in stp.cw.iteritems():
+		# key : [default, literal]
+		cw.update({k[1][0]: [k[1][1], k[1][2]]})
+
 	if os.path.exists(stp.bridgefile):
-		with open(stp.bridgefile, "r") as f:
-			# create dictionary from codewords setup dictionary
-			cw = {}
-			for k in stp.cw.iteritems():
-				cw.update({k[1][0]: k[1][1]})
+		with open(stp.bridgefile, "r") as f:			
 			for line in f:
 				t = (line.rstrip("\r\n")).split('=')
-				if t[0] == rCW("ht"):
-					try:
-						var.ht = literal_eval(t[1])
-					except Exception:
-						var.ht = {"total": [0, 0.0]}
-				else:
-					if t[0] in cw:
-						# check if correct values are loaded						
-						if t[1] == "" or t[1] is None:
-							defValue = str(cw[t[0]])
-							var.logger.info("CW [" + str(t[0]) + "] empty, using default [" + str(t[1]) + "]")
-							var.value.put(t[0], defValue)
-						else:
-							var.value.put(t[0], t[1])
+				lcw = t[0]
+				if lcw in cw:
+					ret = processBridgeCodeWord(cw[lcw][1], cw[lcw][0], t[1])
+					if ret == "Error":
+						var.logger.error("Bridge error codeword @[" + str(lcw) + "] value [" + str(t[1]) + "]")
 					else:
-						var.logger.error("Bridge error codeword @[" + str(t[0]) + "] value [" + str(t[1]) + "]")
+						# set bridge value
+						var.value.put(t[0], ret)
 			f.close()
 		var.logger.debug("Bridge file loaded.")
 		updateAllTimes()
 	else:
-		for k, v in stp.cw.iteritems():
-			var.value.put(v[0], v[1])
+		for k, v in cw.iteritems():
+			ret = processBridgeCodeWord(v[1], v[0], v[0])
+			var.value.put(k, ret)
 		var.logger.error("Error loading bridge file, using defaults!")
 
 
@@ -924,7 +942,7 @@ def maxCmd_M(line, refresh):
 		room_adr = es[es_pos:es_pos + 3]
 		es_pos += 3
 		if room_id not in stp.rooms or refresh:
-			# 					id   :0room_name, 1room_address,   2is_win_open
+			#										id   :	0room_name, 1room_address,   2is_win_open
 			stp.rooms.update({room_id: [room_name, hexify(room_adr), False]})
 	dev_num = ord(es[es_pos])
 	es_pos += 1
@@ -1421,10 +1439,10 @@ def update_ignores_2sit():
 	var.logger.debug("OWW interval updated to " + str(stp.intervals["oww"]))
 
 	# and now modify valve ignore time
-	tmr = interval_scale(temp, (0.0, 35.0), (14, 3.0), (15, 120), False)
+	tmr = interval_scale(temp, (0.0, 35.0), (1.7, 3.0), (15, 120), False)
 	var.ignore_time = stp.window_ignore_time + tmr
 	var.value.put(rCW("ign_op"), str(var.ignore_time))
-	var.logger.debug("Ignore interval updated to " + str(var.ignore_time))
+	var.logger.debug("Valve ignore interval updated to " + str(var.ignore_time))
 
 
 def time_in_range(start, end, x):
@@ -1515,7 +1533,9 @@ def doLoop():
 		if rightTime("max"):
 			# beta features here
 			if tryRead("beta", "no", False).upper() == "YES":
+				var.logger.debug("Entering beta functionality.")
 				doProfiles()
+				var.logger.debug("Exiting beta functionality.")
 			# end of beta
 			cmd = getCMD()
 			if cmd == "init":
