@@ -102,7 +102,8 @@ class setup(object):
 			"start": "starting",
 			"dead": "dead",
 			"hv": "heating and ventilating",
-			"iv": "idle and ventilating"}
+			"iv": "idle and ventilating",
+			"man": "manual"}
 		# my IP address
 		self.myip = "127.0.0.1"
 		# sd card or usb key mount point, default is /mnt/sda1/
@@ -214,6 +215,8 @@ class variables(object):
 		self.heatReadings = 0
 		# heating is off
 		self.heating = False
+		# and we are not ventilating
+		self.ventilating = False
 		# clear errors
 		self.err2Clear = False
 		self.err2LastStatus = False
@@ -428,6 +431,7 @@ def composeMessage(m_subject, m_body):
 
 
 def checkVar():
+	""" check if variables are set correctly, reports any problem """
 	if stp.valve_num > len(stp.valves):
 		var.logger.error("You have only " + str(len(stp.valves)) + 
 			" valves, but you want to " + str(stp.valve_num) + " of them be checked to turn on heating!")
@@ -487,24 +491,28 @@ def saveBridge():
 		var.logger.debug("Bridge file saved.")
 
 
-def processBridgeCodeWord(is_literal, defValue, setValue):
+def processBridgeCodeWord(codeword, is_literal, defValue, setValue):
 	result = ""					
+	# check if correct values are loaded
+	if setValue == "" or setValue is None:
+		result = defValue
+	else:
+		result = setValue
+	# put bridge value
+	var.value.put(codeword, result)
+		
 	# if we need literal processing
 	if is_literal:
 		try:
-			result = literal_eval(setValue)
+			lit_result = literal_eval(result)
 		except Exception:
-			try:
-				result = literal_eval(defValue)
-			except Exception:
-				result = "Error"
-	else:
-		# check if correct values are loaded
-		if setValue == "" or setValue is None:
-			result = defValue
+			var.logger.error("Bridge error codeword [" + str(codeword) + "] value [" + str(setValue) + "]")
 		else:
-			result = setValue
-	return result
+			if codeword == rCW("ht"):
+				var.ht = lit_result
+			elif codeword == rCW("ign"):
+				var.d_ignore = lit_result
+	
 
 def loadBridge():
 	# prepare dictionary
@@ -517,21 +525,16 @@ def loadBridge():
 		with open(stp.bridgefile, "r") as f:			
 			for line in f:
 				t = (line.rstrip("\r\n")).split('=')
-				lcw = t[0]
-				if lcw in cw:
-					ret = processBridgeCodeWord(cw[lcw][1], cw[lcw][0], t[1])
-					if ret == "Error":
-						var.logger.error("Bridge error codeword @[" + str(lcw) + "] value [" + str(t[1]) + "]")
-					else:
-						# set bridge value
-						var.value.put(t[0], ret)
+				localCW = t[0]
+				setValue = t[1]
+				if localCW in cw:
+					processBridgeCodeWord(localCW, cw[localCW][1], cw[localCW][0], setValue)
 			f.close()
 		var.logger.debug("Bridge file loaded.")
 		updateAllTimes()
 	else:
 		for k, v in cw.iteritems():
-			ret = processBridgeCodeWord(v[1], v[0], v[0])
-			var.value.put(k, ret)
+			processBridgeCodeWord(k, v[1], v[0], v[0])
 		var.logger.error("Error loading bridge file, using defaults!")
 
 
@@ -912,12 +915,13 @@ def openMAX():
 def setIgnoredValves(key):
 	room = stp.devices[key][3]
 	for k, v in stp.devices.iteritems():
-		# this is heating thermostat and is in room where we want ignore all heating thermostats and is not in d_ignore dictionary
-		# it means, is not ignored now
+		# this is heating thermostat and is in room where we want ignore all heating thermostats 
+		# and is not in d_ignore dictionary it means, is not ignored now
 		if v[0] == 1 and v[3] == room and k not in var.d_ignore:
 			# don't heat X*60 seconds after closing window
 			var.d_ignore.update({k: time.time() + var.ignore_time * 60})
 			var.logger.debug("Ignoring valve " + str(k) + " until " + time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(var.d_ignore[k])))
+	var.value.put(rCW("ign"), str(var.d_ignore))
 
 
 def maxCmd_H(line):
@@ -1101,11 +1105,7 @@ def updateCounters(heatStart):
 
 def writeStrings():
 	""" construct and write CSV data, Log debug string and current status string """
-	if var.heating:
-		logstr = "Heating"
-	else:
-		logstr = "Idle"
-	logstr += ", "
+	logstr = tryRead("status", "Trying to read", False) + ", "
 	if stp.preference == "per":
 		logstr += str(stp.valve_switch) + "%" + " at " + str(stp.valve_num) + " valve(s)."
 	elif stp.preference == "total":
@@ -1139,7 +1139,7 @@ def writeStrings():
 
 	var.csv.write("\r\n")
 
-	logstr = "Actual positions follows"
+	logstr = "Actual positions:"
 	for k, v in rooms.iteritems():
 		logstr += "\r\nRoom: " + str(k)
 		if v[1]:
@@ -1226,10 +1226,16 @@ def doheat(heatOrNot):
 	if heatOrNot:
 		var.ht["total"][1] = time.time()
 		queueMsg("H")
-		updateStatus("heat")
+		if var.ventilating:
+			updateStatus("hv")
+		else:
+			updateStatus("heat")
 	else:
 		queueMsg("S")
-		updateStatus("idle")
+		if var.ventilating:
+			updateStatus("iv")
+		else:
+			updateStatus("idle")
 	updateCounters(heatOrNot)
 	var.heating = heatOrNot
 
@@ -1280,10 +1286,7 @@ def doControl():
 			sendWarning("window", k, "")
 	# else check if ventilating and update status
 	elif len(open_windows) >= stp.ventilate_num:
-		if var.heating:
-			updateStatus("hv")
-		else:
-			updateStatus("iv")
+		var.ventilating = True
 
 	# second web
 	secWebFile("owl", tmp)
@@ -1350,10 +1353,10 @@ def doControl():
 				doheat(False)
 			
 	# update status, this was added due to some issues in status update
-	if var.heating:
-		updateStatus("heat")
-	else:
-		updateStatus("idle")
+	#if var.heating:
+	#	updateStatus("heat")
+	#else:
+	#	updateStatus("idle")
 
 
 # check if its right time to update
@@ -1396,9 +1399,9 @@ def weather_for_woeid(woeid):
 			var.logger.error("OWM communication error: "+ str(error))
 			var.logger.error("Traceback: " + str(traceback.format_exc()))
 		else:
-			owm_temp = round(result["main"]["temp"] / 100)
-			yho_temp = round(temp) 
-			if abs(yho_temp / owm_temp) > 0.1:
+			owm_temp = abs(round(result["main"]["temp"] / 100))
+			yho_temp = abs(round(temp)) 
+			if abs(yho_temp - owm_temp) > 1.5:
 				var.logger.info("Difference between Yahoo and OWM temperatures. Yahoo=" + str(yho_temp) + \
 					" OWM=" + str(owm_temp)) 
 		# end check
