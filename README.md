@@ -20,7 +20,8 @@ There's always new code, which seems to work on my development thermeq :)
 ###2015-Nov-28
 * betabeat: bridge routine rewrited, some support for literal processing
 * betabeat: ignore intervals corrected
-* betabeat: you can ignore valve forever, just edit bridgefile and to ign codeword add valveserial and time since epoch=1924991999, its 31/Dec/2030 :)
+* betabeat: you can ignore valve forever, just edit bridgefile and to ign codeword add valveserial and time since epoch=1924991999, its 31/Dec/2030 :), e.g. {"06ABCD": 1924991999}
+* betabeat: new boiler controlling variable, svpnmw (Single Valve Position, No Matter What) in %, if any of valves opened more than svpnmw then heating is on, to turn off just set to 101% 
 
 ###2015-Nov-27
 * betabeat: new weather API used, yahoo YQL and OWM, API key for OWM is from OWM example page, please change it

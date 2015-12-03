@@ -358,7 +358,7 @@ def tryRead(cw, default, save):
 
 	tmp_str = var.value.get(lcw)
 
-	if tmp_str == "None":
+	if tmp_str == "None" or tmp_str == "":
 		tmp = default
 	else:
 		if isNum:
@@ -425,7 +425,8 @@ def checkVar():
 		stp.valve_switch = 90
 	if stp.svpnmw > 100:
 		var.logger.error("Single valve switch position over 100%!")
-		stp.svpnmw = 100
+		# uncomment below if you want auto correct value
+		# stp.svpnmw = 100
 	if stp.valve_switch > stp.svpnmw:
 		var.logger.error("svpnmw (" + str(stp.svpnmw) + 
 			"%) is less or equal to valve switch setup (" + str(stp.valve_switch) + "%)!")
@@ -1228,6 +1229,7 @@ def countValve(key):
 	if key in var.d_ignore:
 		if var.d_ignore[key] < time.time():
 			del var.d_ignore[key]
+			var.value.put(rCW("ign"), str(var.d_ignore))
 		else:
 			return False
 	return True
@@ -1269,8 +1271,11 @@ def doControl():
 		for idx, k in enumerate(open_windows):
 			sendWarning("window", k, "")
 	# else check if ventilating and update status
-	elif len(open_windows) >= stp.ventilate_num:
-		var.ventilating = True
+	else:
+		if len(open_windows) >= stp.ventilate_num:
+			var.ventilating = True
+		else:
+			var.ventilating = False
 
 	# second web
 	secWebFile("owl", tmp)
@@ -1446,12 +1451,14 @@ def time_in_range(start, end, x):
 
 def isTime():
 	this_now = datetime.datetime.now().time()
+	ret_value = -1
 	for k in stp.day:
 		nf = datetime.datetime.strptime(k[0], "%H:%M").time()
 		nt = datetime.datetime.strptime(k[1], "%H:%M").time()
 		if time_in_range(nf, nt, this_now):
-			return stp.day.index(k)
-	return -1
+			ret_value = stp.day.index(k)
+	var.logger.debug("IsTime=" + str(ret_value))
+	return ret_value
 
 
 def setMode(value):
@@ -1464,17 +1471,22 @@ def setMode(value):
 	stp.valve_num = value[5]
 	# just sleep value, always calculated as max[0] / slp[1]
 	stp.intervals["slp"][0] = int(value[4] / stp.intervals["slp"][1])
+	var.value.put(rCW("int"), str(stp.intervals["max"][0]))
 
 
 def timeMode():
 	# day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
 	md = isTime()
+	var.logger.debug("stp.intervals before=" + str(stp.intervals))
+	var.logger.debug("Actual index=" + str(var.actModeIndex))
 	if md != -1:
 		if md != var.actModeIndex:
 			kv = stp.day[md]
 			var.actModeIndex = md
 			var.logger.debug("Switching day mode to " + str(md) + " = " + str(kv))
+			var.logger.debug("stp.intervals before=" + str(stp.intervals))
 			setMode(kv)
+			var.logger.debug("stp.intervals after=" + str(stp.intervals))
 
 
 def tempMode():
