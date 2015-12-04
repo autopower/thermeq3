@@ -1,7 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 import sys
 import socket
 import base64
+import RPi.GPIO as GPIO
 import time
 import datetime
 import os
@@ -16,14 +17,19 @@ import hashlib
 import httplib
 import struct
 import json
-sys.path.insert(0, "/usr/lib/python2.7/bridge/")
-from bridgeclient import BridgeClient
+#sys.path.insert(0, "/usr/lib/python2.7/bridge/")
+#from bridgeclient import BridgeClient
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email.encoders import encode_base64
 from ast import literal_eval
 from math import exp
+
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(18, GPIO.OUT)
+# GPIO pin 18 is for DEV, prod is 17
 
 
 # RPi abstraction to bridge, simplyfied code of arduino yun
@@ -73,7 +79,7 @@ class setup(object):
 			# use autoupdate function?
 			"au": ["autoupdate", True, False],
 			# beta features on (yes) or off (no)
-			"beta": ["beta", "no", False],
+			"beta": ["beta", "yes", False],
 			# profile type, time or temp, temp profile type means that external temperature (yahoo weather) is used 
 			"profile": ["profile", "time", False],
 			"no_oww": ["no_oww", 0, False],
@@ -116,13 +122,13 @@ class setup(object):
 		self.rooms = {}
 		self.devices = {}
 		# update this to your location, yahoo WOEID
-		self.location = 818717
+		self.location = 33749
 		# difference from last known valve value, in %
 		self.percentage = 3
 		# github location for auto update
 		self.github = "https://raw.github.com/autopower/thermeq3/master/"
 		# home directory is /root
-		self.homedir = "/root/"
+		self.homedir = "/home/pi/thermeq/dev/thermeq3-master/"
 		# abnormal count of warning is
 		self.abnormalCount = 30
 		# stp.stderr_log = stp.place + stp.devname + "_error.log"
@@ -159,10 +165,10 @@ class setup(object):
 		# day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
 		self.day = [
 			["00:00", "06:00", 35, "per", 240, 1],
-			["06:00", "10:00", 36, "per", 120, 1],
-			["10:00", "14:00", 30, "per", 120, 2],
-			["14:00", "22:00", 36, "per", 120, 1],
-			["22:00", "23:59", 35, "per", 120, 1]]
+			["06:00", "10:00", 35, "per", 120, 1],
+			["10:00", "14:00", 35, "per", 120, 1],
+			["14:00", "22:00", 35, "per", 120, 1],
+			["22:00", "23:59", 35, "per", 240, 1]]
 		# temperature table
 		self.temp = [
 			[-30, -20, 20, "per",  90, 2],
@@ -173,9 +179,9 @@ class setup(object):
 		]          
 
 	def initPaths(self):
-		self.log_filename = self.place + self.devname + ".log"
-		self.csv_log = self.place + self.devname + ".csv"
-		self.bridgefile = self.place + self.devname + ".bridge"
+		self.log_filename = self.place + "/logs/" +  self.devname + ".log"
+		self.csv_log = self.place + "/logs/" + self.devname + ".csv"
+		self.bridgefile = self.place + "/logs/" + self.devname + ".bridge"
 		self.secweb = {
 			"status": str(self.place + "www/status.xml"),
 			"owl": str(self.place + "www/owl.xml"),
@@ -223,9 +229,25 @@ class variables(object):
 		self.error = False
 
 
+def heatingOn():
+	try:
+       		GPIO.output(18, GPIO.LOW)
+		# PIN 18 if for DEV, 17 for PROD
+
+	finally:
+		pass	
+
+def heatingOff():
+	try:
+       		GPIO.output(18, GPIO.HIGH)
+		# PIN 18 if for DEV, 17 for PROD
+	finally:
+		pass	
+
+
 def redirErr(onoff):
 	if onoff:
-		stp.stderr_log = stp.place + stp.devname + "_error.log"
+		stp.stderr_log = stp.place + "/logs/" + stp.devname + "_error.log"
 		try:
 			var.ferr = open(stp.stderr_log, "a")
 		except Exception:
@@ -242,12 +264,12 @@ def redirErr(onoff):
 
 def llError(err_string):
 	try:
-		err_file = open("/root/nsm.error", "a")
+		err_file = open("/home/pi/thermeq/dev/thermeq3-master/logs/nsm.error", "a")
 	except Exception:
 		print "Error writing to error file!"
 		print err_string
 	else:
-		err_file.write(time.strftime("%H:%M:%S", time.localtime()) + "\t" + err_string + "\r\n")
+		err_file.write(time.strftime("%H:%M:%S", time.localtime()) + "\t" + err_string + "\n")
 		err_file.close()
 
 
@@ -339,8 +361,8 @@ def queueMsg(msg):
 	var.msgQ.insert(0, msg)
 	while len(var.msgQ) > 0:
 		var.logger.debug("Message queue=" + str(var.msgQ))
-		while not str(var.value.get(rCW("msg"))) == "":
-			time.sleep(stp.timeout)
+		#while not str(var.value.get(rCW("msg"))) == "":
+		#	time.sleep(stp.timeout)
 		tosend = var.msgQ.pop()
 		var.logger.debug("Sending message [" + str(tosend) + "]")
 		if tosend == "E":
@@ -389,7 +411,7 @@ def tryRead(cw, default, save):
 	return tmp
 
 
-def readlines(sock, recv_buffer=4096, delim="\r\n"):
+def readlines(sock, recv_buffer=4096, delim="\n"):
 	buffer = ""
 	data = True
 	while data:
@@ -486,7 +508,7 @@ def saveBridge():
 				tmp = ""
 			if tmp == "None" or tmp is None:
 				tmp = str(v[1])
-			f.write(v[0] + "=" + str(tmp) + "\r\n")
+			f.write(v[0] + "=" + str(tmp) + "\n")
 		f.close()
 		var.logger.debug("Bridge file saved.")
 
@@ -524,7 +546,7 @@ def loadBridge():
 	if os.path.exists(stp.bridgefile):
 		with open(stp.bridgefile, "r") as f:			
 			for line in f:
-				t = (line.rstrip("\r\n")).split('=')
+				t = (line.rstrip("\n")).split('=')
 				localCW = t[0]
 				setValue = t[1]
 				if localCW in cw:
@@ -594,7 +616,7 @@ def checkUpdate():
 	errstr = "Unable to get latest version info - "
 	try:
 		request = urllib2.urlopen(stp.github + "autoupdate.data")
-		response = request.read().rstrip("\r\n")
+		response = request.read().rstrip("\n")
 	except urllib2.HTTPError, e:
 		errstr += "HTTPError = " + str(e.reason)
 	except urllib2.URLError, e:
@@ -851,20 +873,22 @@ def startLog():
 def exportCSV(onoff):
 	if onoff == "init":
 		if os.path.exists(stp.csv_log):
-			os.rename(stp.csv_log, stp.place + stp.devname + "_" + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + ".csv")
+			os.rename(stp.csv_log, stp.place + "/logs/" + stp.devname + "_" + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + ".csv")
 		try:
 			var.csv = open(stp.csv_log, "a")
 		except Exception:
 			raise
 		else:
+			var.csv.write('date/time,heating on/off')
 			for k, v in stp.valves.iteritems(): 		
-				# to get headers like rooma name - valve name use this (uncomment)
-				# room_id = str(getName(k)[0]) 
-				# name = rooms[room_id][0] + "-" + stp.devices[k][2]
+				# to get headers like room name - valve name use this (uncomment)
+				room_id = str(getName(k)[0])
+				#name = rooms[room_id][0] + "-" + stp.devices[k][2]
+				name = room_id + "-" + stp.devices[k][2]
 				# and comment line below
-				name = stp.devices[k][2]
-				var.csv.write(name + "," + name + ",")
-			var.csv.write("\r\n")
+				#name = stp.devices[k][2]
+				var.csv.write(',' + name + ' valve opening (%),' + name + ' set temp (C),' + name + ' current temp (C)')
+			var.csv.write(",location temp (C)\n")
 	elif onoff == "close":
 		try:
 			var.csv.close()
@@ -947,7 +971,7 @@ def maxCmd_M(line, refresh):
 		es_pos += 3
 		if room_id not in stp.rooms or refresh:
 			#										id   :	0room_name, 1room_address,   2is_win_open
-			stp.rooms.update({room_id: [room_name, hexify(room_adr), False]})
+			stp.rooms.update({room_id: [room_name, hexify(room_adr), False, 99.99]})
 	dev_num = ord(es[es_pos])
 	es_pos += 1
 	for i in range(0, dev_num):
@@ -990,14 +1014,21 @@ def maxCmd_L(line):
 		# WallMountedThermostat (dev_type 3)
 		if dev_len == 13:
 			if valve_info & 3 != 2:
-				valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2  # set temp
+				valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2  # get set temp
 				valve_curtemp = float(int(hexify(es[es_pos + 0x0C]), 16)) / 10  # measured temp
+				wall_room_id = str(stp.devices[valve_adr][3]) # extract room name from this WallMountedThermostat
+				stp.rooms[wall_room_id][3] = valve_curtemp # and update its value to current temperature as read from WallMountedthermostat
 		# HeatingThermostat (dev_type 1 or 2)
 		elif dev_len == 12:
 			valve_pos = ord(es[es_pos + 0x07])
 			if valve_info & 3 != 2:
-				valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2
-				valve_curtemp = float(ord(es[es_pos + 0x0A])) / 10
+				valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2  # get set temp
+				valve_room_id = str(stp.devices[valve_adr][3]) # extract room name from this HeatingThermostat
+				if ( stp.rooms[valve_room_id][3] == 99.99 ):      # if room temp not set i.e. still returning default 99.99
+					valve_curtemp = float(ord(es[es_pos + 0x0A])) / 10 # get room temp from this valve
+	                                stp.rooms[valve_room_id][3] = valve_curtemp # and update room temp too
+				else:						   # else 
+					valve_curtemp = stp.rooms[valve_room_id][3] # read room temp which was earlier set by wall thermostat
 			stp.valves.update({valve_adr: [valve_pos, valve_temp, valve_curtemp]})
 		# WindowContact
 		elif dev_len == 7:
@@ -1111,7 +1142,7 @@ def writeStrings():
 	elif stp.preference == "total":
 		logstr += "total value of " + str(getTotal()) + "."
 	var.logger.debug(logstr)
-	var.csv.write(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime()) + "," + str(1 if var.heating else 0) + ",")
+	var.csv.write(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime()) + "," + str(1 if var.heating else 0))
 
 	rooms = {}
 	current = {}
@@ -1123,7 +1154,7 @@ def writeStrings():
 		# update rooms string
 		room_id = str(getName(k)[0])
 		roomStr = rooms[room_id][0]
-		roomStr += "\r\n\t[" + str(k) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(str(v[0])) + "% @ " + \
+		roomStr += "\n\t[" + str(k) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(str(v[0])) + "% @ " + \
 			'{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
 		cv = countValve(k)
 		if cv:
@@ -1132,16 +1163,16 @@ def writeStrings():
 			roomStr += "(-)"
 
 		rooms[room_id][0] = roomStr
-		var.csv.write(str(v[0]) + "," + str(v[1]) + ",")
+		var.csv.write("," + str(v[0]) + "," + str(v[1]) + "," + str(v[2]))
 
 		current[room_id].update({str(k): [str(stp.devices[k][2]), str(v[0]),
 			str(v[1]), str(v[2]), str(1 if cv else 0)]})
 
-	var.csv.write("\r\n")
+	var.csv.write("," + str(var.sit["current_temp"]) + "\n")
 
 	logstr = "Actual positions:"
 	for k, v in rooms.iteritems():
-		logstr += "\r\nRoom: " + str(k)
+		logstr += "\nRoom: " + str(k)
 		if v[1]:
 			logstr += ", window opened"
 		logstr += str(v[0])
@@ -1154,10 +1185,10 @@ def writeStrings():
 	# and bridge variable
 	var.value.put(rCW("cur"), str(current))
 	# nice text web
-	logstr.replace("\r\n", "<br/>")
+	logstr.replace("\n", "<br/>")
 	logstr.replace("\t", "&#9;")
-	secWebFile("nice", "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" +
-		logstr + "</pre></p>\r\n</body>\r\n</html>")
+	secWebFile("nice", "<html>\n<title>\nStatus</title>\n<body>\n<p><pre>" +
+		logstr + "</pre></p>\n</body>\n</html>")
 
 
 def readMAXData(refresh):
@@ -1625,9 +1656,8 @@ if __name__ == '__main__':
 	stp = setup()
 	# variables
 	var = variables()
-
-	if os.path.ismount("/mnt/sda1"):
-		stp.place = "/mnt/sda1/"
+	if os.path.ismount("/"):
+		stp.place = "/home/pi/thermeq/dev/thermeq3-master/"
 	elif os.path.ismount("/mnt/sdb1"):
 		stp.place = "/mnt/sdb1/"
 	else:
@@ -1638,12 +1668,12 @@ if __name__ == '__main__':
 
 	result = getPublicIP()
 	if result == 255:
-		err_str = "Error getting IP address from hostname, please check resolv.conf or hosts or both!\r\n"
+		err_str = "Error getting IP address from hostname, please check resolv.conf or hosts or both!\n"
 		llError(err_str)
 		var.value.put(rCW("msg"), "Q")
 		exit()
 
-	execfile("/root/config.py")
+	execfile("/home/pi/thermeq/dev/thermeq3-master/config.py")
 
 	# after all, if myip is private address, web server port must be on 80 (by default)
 	if result == 0 and is_private(stp.myip):
@@ -1664,9 +1694,12 @@ if __name__ == '__main__':
 			raise
 
 	# this is it
+	# Turn heating off first to start with
+	heatingOff()
 	doLoop()
 
 	# end show
+	heatingOff()
 	var.logger.close()
 	updateStatus("dead")
 	closeMAX()

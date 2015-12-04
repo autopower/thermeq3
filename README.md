@@ -17,6 +17,9 @@ thermeq3 features:
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Dec-04
+* betabeat: new RPi version 
+
 ###2015-Nov-28
 * betabeat: bridge routine rewrited, some support for literal processing
 * betabeat: ignore intervals corrected
