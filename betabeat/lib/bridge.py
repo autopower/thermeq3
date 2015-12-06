@@ -202,4 +202,4 @@ def get(key):
 
 def export():
     global bridgeclient
-    return json.dumps(bridgeclient)
+    return json.dumps(bridgeclient.json)
