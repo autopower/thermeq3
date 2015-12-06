@@ -11,6 +11,6 @@ eq3.readData(False)
 
 ##Some variables
 * to check returned error `self.return_error` list is used
-* to store messages for logger `self.log_messages` list is used
+
 
 Well, that was very short and quick :)
