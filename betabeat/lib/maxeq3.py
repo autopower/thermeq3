@@ -22,7 +22,7 @@ class eq3data:
         self.valves = {}
         self.rooms = {}
         self.devices = {}
-        # opened windows
+        # opened windows = {key: OW_time(thisnow), isMuted(False), warning/error count(0)}
         self.windows = {}
         # ignored valves
         self.ignored_valves = {}
@@ -176,10 +176,13 @@ class eq3data:
         self.client_socket.close()
 
     def readData(self, refresh=False):
+        result = False
         if self.open():
             self.read(refresh)
+            result = True
         # close session
         self.close()
+        return result
 
     def read(self, refresh):
         """ read data from MAX! cube """
@@ -424,4 +427,3 @@ class eq3data:
             valve_name = self.deviceName(k)
             tmp.update({k: [v[0], v[1], v[2], valve_name]})
         return json.dumps(tmp)
-
