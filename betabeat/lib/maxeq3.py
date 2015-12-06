@@ -2,7 +2,6 @@
 EQ-3/ELV MAX! communication
 """
 # imports
-import logmsg
 import socket
 import time
 import traceback
@@ -42,18 +41,49 @@ class eq3data:
         self.max_iteration = 3
 
     def getName(self, k):
-        """ return complete names for valve, room """
+        """
+        Return complete names for valve, room
+        :param k: key
+        :return: list [room name, device name, valve list]
+        """
         v = self.valves[k]
         dn = self.devices[k][2]
         rn = self.rooms[str(self.devices[k][3])][0]
         return [rn, dn, v]
 
     def getKeyName(self, k):
-        """ return complete names for valve, room as dictionary """
+        """
+        Return complete names for valve, room as dictionary
+        :param k: key
+        :return: dictionary {key: [room name, device name, valve list for key]}
+        """
         return {k: self.getName(k)}
 
+    def deviceName(self, k):
+        """
+        Return device name
+        :param k: key
+        :return: valve name/string
+        # devices = {addr: [type, serial, name, room, OW, OW_time, status, info, temp offset]}
+        """
+        dn = str(self.devices[k][2])
+        return dn
+
+    def roomName(self, k):
+        """
+        Return device room name for device key/address
+        :param k:
+        :return: room name/string
+        """
+        rn = self.rooms[str(self.devices[k][3])][0]
+        return rn
+
     def isRadioError(self, key):
-        """ True if radio error on device with key """
+        """
+        True if radio error on device with key
+        :param key: key
+        :return: Boolean
+        """
         v = self.devices[key]
         if v[6] & 8 == 8:
             return True
@@ -115,9 +145,6 @@ class eq3data:
             if v[0] == 1 and v[3] == room and k not in self.ignored_valves:
                 # don't heat X*60 seconds after closing window
                 self.ignored_valves.update({k: time.time() + self.ignore_time * 60})
-                logmsg.update("Ignoring valve " + str(k) + " until " + time.strftime("%d/%m/%Y %H:%M:%S",
-                                                                                     time.localtime(
-                                                                                         self.ignored_valves[k])), 'D')
 
     def open(self):
         """ open communication to MAX! Cube """
@@ -240,7 +267,7 @@ class eq3data:
                     wall_room_id = str(self.devices[valve_adr][3])
                     # and update its value to current temperature as read from WallMountedthermostat
                     self.rooms[wall_room_id][3] = valve_curtemp
-                    # HeatingThermostat (dev_type 1 or 2)
+            # HeatingThermostat (dev_type 1 or 2)
             elif dev_len == 12:
                 valve_pos = ord(es[es_pos + 0x07])
                 if valve_info & 3 != 2:
@@ -261,20 +288,20 @@ class eq3data:
             # WindowContact
             elif dev_len == 7:
                 tmp_open = ord(es[es_pos + 0x06]) & 2
+                # if state changed
                 if tmp_open != self.devices[valve_adr][4]:
-                    tmp_txt = "Window contact " + str(self.devices[valve_adr][2]) + " is now "
+                    # get room id
                     r_id = str(self.devices[valve_adr][3])
+                    # if window is now closed
                     if tmp_open == 0:
-                        logmsg.update(tmp_txt + "closed.", 'D')
                         self.rooms[r_id][2] = False
                         if valve_adr in self.windows:
-                            logmsg.update("Key " + str(valve_adr) + " in windows deleted.", 'D')
                             del self.windows[valve_adr]
                         # now check for window closed ignore interval, if non zero set valves to ignore
                         if self.ignore_time > 0:
                             self._setIgnoredValves(valve_adr)
                     else:
-                        logmsg.update(tmp_txt + "opened.", 'D')
+                        # or is opened now
                         self.rooms[r_id][2] = True
                     self.devices[valve_adr][4] = tmp_open
                     self.devices[valve_adr][5] = datetime.datetime.now()
@@ -350,16 +377,20 @@ class eq3data:
 
         return tmp[:-1]
 
-    def rooms_status_id(self):
-        #rooms = id : room_name, room_address, is_win_open, curr_temp
+    def rooms_status(self):
+        """ returns json in format address: [data] """
+        #rooms = {id : [room_name, room_address, is_win_open, curr_temp]}
         tmp = {}
         for k, v in self.rooms.iteritems():
             tmp.update({v[1]: [v[0], v[2], v[3]]})
         return json.dumps(tmp)
 
-    def rooms_status_name(self):
-        #rooms = id : room_name, room_address, is_win_open, curr_temp
+    def valve_status(self):
+        """ returns json in format address: [data] """
+        #valves = {valve_adr: [valve_pos, valve_temp, valve_curtemp, valve_name]}
         tmp = {}
-        for k, v in self.rooms.iteritems():
-            tmp.update({v[0]: [v[1], v[2], v[3]]})
+        for k, v in self.valves.iteritems():
+            valve_name = self.deviceName(k)
+            tmp.update({k: [v[0], v[1], v[2], valve_name]})
         return json.dumps(tmp)
+
