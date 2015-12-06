@@ -333,7 +333,7 @@ class eq3data:
             if cv:
                 roomStr += "(+)"
             else:
-                roomStr += "(-)"
+                roomStr += "(-) till " + time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(self.ignored_valves[k]))
 
             rooms[room_id][0] = roomStr
 
@@ -342,11 +342,29 @@ class eq3data:
             logstr += "\r\nRoom: " + str(k)
             if v[1]:
                 logstr += ", window opened"
-        logstr += str(v[0])
+            logstr += str(v[0])
 
         return logstr
 
     def json_status(self):
+        # devices = {addr: [type, serial, name, room, OW, OW_time, status, info, temp offset]}
+        # rooms = {id:	[room_name, room_address, is_win_open, curr_temp]}
+        # valves = {valve_adr: [valve_pos, valve_temp, valve_curtemp]}
+        rooms = {}
+        current = {}
+        for k, v in self.rooms.iteritems():
+            rooms.update({str(v[0]): ["", v[2]]})
+            current.update({str(v[0]): {}})
+
+        for k, v in self.valves.iteritems():
+            # update rooms string
+            room_id = self.roomName(k)
+            cv = self.countValve(k)
+            current[room_id].update({str(k): [str(self.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), str(1 if cv else 0)]})
+
+        return json.dumps(current)
+
+    def json_valve_status(self):
         current = {}
         for k, v in self.rooms.iteritems():
             current.update({str(v[0]): {}})
@@ -357,7 +375,7 @@ class eq3data:
             current[room_id].update(
                 {str(k): [str(self.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), str(1 if cv else 0)]})
 
-        return str(current)
+        return json.dumps(current)
 
     def nice(self):
         tmpstr = self.plain()
@@ -366,6 +384,11 @@ class eq3data:
         return "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" + tmpstr + "</pre></p>\r\n</body>\r\n</html>"
 
     def headers(self, rn_vn = False):
+        """
+        Returns headers for CSV file in desired format
+        :param rn_vn: boolean, if true then room name - valve name is generated
+        :return: headers/string
+        """
         tmp = ""
         for k, v in self.valves.iteritems():
             if rn_vn:
