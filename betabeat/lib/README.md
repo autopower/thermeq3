@@ -5,8 +5,8 @@ Simple library for accessing ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
 ```python
 import maxeq3
 
-stp = maxeq3.eq3("your_ip_address", 62910)
-stp.readData(False)
+eq3 = maxeq3.eq3data("your_ip_address", 62910)
+eq3.readData(False)
 ```
 
 ##Some variables
