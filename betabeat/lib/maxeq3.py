@@ -347,6 +347,10 @@ class eq3data:
         return logstr
 
     def json_status(self):
+        """
+        Return json in format {room_name: {valve_addr: {valve_name, valve_position, set_temp, current_temp, count_valve, ignore_until}}}
+        :return: json
+        """
         # devices = {addr: [type, serial, name, room, OW, OW_time, status, info, temp offset]}
         # rooms = {id:	[room_name, room_address, is_win_open, curr_temp]}
         # valves = {valve_adr: [valve_pos, valve_temp, valve_curtemp]}
@@ -360,7 +364,11 @@ class eq3data:
             # update rooms string
             room_id = self.roomName(k)
             cv = self.countValve(k)
-            current[room_id].update({str(k): [str(self.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), str(1 if cv else 0)]})
+            if not cv:
+                till = time.localtime(self.ignored_valves[k])
+            else:
+                till = 0
+            current[room_id].update({str(k): [str(self.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), str(1 if cv else 0), str(till)]})
 
         return json.dumps(current)
 
