@@ -4,6 +4,7 @@ import time
 import datetime
 import os
 import logmsg
+import json
 
 _result = False
 if os.name != "nt":
@@ -198,3 +199,7 @@ def put(key, value):
 
 def get(key):
     return str(bridgeclient.get(rCW(key)))
+
+def export():
+    global bridgeclient
+    return json.dumps(bridgeclient)
