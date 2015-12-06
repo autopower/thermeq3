@@ -12,5 +12,10 @@ eq3.readData(False)
 ##Some variables
 * to check returned error `self.return_error` list is used
 
+##Issues
+* no literal processing
+* no auto update
+* no interval scaling
+* not heavily tested
 
 Well, that was very short and quick :)
