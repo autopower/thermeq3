@@ -30,11 +30,8 @@ class SecWeb(object):
         :param message: message/string to write to file
         :param cw: string, selector what to save
         """
-        try:
+        if cw in self.location:
             fn = self.location[str(cw)]
-        except Exception:
-            logmsg.update("Wrong target [" + str(cw) + "] for saving file!", 'E')
-        else:
             try:
                 swf = open(fn, "w")
             except Exception:
@@ -42,3 +39,5 @@ class SecWeb(object):
             else:
                 swf.write(str(message))
                 swf.close()
+        else:
+            logmsg.update("Wrong target [" + str(cw) + "] for saving file!", 'E')

@@ -1,8 +1,10 @@
+#!/usr/bin/env python
 import thermeq3
 import mailer
 import sys
 import time
 import os
+import bridge
 
 def redirErr(onoff):
     if onoff:
@@ -33,5 +35,7 @@ while 1:
     t3.intervals()
     # time.sleep(t3.setup.intervals["slp"][0])
     break
+
+print bridge.export()
 
 redirErr(False)

@@ -87,7 +87,7 @@ def send_email(m_id, message):
             server.login(m_fromaddr, m_frompwd)
             server.sendmail(m_fromaddr, m_toaddr, message)
         except smtplib.SMTPAuthenticationError:
-            logmsg.update("Authentification error during sending email.")
+            logmsg.update("Authentication error during sending email.")
         except Exception, error:
             logmsg.update("Error during sending email. Error code: " + str(error))
         else:

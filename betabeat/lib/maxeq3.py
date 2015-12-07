@@ -141,7 +141,7 @@ class eq3data:
         room = self.devices[key][3]
         for k, v in self.devices.iteritems():
             # this is heating thermostat and is in room where we want ignore all heating thermostats
-            # and is not in d_ignore dictionary = is not ignored now
+            # and is not in ignored_valves dictionary = is not ignored now
             if v[0] == 1 and v[3] == room and k not in self.ignored_valves:
                 # don't heat X*60 seconds after closing window
                 self.ignored_valves.update({k: time.time() + self.ignore_time * 60})
@@ -175,7 +175,7 @@ class eq3data:
         """ close connection to MAX """
         self.client_socket.close()
 
-    def readData(self, refresh=False):
+    def read_data(self, refresh=False):
         result = False
         if self.open():
             self.read(refresh)
@@ -191,21 +191,21 @@ class eq3data:
             data = line
             sd = data[2:].split(",")
             if data[0] == 'H':
-                self.maxCmd_H(sd)
+                self.cmd_h(sd)
             elif data[0] == 'M':
-                self.maxCmd_M(sd, refresh)
+                self.cmd_m(sd, refresh)
             elif data[0] == 'C':
-                self.maxCmd_C(sd)
+                self.cmd_c(sd)
             elif data[0] == 'L':
-                self.maxCmd_L(sd)
+                self.cmd_l(sd)
 
-    def maxCmd_H(self, line):
+    def cmd_h(self, line):
         """ process H response """
         self.maxid["sn"] = line[0]
         self.maxid["rf"] = line[1]
         self.maxid["fw"] = line[2]
 
-    def maxCmd_M(self, line, refresh):
+    def cmd_m(self, line, refresh):
         """ process M response """
         es = base64.b64decode(line[2])
         room_num = ord(es[2])
@@ -241,15 +241,23 @@ class eq3data:
                 #                            0type     1serial 2name     3room    4OW,5OW_time, 6status, 7info, 8temp offset
                 self.devices.update({dev_adr: [dev_type, dev_sn, dev_name, dev_room, 0, this_now, 0, 0, 7]})
 
-    def maxCmd_C(self, line):
-        """ process C response """
+    def cmd_c(self, line):
+        """
+        process C response
+        :param line: string
+        :return: nothing
+        """
         es = base64.b64decode(line[1])
         if ord(es[0x04]) == 1:
             dev_adr = self._hexify(es[0x01:0x04])
             self.devices[dev_adr][8] = es[0x16]
 
-    def maxCmd_L(self, line):
-        """ process L response """
+    def cmd_l(self, line):
+        """
+        process L response
+        :param line: string
+        :return: nothing
+        """
         es = base64.b64decode(line[0])
         es_pos = 0
         while es_pos < len(es):
@@ -328,17 +336,17 @@ class eq3data:
         for k, v in self.valves.iteritems():
             # update rooms string
             room_id = str(self.getName(k)[0])
-            roomStr = rooms[room_id][0]
-            roomStr += "\r\n\t[" + str(k) + "] " + '{:<20}'.format(str(self.devices[k][2])) + "@" + '{:>3}'.format(
-                str(v[0])) + "% @ " + \
-                       '{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
+            room_str = rooms[room_id][0]
+            room_str += "\r\n\t[" + str(k) + "] " + '{:<20}'.format(str(self.devices[k][2])) + "@" + \
+                        '{:>3}'.format(str(v[0])) + "% @ " + \
+                        '{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
             cv = self.countValve(k)
             if cv:
-                roomStr += "(+)"
+                room_str += "(+)"
             else:
-                roomStr += "(-) till " + time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(self.ignored_valves[k]))
+                room_str += "(-) till " + time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(self.ignored_valves[k]))
 
-            rooms[room_id][0] = roomStr
+            rooms[room_id][0] = room_str
 
         logstr = "Actual positions:"
         for k, v in rooms.iteritems():
@@ -351,7 +359,8 @@ class eq3data:
 
     def json_status(self):
         """
-        Return json in format {room_name: {valve_addr: {valve_name, valve_position, set_temp, current_temp, count_valve, ignore_until}}}
+        Return json in format
+            {room_name: {valve_addr: {valve_name, valve_position, set_temp, current_temp, count_valve, ignore_until}}}
         :return: json
         """
         # devices = {addr: [type, serial, name, room, OW, OW_time, status, info, temp offset]}
@@ -371,7 +380,8 @@ class eq3data:
                 till = time.localtime(self.ignored_valves[k])
             else:
                 till = 0
-            current[room_id].update({str(k): [str(self.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), str(1 if cv else 0), str(till)]})
+            current[room_id].update({str(k): [str(self.devices[k][2]), str(v[0]),
+                                              str(v[1]), str(v[2]), str(1 if cv else 0), str(till)]})
 
         return json.dumps(current)
 
@@ -394,7 +404,7 @@ class eq3data:
         tmpstr.replace("\t", "&#9;")
         return "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" + tmpstr + "</pre></p>\r\n</body>\r\n</html>"
 
-    def headers(self, rn_vn = False):
+    def headers(self, rn_vn=False):
         """
         Returns headers for CSV file in desired format
         :param rn_vn: boolean, if true then room name - valve name is generated
@@ -413,7 +423,7 @@ class eq3data:
 
     def rooms_status(self):
         """ returns json in format address: [data] """
-        #rooms = {id : [room_name, room_address, is_win_open, curr_temp]}
+        # rooms = {id : [room_name, room_address, is_win_open, curr_temp]}
         tmp = {}
         for k, v in self.rooms.iteritems():
             tmp.update({v[1]: [v[0], v[2], v[3]]})
@@ -421,7 +431,7 @@ class eq3data:
 
     def valve_status(self):
         """ returns json in format address: [data] """
-        #valves = {valve_adr: [valve_pos, valve_temp, valve_curtemp, valve_name]}
+        # valves = {valve_adr: [valve_pos, valve_temp, valve_curtemp, valve_name]}
         tmp = {}
         for k, v in self.valves.iteritems():
             valve_name = self.deviceName(k)

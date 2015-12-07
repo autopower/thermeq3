@@ -6,10 +6,13 @@ import urllib2
 import socket
 import bridge
 import logmsg
+import weather
 import errno
 import struct
 import mailer
 import sys
+from ast import literal_eval
+import profiles
 
 # import action
 
@@ -32,9 +35,9 @@ class thermeq3_status(object):
             "m": "manual"}
         self.actual = ''
 
-    def update(self, statMsg):
-        bridge.put("status", self.statusMsg[statMsg])
-        self.actual = self.statusMsg[statMsg]
+    def update(self, statmsg):
+        bridge.put("status", self.statusMsg[statmsg])
+        self.actual = self.statusMsg[statmsg]
 
 
 class thermeq3_setup(object):
@@ -90,6 +93,9 @@ class thermeq3_setup(object):
         self.csv_log = ""
         self.bridgefile = ""
         self.secweb = {}
+        self.intervals = {}
+        self.temp = []
+        self.day = []
 
     def initPaths(self):
         """ init paths variables """
@@ -162,6 +168,7 @@ class thermeq3_setup(object):
             [0, 10, 30, "per", 180, 2],
             [10, 20, 40, "per", 240, 2],
         ]
+        profiles.init(self.day, self.temp)
 
     def getMailData(self):
         return {"f": self.fromaddr, "t": self.toaddr, "sr": self.mailserver, "p": self.mailport, "pw": self.frompwd,
@@ -183,10 +190,8 @@ class thermeq3_variables(object):
         self.msgQ = []
         # index in mode table
         self.actModeIndex = -1
-        # dictionary for ignoring valves after closing window
-        self.d_ignore = {}
         # variable for weather situation
-        self.sit = {}
+        self.situation = {}
         # CSV file
         self.csv = None
         # number of readings when we heating
@@ -208,6 +213,7 @@ class thermeq3_object(object):
 
     def __init__(self):
         global err_str
+        self.eq3 = None
         self.setup = thermeq3_setup()
         self.var = thermeq3_variables()
         self.status = thermeq3_status()
@@ -231,6 +237,8 @@ class thermeq3_object(object):
         self.status.update('s')
         # initialize bridge values
         bridge.load(self.setup.bridgefile)
+        # literal processing
+        self._literal_process()
 
         # initialize variables
         self.getControlValues()
@@ -238,7 +246,7 @@ class thermeq3_object(object):
         self.queueMsg("S")
 
         self.eq3 = maxeq3.eq3data(self.setup.max_ip, 62910)
-        self.eq3.readData(True)
+        self.eq3.read_data(True)
         self.exportCSV("init")
         self.status.update('i')
 
@@ -251,7 +259,7 @@ class thermeq3_object(object):
         Process message queue
         :return: nothing
         """
-        cw_msg = bridge.rCW("msg")
+        cw_msg = bridge.rcw("msg")
         while len(self.var.msgQ) > 0:
             logmsg.update("Message queue=" + str(self.var.msgQ), 'D')
             while not str(bridge.get(cw_msg)) == "":
@@ -300,6 +308,11 @@ class thermeq3_object(object):
                 logmsg.update("Can't close CSV file!")
 
     def isWinOpenTooLong(self, key):
+        """
+        Return True if window is open longer than defined interval
+        :param key: key
+        :return: boolean
+        """
         """ return True if window open time is > defined warning interval """
         v = self.eq3.devices[key]
         if self.eq3.isWinOpen(key):
@@ -312,22 +325,22 @@ class thermeq3_object(object):
     def getControlValues(self):
         """ read control values from bridge """
         # try read preference settings, total or per
-        self.setup.preference = bridge.tryRead("pref", "per", True)
+        self.setup.preference = bridge.try_read("pref", "per", True)
         # try read % valve for heat command
-        self.setup.valve_switch = bridge.tryRead("valve", 35, True)
-        self.setup.svpnmw = bridge.tryRead("svpnmw", 80, True)
-        self.setup.total_switch = bridge.tryRead("total", 150, True)
+        self.setup.valve_switch = bridge.try_read("valve", 35, True)
+        self.setup.svpnmw = bridge.try_read("svpnmw", 80, True)
+        self.setup.total_switch = bridge.try_read("total", 150, True)
         # try get readMAX interval value, if not set it
-        self.setup.intervals["max"][0] = bridge.tryRead("int", 90, True)
+        self.setup.intervals["max"][0] = bridge.try_read("int", 90, True)
         self.setup.intervals["slp"][0] = self.setup.intervals["max"][0] / self.setup.intervals["slp"][1]
         # try read num of valves to turn heat on
-        self.setup.valve_num = bridge.tryRead("valves", 1, True)
+        self.setup.valve_num = bridge.try_read("valves", 1, True)
         # try read if autoupdate is OK
-        self.setup.au = bridge.tryRead("au", True, True)
+        self.setup.au = bridge.try_read("au", True, True)
         # try read how many minutes you can ignore valve after closing window
-        self.setup.ignore_time = bridge.tryRead("ign_op", 30, True)
+        self.setup.ignore_time = bridge.try_read("ign_op", 30, True)
         # and if open windows warning is disabled, 0 = enables, 1 = disabled
-        self.setup.no_oww = bridge.tryRead("no_oww", 0, True)
+        self.setup.no_oww = bridge.try_read("no_oww", 0, True)
 
     # check if its right time to update
     def _is(self, selector):
@@ -339,7 +352,7 @@ class thermeq3_object(object):
             return False
 
     def _getCMD(self):
-        cmd_cw = bridge.rCW("cmd")
+        cmd_cw = bridge.rcw("cmd")
         localcmd = bridge.get(cmd_cw)
         if localcmd is None:
             return ""
@@ -462,11 +475,11 @@ class thermeq3_object(object):
                 elif heat == 3:
                     txt += " single valve position, no matter what " + str(self.setup.svpnmw) + "%"
                 logmsg.update(txt)
-                if bridge.tryRead("mode", "auto", True).upper() == "AUTO":
+                if bridge.try_read("mode", "auto", True).upper() == "AUTO":
                     self._do_heat(True)
             else:
                 logmsg.update("heating stopped.")
-                if bridge.tryRead("mode", "auto", True).upper() == "AUTO":
+                if bridge.try_read("mode", "auto", True).upper() == "AUTO":
                     self._do_heat(False)
 
     def intervals(self):
@@ -483,14 +496,17 @@ class thermeq3_object(object):
                 logstr = "Local"
             else:
                 logstr = "Public"
-            var.logger.debug(logstr + " IP address: " + stp.myip)
-            update_ignores_2sit() """
+            var.logger.debug(logstr + " IP address: " + stp.myip) """
+            self.update_ignores_2sit()
         # check max according schedule
         if self._is("max"):
             # beta features here
-            if bridge.tryRead("beta", "no", False).upper() == "YES":
-                # doProfiles()
-                pass
+            if bridge.try_read("beta", "no", False).upper() == "YES":
+                sm, am, kk = profiles.do(self.setup.selectedMode, self.var.actModeIndex, self.var.situation)
+                if sm != self.setup.selectedMode or am !=self.var.actModeIndex:
+                    self.setup.selectedMode = sm
+                    self.var.actModeIndex = am
+                    self.set_mode(kk)
             # end of beta
             cmd = self._getCMD()
             if cmd == "quit":
@@ -508,6 +524,8 @@ class thermeq3_object(object):
                         self.setup.intervals["oww"][2]) + " seconds.")
             elif cmd == "rebridge":
                 bridge.load(self.setup.bridgefile)
+                # literal processing
+                self._literal_process()
             elif cmd == "updatetime":
                 # updateAllTimes()
                 pass
@@ -547,14 +565,14 @@ class thermeq3_object(object):
                 return str(datetime.timedelta(seconds=uptime_seconds)).split(".")[0]
         else:
             uptime = os.popen('systeminfo', 'r')
-            # data = uptime.readlines()
-            uptime.close
+            data = uptime.readlines()
+            uptime.close()
             return str(0)
 
     def update_uptime(self):
         tmp = time.time()
-        bridge.put("uptime", str(self._get_uptime()))
-        bridge.put("appuptime", str(datetime.timedelta(seconds=int(tmp - self.var.appStartTime))))
+        bridge.put("uptime", self._get_uptime())
+        bridge.put("appuptime", datetime.timedelta(seconds=int(tmp - self.var.appStartTime)))
 
     def update_all(self):
         self.update_uptime()
@@ -569,8 +587,8 @@ class thermeq3_object(object):
         if self.var.heating:
             tmp = self.var.ht["total"][0]
             tmp += int(time.time() - self.var.ht["total"][1])
-            bridge.put("ht", str(self.var.ht))
-            bridge.put("htstr", str(datetime.timedelta(seconds=tmp)))
+            bridge.put("ht", self.var.ht)
+            bridge.put("htstr", datetime.timedelta(seconds=tmp))
             logmsg.update("Total heat counter updated to " + str(datetime.timedelta(seconds=tmp)))
             self.var.ht["total"][0] = tmp
             self.var.ht["total"][1] = time.time()
@@ -582,8 +600,8 @@ class thermeq3_object(object):
             elif self.var.heating:
                 totalheat = int(self.var.ht[nw][0] + (tm - self.var.ht[nw][1]))
                 self.var.ht[nw] = [totalheat, time.time()]
-                bridge.put("ht", str(self.var.ht))
-                bridge.put("daily", str(datetime.timedelta(seconds=totalheat)))
+                bridge.put("ht", self.var.ht)
+                bridge.put("daily", datetime.timedelta(seconds=totalheat))
         else:
             if len(self.var.ht) > 1:
                 # if there a key, this must be old key(s)
@@ -602,14 +620,57 @@ class thermeq3_object(object):
             # so its a new day, update other values
             self.exportCSV("init")
             # day readings warning, take number of heated readings and divide by 2
-            drW = self.var.heatReadings / 2
-            logmsg.update("Day reading warnings value=" + str(drW))
+            drw = self.var.heatReadings / 2
+            logmsg.update("Day reading warnings value=" + str(drw))
             for k, v in self.var.dev_log.iteritems():
                 logmsg.update("Valve: " + str(k) + " has value " + str(v[0]))
-                if v[0] > drW:
+                if v[0] > drw:
                     logmsg.update("Valve: " + str(k) +
                                   " reports during heating too many same % positions, e.g. " +
-                                  str(v[0]) + " per " + str(drW))
+                                  str(v[0]) + " per " + str(drw))
                 self.var.dev_log[k][0] = 0
             self.var.heatReadings = 0
             bridge.save(self.setup.bridgefile)
+
+    def _literal_process(self):
+        for k, v in bridge.cw.iteritems():
+            if v[2]:
+                tmp = bridge.get(k)
+                codeword = v[0]
+                setvalue = v[1]
+                try:
+                    lit_result = literal_eval(tmp)
+                except Exception:
+                    logmsg.update("Bridge error codeword [" + str(codeword) + "] value [" + str(setvalue) + "]", 'D')
+                else:
+                    if codeword == bridge.rcw("ht"):
+                        self.var.ht = lit_result
+                    elif codeword == bridge.rcw("ign"):
+                        self.eq3.ignored_valves = lit_result
+
+    def update_ignores_2sit(self):
+        self.var.situation = weather.weather_for_woeid(self.setup.location)
+        temp = int(self.var.situation["current_temp"])
+
+        # modify OWW
+        tmr = weather.interval_scale(temp, (-35.0, 35.0), (0, 10), (10, 360), True)
+        self.setup.intervals["oww"] = [tmr * 60, (3 * tmr) * 60, (3 * tmr) * 60]
+        logmsg.update("OWW interval updated to " + str(self.setup.intervals["oww"]))
+
+        # and now modify valve ignore time
+        tmr = weather.interval_scale(temp, (0.0, 35.0), (1.7, 3.0), (15, 120), False)
+        self.var.ignore_time = self.setup.window_ignore_time + tmr
+        bridge.put("ign_op", self.var.ignore_time)
+        logmsg.update("Valve ignore interval updated to " + str(self.var.ignore_time), 'D')
+
+    def set_mode(self, value):
+        if value[3] == "total":
+            self.setup.total_switch = value[2]
+        else:
+            self.setup.valve_switch = value[2]
+        self.setup.preference = value[3]
+        self.setup.intervals["max"][0] = value[4]
+        self.setup.valve_num = value[5]
+        # just sleep value, always calculated as max[0] / slp[1]
+        self.setup.intervals["slp"][0] = int(value[4] / self.setup.intervals["slp"][1])
+        bridge.put("int", self.setup.intervals["max"][0])

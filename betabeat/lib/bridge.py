@@ -1,20 +1,19 @@
 import sys
-from ast import literal_eval
 import time
 import datetime
 import os
 import logmsg
 import json
 
+
 _result = False
 if os.name != "nt":
     try:
         sys.path.insert(0, "/usr/lib/python2.7/bridge/")
         from bridgeclient import BridgeClient
-
         _result = True
     except:
-        pass
+        _result = False
 
 if not _result:
     # if exception, it means no yun, abstraction to bridge, simplyfied code of arduino yun
@@ -66,7 +65,7 @@ cw = {
     "ht": ["heattime",
            {"total": [0, 0.0], datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"): [0, time.time()]},
            True],
-    # communication errors, this states how many times failed communication between thermeq3 and MAX!Cube, cleared after sending status
+    # communication errors, how many times failed communication between thermeq3 and MAX!Cube, 0 after sending status
     "errs": ["error", 0, False],
     # same as above, but cumulative number
     "terrs": ["totalerrors", 0, False],
@@ -101,30 +100,16 @@ def save(bridgefile):
         return True
 
 
-def processBridgeCodeWord(codeword, is_literal, defValue, setValue):
+def process_bridge_cw(codeword, def_value, set_value):
     global bridgeclient
     result = ""
     # check if correct values are loaded
-    if setValue == "" or setValue is None:
-        result = defValue
+    if set_value == "" or set_value is None:
+        result = def_value
     else:
-        result = setValue
+        result = set_value
     # put bridge value
     bridgeclient.put(codeword, result)
-
-    # if we need literal processing
-    if is_literal:
-        try:
-            lit_result = literal_eval(result)
-        except Exception:
-            logmsg.update("Bridge error codeword [" + str(codeword) + "] value [" + str(setValue) + "]", 'D')
-        else:
-            if codeword == rCW("ht"):
-                # >>>>>> var.ht = lit_result
-                pass
-            elif codeword == rCW("ign"):
-                # >>>>>> var.d_ignore = lit_result
-                pass
 
 
 def load(bridgefile):
@@ -139,20 +124,25 @@ def load(bridgefile):
         with open(bridgefile, "r") as f:
             for line in f:
                 t = (line.rstrip("\r\n")).split('=')
-                localCW = t[0]
-                setValue = t[1]
-                if localCW in lcw:
-                    processBridgeCodeWord(localCW, lcw[localCW][1], lcw[localCW][0], setValue)
+                localcw = t[0]
+                setvalue = t[1]
+                if localcw in lcw:
+                    process_bridge_cw(localcw, lcw[localcw][0], setvalue)
             f.close()
         logmsg.update("Bridge file loaded.", 'D')
     # >>>>>>> updateAllTimes()
     else:
         for k, v in lcw.iteritems():
-            processBridgeCodeWord(k, v[1], v[0], v[0])
+            process_bridge_cw(k, v[0], v[0])
         logmsg.update("Error loading bridge file, using defaults!", 'E')
 
 
-def rCW(lcw):
+def rcw(lcw):
+    """
+    Return codeword from dictionary
+    :param lcw: key
+    :return:
+    """
     """ returns command word, always string """
     global cw
     if lcw in cw:
@@ -161,29 +151,29 @@ def rCW(lcw):
         return "wrong_key"
 
 
-def tryRead(lcw, default, save):
+def try_read(lcw, default, _save):
     """
     try read from bridge, if not there, save default value
     :param lcw: string, local codeword
     :param default: default value, various
-    :param save: boolean, if not in bridge save
+    :param _save: boolean, if not in bridge save
     :return: various
     """
     global bridgeclient, cw
     if type(default) is str:
-        isNum = False
+        isnum = False
     else:
-        isNum = True
+        isnum = True
     temp_cw = rCW(lcw)
 
     tmp_str = bridgeclient.get(temp_cw)
 
-    if tmp_str == "None" or tmp_str == "" or tmp_str == None:
+    if tmp_str == "None" or tmp_str == "" or tmp_str is None:
         tmp = default
-        if save:
+        if _save:
             bridgeclient.put(temp_cw, str(tmp))
     else:
-        if isNum:
+        if isnum:
             try:
                 tmp = int(tmp_str)
             except Exception:
@@ -194,12 +184,49 @@ def tryRead(lcw, default, save):
 
 
 def put(key, value):
-    bridgeclient.put(rCW(key), str(value))
+    """
+    Put value to the key in bridgeclient
+    :param key: key
+    :param value: string
+    :return: nothing
+    """
+    global bridgeclient
+    bridgeclient.put(rcw(key), str(value))
 
 
 def get(key):
-    return str(bridgeclient.get(rCW(key)))
+    """
+    Get from bridgeclient by key, key is expanded through CW
+    :param key: key
+    :return:  string
+    """
+    global bridgeclient
+    return str(bridgeclient.get(rcw(key)))
+
 
 def export():
+    """
+    Export bridgeclient.json as JSON
+    :return: JSON string
+    """
     global bridgeclient
     return json.dumps(bridgeclient.json)
+
+
+def import_(config_str):
+    """
+    Import config_str into bridgeclient.json dictionary
+    :param config_str: string/json
+    :return: boolean
+    """
+    global bridgeclient
+    result = False
+    try:
+        tmp = json.loads(config_str)
+    except ValueError:
+        logmsg.update("Error during importing JSON.", 'E')
+    else:
+        result = True
+        bridgeclient.json.update(tmp)
+
+    return result
