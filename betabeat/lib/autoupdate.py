@@ -5,7 +5,6 @@ import logmsg
 import os
 import hashlib
 
-
 upd_files = ["nsm", "thermeq3", "maxeq3", "secweb", "bridge", "mailer", "logmsg"]
 
 
@@ -21,6 +20,7 @@ def getHash(filename):
         f.close()
     return checksum
 
+
 def downloadFile(homedir, base, filename):
     errstr = ""
     try:
@@ -30,10 +30,10 @@ def downloadFile(homedir, base, filename):
         errstr += "HTTPError = " + str(e.reason)
     except urllib2.URLError, e:
         errstr += "URLError = " + str(e.reason)
-    except httplib.HTTPException, e:
+    except httplib.HTTPException:
         errstr += "HTTPException"
     except Exception, e:
-        errstr += "Exception = " + str(traceback.format_exc())
+        errstr += "Exception = " + str(traceback.format_exc()) + ", " + str(e.reason)
     else:
         fbase = filename.split(".")[0]
         try:
@@ -100,7 +100,8 @@ def do_update(state, homedir):
     """
     Perform update
     :param state: boolean, is autoupdate enabled?
-    :return: boolean, True if someting updated
+    :param homedir, string, home directory
+    :return: boolean, True if something updated
     """
     updated = []
     upd_str = ""
@@ -113,12 +114,12 @@ def do_update(state, homedir):
                 os.rename(homedir + k + ".upd", homedir + k + ".py")
         if len(updated) > 0:
             body = ("<h1>Device upgrade information.</h1>\n"
-                        "   <p>Hello, I'm your thermostat and I have a news for you.<br/>\n"
-                        "	Please take a note, that I found new version of app:<br/>\n"
-                        + upd_str +
-                        "   and I'll be upgraded in few seconds.</br>\n"
-                        "	Resistance is futile :).<br/>")
-            #sendWarning("upgrade", temp_key, body)
+                    "   <p>Hello, I'm your thermostat and I have a news for you.<br/>\n"
+                    "	Please take a note, that I found new version of app:<br/>\n" +
+                    upd_str +
+                    "   and I'll be upgraded in few seconds.</br>\n"
+                    "	Resistance is futile :).<br/>")
+            # sendWarning("upgrade", temp_key, body)
             return True
     else:
         logmsg.update("Auto update is disabled.")

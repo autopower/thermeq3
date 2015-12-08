@@ -1,10 +1,12 @@
 import RPi.GPIO as GPIO
 
-def start(platform):
+
+def start():
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(18, GPIO.OUT)
     # GPIO pin 18 is for DEV, prod is 17
+
 
 def do(action):
     if action:

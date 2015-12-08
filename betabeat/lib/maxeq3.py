@@ -39,6 +39,8 @@ class eq3data:
         self.comm_error = 0
         # how many times try connect to MAX!Cube
         self.max_iteration = 3
+        # outside init declaration
+        self.client_socket = None
 
     def getName(self, k):
         """
@@ -91,6 +93,11 @@ class eq3data:
             return False
 
     def isBattError(self, key):
+        """
+        True if battery error on device with key
+        :param key: key
+        :return: boolean
+        """
         """ True if battery error on device with key """
         v = self.devices[key]
         if v[7] & 128 == 128:
@@ -99,7 +106,11 @@ class eq3data:
             return False
 
     def isWinOpen(self, key):
-        """ Return true if window is open """
+        """
+        Return true if window is open
+        :param key: key
+        :return: boolean
+        """
         v = self.devices[key]
         if v[0] == 4 and v[4] == 2:
             return True
@@ -107,7 +118,11 @@ class eq3data:
             return False
 
     def countValve(self, key):
-        """ return True if valve is NOT ignored """
+        """
+        Return True if valve is NOT ignored
+        :param key: key
+        :return: boolean
+        """
         if key in self.ignored_valves:
             if self.ignored_valves[key] < time.time():
                 del self.ignored_valves[key]
@@ -185,7 +200,11 @@ class eq3data:
         return result
 
     def read(self, refresh):
-        """ read data from MAX! cube """
+        """
+        read data from MAX! cube
+        :param refresh: boolean
+        :return: nothing
+        """
         self.client_socket.settimeout(int(self.timeout / 3))
         for line in self._readlines(self.client_socket):
             data = line
@@ -200,13 +219,22 @@ class eq3data:
                 self.cmd_l(sd)
 
     def cmd_h(self, line):
-        """ process H response """
+        """
+        Process H response
+        :param line: string
+        :return: nothing
+        """
         self.maxid["sn"] = line[0]
         self.maxid["rf"] = line[1]
         self.maxid["fw"] = line[2]
 
     def cmd_m(self, line, refresh):
-        """ process M response """
+        """
+        Process H response
+        :param line: string
+        :param refresh: boolean
+        :return:
+        """
         es = base64.b64decode(line[2])
         room_num = ord(es[2])
         es_pos = 3
@@ -220,7 +248,7 @@ class eq3data:
             room_adr = es[es_pos:es_pos + 3]
             es_pos += 3
             if room_id not in self.rooms or refresh:
-                #										id   :	0room_name, 1room_address,   2is_win_open, 3curr_temp
+                # id  :	0room_name, 1room_address,   2is_win_open, 3curr_temp
                 self.rooms.update({room_id: [room_name, self._hexify(room_adr), False, 99.99]})
         dev_num = ord(es[es_pos])
         es_pos += 1
@@ -238,7 +266,7 @@ class eq3data:
             dev_room = ord(es[es_pos])
             es_pos += 1
             if dev_adr not in self.devices or refresh:
-                #                            0type     1serial 2name     3room    4OW,5OW_time, 6status, 7info, 8temp offset
+                # 0type     1serial 2name     3room    4OW,5OW_time, 6status, 7info, 8temp offset
                 self.devices.update({dev_adr: [dev_type, dev_sn, dev_name, dev_room, 0, this_now, 0, 0, 7]})
 
     def cmd_c(self, line):

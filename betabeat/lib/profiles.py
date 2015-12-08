@@ -83,6 +83,13 @@ def temp_mode():
 
 
 def do(sel_mode, act_idx, sit):
+    """
+    Performs day or temp mode selection
+    :param sel_mode: char, selected mode
+    :param act_idx:  integer, actual index
+    :param sit: dictionary, weather situation
+    :return: list
+    """
     # update variables from main code
     global table
     table.selected_mode = sel_mode
@@ -102,5 +109,11 @@ def do(sel_mode, act_idx, sit):
 
 
 def init(dt, tt):
+    """
+    Init day and temp table
+    :param dt: list, daytable
+    :param tt: list, daytable
+    :return: nothing
+    """
     global table
     table.start(dt, tt)

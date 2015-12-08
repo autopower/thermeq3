@@ -2,15 +2,12 @@ import maxeq3
 import time
 import os
 import datetime
-import urllib2
-import socket
 import bridge
 import logmsg
 import weather
+import public_ip
 import errno
-import struct
 import mailer
-import sys
 from ast import literal_eval
 import profiles
 
@@ -23,7 +20,6 @@ class thermeq3_status(object):
     """
     status class
     """
-
     def __init__(self):
         self.statusMsg = {
             "i": "idle",
@@ -44,7 +40,6 @@ class thermeq3_setup(object):
     """
     setup class
     """
-
     def __init__(self):
         self.version = 200
         self.target = "yun"
@@ -212,6 +207,10 @@ class thermeq3_object(object):
     """
 
     def __init__(self):
+        """
+        Initialize object
+        :rtype: object
+        """
         global err_str
         self.eq3 = None
         self.setup = thermeq3_setup()
@@ -231,14 +230,16 @@ class thermeq3_object(object):
                 raise
 
     def prepare(self):
+        """
+        Set variables
+        :return: nothing
+        """
         self.setup.initIntervals()
         logmsg.start(self.setup.log_filename)
         # update status
         self.status.update('s')
         # initialize bridge values
         bridge.load(self.setup.bridgefile)
-        # literal processing
-        self._literal_process()
 
         # initialize variables
         self.getControlValues()
@@ -247,6 +248,9 @@ class thermeq3_object(object):
 
         self.eq3 = maxeq3.eq3data(self.setup.max_ip, 62910)
         self.eq3.read_data(True)
+        # literal processing
+        self._literal_process()
+
         self.exportCSV("init")
         self.status.update('i')
 
@@ -491,19 +495,23 @@ class thermeq3_object(object):
         if self._is("var"):
             # >>> updateAllTimes()
             bridge.save(self.setup.bridgefile)
-            # >>> getPublicIP()
-            """ if is_private(stp.myip):
-                logstr = "Local"
+            tmp = public_ip.get()
+            if tmp == 0xFF:
+                logmsg.update("Error getting IP address from hostname, please check resolv.conf or hosts or both!", 'E')
             else:
-                logstr = "Public"
-            var.logger.debug(logstr + " IP address: " + stp.myip) """
+                self.setup.myip = tmp
+                if public_ip.is_private(tmp):
+                    logstr = "Local"
+                else:
+                    logstr = "Public"
+                logmsg.update(logstr + " IP address: " + self.setup.myip)
             self.update_ignores_2sit()
         # check max according schedule
         if self._is("max"):
             # beta features here
             if bridge.try_read("beta", "no", False).upper() == "YES":
                 sm, am, kk = profiles.do(self.setup.selectedMode, self.var.actModeIndex, self.var.situation)
-                if sm != self.setup.selectedMode or am !=self.var.actModeIndex:
+                if sm != self.setup.selectedMode or am != self.var.actModeIndex:
                     self.setup.selectedMode = sm
                     self.var.actModeIndex = am
                     self.set_mode(kk)
@@ -537,7 +545,7 @@ class thermeq3_object(object):
             elif cmd == "upgrade":
                 # doUpdate()
                 pass
-            if self.eq3.readData(False):
+            if self.eq3.read_data(False):
                 logmsg.update(self._status_msg())
                 logmsg.update(self.eq3.plain(), 'I')
                 # update JSONs

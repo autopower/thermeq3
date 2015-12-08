@@ -102,7 +102,6 @@ def save(bridgefile):
 
 def process_bridge_cw(codeword, def_value, set_value):
     global bridgeclient
-    result = ""
     # check if correct values are loaded
     if set_value == "" or set_value is None:
         result = def_value
@@ -148,7 +147,7 @@ def rcw(lcw):
     if lcw in cw:
         return str(cw[lcw][0])
     else:
-        return "wrong_key"
+        return "wrong_key " + str(lcw)
 
 
 def try_read(lcw, default, _save):
@@ -164,7 +163,7 @@ def try_read(lcw, default, _save):
         isnum = False
     else:
         isnum = True
-    temp_cw = rCW(lcw)
+    temp_cw = rcw(lcw)
 
     tmp_str = bridgeclient.get(temp_cw)
 

@@ -6,7 +6,13 @@ import time
 import os
 import bridge
 
-def redirErr(onoff):
+
+def redir_err(onoff):
+    """
+    Turn error redirection on or off
+    :param onoff: boolean
+    :return: nothing
+    """
     if onoff:
         t3.setup.stderr_log = t3.setup.place + t3.setup.devname + "_error.log"
         try:
@@ -16,26 +22,27 @@ def redirErr(onoff):
         else:
             t3.var.original_stderr = sys.stderr
             sys.stderr = t3.var.ferr
-            #print >> sys.stderr, time.strftime("%H:%M:%S", time.localtime()), "Redirection active"
+            # print >> sys.stderr, time.strftime("%H:%M:%S", time.localtime()), "Redirection active"
     else:
-        #print >> sys.stderr, time.strftime("%H:%M:%S", time.localtime()), "Redirection closed"
+        # print >> sys.stderr, time.strftime("%H:%M:%S", time.localtime()), "Redirection closed"
         sys.stderr = t3.var.original_stderr
         t3.var.ferr.close()
 
 
-t3 = thermeq3.thermeq3_object()
-t3.prepare()
+if __name__ == '__main__':
+    t3 = thermeq3.thermeq3_object()
+    t3.prepare()
 
-if mailer.send_error_log(t3.setup.getMailData(), t3.setup.stderr_log, t3.setup.devname):
-    os.remove(t3.setup.stderr_log)
+    if mailer.send_error_log(t3.setup.getMailData(), t3.setup.stderr_log, t3.setup.devname):
+        os.remove(t3.setup.stderr_log)
 
-redirErr(True)
+    redir_err(True)
 
-while 1:
-    t3.intervals()
-    # time.sleep(t3.setup.intervals["slp"][0])
-    break
+    while 1:
+        t3.intervals()
+        # time.sleep(t3.setup.intervals["slp"][0])
+        break
 
-print bridge.export()
+    print bridge.export()
 
-redirErr(False)
+    redir_err(False)
