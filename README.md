@@ -17,6 +17,10 @@ thermeq3 features:
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Dec-10
+* new librariezed version in betabeat
+* new install script for lib version in scripts
+
 ###2015-Dec-04
 * betabeat: new RPi version 
 
