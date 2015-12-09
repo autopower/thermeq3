@@ -1,4 +1,7 @@
 #!/bin/ash
+if [ \$# -lt 1 ]; then
+	echo "Usage: install.sh <thermeq3 device name>"
+	exit 1
 echo "opkg update & install..."
 opkg update
 if [ $? -ne 0 ]; then
@@ -65,7 +68,7 @@ echo "config uhttpd secondary
         option tcp_keepalive    1
 " >> /etc/config/uhttpd
 echo "Restarting uhttpd..."
-/etc/init.r/uhttpd restart
+/etc/init.d/uhttpd restart
 
 echo "#!/bin/ash
 if [ \$# -lt 2 ]; then
@@ -85,5 +88,5 @@ fi
 	" > /root/cs3.sh
 chmod +x /root/cs3.sh
 echo "Installing with $1 device name"
-/root/cs3.sh $DIR $1
+/root/cs3.sh $DIR $2
  
