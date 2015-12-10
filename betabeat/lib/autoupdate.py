@@ -4,11 +4,10 @@ import httplib
 import logmsg
 import os
 import hashlib
+import zipfile
 
-upd_files = ["nsm", "thermeq3", "maxeq3", "secweb", "bridge", "mailer", "logmsg"]
 
-
-def getHash(filename):
+def get_hash(filename):
     checksum = hashlib.md5()
     if os.path.isfile(filename):
         f = file(filename, "rb")
@@ -21,10 +20,10 @@ def getHash(filename):
     return checksum
 
 
-def downloadFile(homedir, base, filename):
+def download_file(home_dir, filename):
     errstr = ""
     try:
-        request = urllib2.urlopen(base + "/" + filename)
+        request = urllib2.urlopen(filename)
         response = request.read()
     except urllib2.HTTPError, e:
         errstr += "HTTPError = " + str(e.reason)
@@ -35,28 +34,32 @@ def downloadFile(homedir, base, filename):
     except Exception, e:
         errstr += "Exception = " + str(traceback.format_exc()) + ", " + str(e.reason)
     else:
-        fbase = filename.split(".")[0]
         try:
-            f = file(homedir + fbase + ".upd", "wb")
+            f = file(home_dir + filename, "wb")
         except Exception, e:
-            errstr = "Problem during saving new version. File: " + homedir + fbase + ". Error: " + str(
+            errstr = "Problem during saving new version. File: " + home_dir + filename + ". Error: " + str(
                 e) + " Traceback: " + str(traceback.format_exc())
         else:
             f.write(response)
             f.close()
             errstr = ""
     finally:
+        request.close()
         if not errstr == "":
             logmsg.update(errstr)
             return False
-        request.close()
     return True
 
 
-def checkUpdate(filename):
+def checkUpdate(version, beta):
+    if beta:
+        github = "https://raw.github.com/autopower/thermeq3/master/install/beta"
+    else:
+        github = "https://raw.github.com/autopower/thermeq3/master/install/"
+    home_dir = "/root/thermeq3"
     errstr = "Unable to get latest version info - "
     try:
-        request = urllib2.urlopen(stp.github + "autoupdate.data")
+        request = urllib2.urlopen(github + "autoupdate.data")
         response = request.read().rstrip("\r\n")
     except urllib2.HTTPError, e:
         errstr += "HTTPError = " + str(e.reason)
@@ -70,7 +73,7 @@ def checkUpdate(filename):
         errstr = ""
         t = response.split(":")
 
-        new_hash = getHash(stp.homedir + str(t[1])).hexdigest()
+        new_hash = get_hash(home_dir + "-install/" + str(t[1])).hexdigest()
         if new_hash == "":
             logmsg.update("Can't find file " + str(t[1]), 'E')
         else:
@@ -79,48 +82,34 @@ def checkUpdate(filename):
             except Exception:
                 tmp_ver = 0
             logmsg.update("Available file: " + str(t[1]) + ", V" + str(tmp_ver) + " with hash " + str(t[3]))
-            logmsg.update("Actual version: " + str(stp.version) + ", hash: " + str(new_hash))
-            if new_hash != t[3] and stp.version <= tmp_ver:
-                var.logger.info("Downloading new version V" + str(tmp_ver))
-                down_result = downloadFile(t[1])
+            if new_hash != t[3] and version <= tmp_ver:
+                logmsg.update("Downloading new version V" + str(tmp_ver))
+                down_result = download_file(home_dir, t[1])
                 if down_result:
                     logmsg.update("V" + str(tmp_ver) + " downloaded. Hash is " + str(t[3]))
-                    return 2
+                    return [2, t[1]]
                 else:
                     logmsg.update("Problem downloading new version. Result=" + str(down_result) + ", file=" + str(t[1]))
             else:
-                return 1
+                return [1, ""]
 
     if not errstr == "":
         logmsg.update(errstr)
-    return 0
+    return [0, ""]
 
 
-def do_update(state, homedir):
+def do(version, beta):
     """
     Perform update
-    :param state: boolean, is autoupdate enabled?
-    :param homedir, string, home directory
+    :param version: string
     :return: boolean, True if something updated
     """
-    updated = []
-    upd_str = ""
-    if state:
-        for k in upd_files:
-            chk = checkUpdate(k)
-            if chk == 2:
-                updated.append(k)
-                upd_str += k + "<br/>"
-                os.rename(homedir + k + ".upd", homedir + k + ".py")
-        if len(updated) > 0:
-            body = ("<h1>Device upgrade information.</h1>\n"
-                    "   <p>Hello, I'm your thermostat and I have a news for you.<br/>\n"
-                    "	Please take a note, that I found new version of app:<br/>\n" +
-                    upd_str +
-                    "   and I'll be upgraded in few seconds.</br>\n"
-                    "	Resistance is futile :).<br/>")
-            # sendWarning("upgrade", temp_key, body)
-            return True
+    home_dir = "/root/thermeq3"
+    chk, filename = checkUpdate(version, beta)
+    if chk == 2:
+        # unzip files
+        with zipfile.ZipFile(home_dir + "-install/" + filename, "r") as z:
+            z.extractall(home_dir + "/", "*.py")
+        return True
     else:
-        logmsg.update("Auto update is disabled.")
-    return False
+        return False

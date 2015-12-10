@@ -37,6 +37,8 @@ def flush():
                 logger.debug(k[1])
             elif k[0] == 'I':
                 logger.info(k[1])
+            elif k[0] == 'C':
+                logger.critical(k[1])
             else:
                 logger.error("Wrong level: " + str(k[0]) + " message: " + str(k[1]))
         log_messages = []

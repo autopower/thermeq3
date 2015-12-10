@@ -10,16 +10,13 @@ import errno
 import mailer
 from ast import literal_eval
 import profiles
-
+import autoupdate
 # import action
 
 err_str = ""
 
 
 class thermeq3_status(object):
-    """
-    status class
-    """
     def __init__(self):
         self.statusMsg = {
             "i": "idle",
@@ -37,9 +34,6 @@ class thermeq3_status(object):
 
 
 class thermeq3_setup(object):
-    """
-    setup class
-    """
     def __init__(self):
         self.version = 200
         self.target = "yun"
@@ -92,8 +86,7 @@ class thermeq3_setup(object):
         self.temp = []
         self.day = []
 
-    def initPaths(self):
-        """ init paths variables """
+    def init_paths(self):
         if os.name == "nt":
             if os.path.exists("d:/mnt/sda1"):
                 self.place = "d:/mnt/sda1/"
@@ -131,8 +124,7 @@ class thermeq3_setup(object):
             elif self.target == "rpi":
                 pass
 
-    def initIntervals(self):
-        """ init intervals """
+    def init_intervals(self):
         # threshold in seconds, so 10 minutes are 10*60 seconds
         # interval as "name": [interval=how often check, mute int, next_time]
         tm = time.time()
@@ -165,16 +157,12 @@ class thermeq3_setup(object):
         ]
         profiles.init(self.day, self.temp)
 
-    def getMailData(self):
+    def get_mail_data(self):
         return {"f": self.fromaddr, "t": self.toaddr, "sr": self.mailserver, "p": self.mailport, "pw": self.frompwd,
                 "d": self.devname}
 
 
 class thermeq3_variables(object):
-    """
-    variables class
-    """
-
     def __init__(self):
         self.appStartTime = time.time()
         # heat times; total: [totalheattime, time.time()]
@@ -202,15 +190,8 @@ class thermeq3_variables(object):
 
 
 class thermeq3_object(object):
-    """
-    class thermeq3
-    """
 
     def __init__(self):
-        """
-        Initialize object
-        :rtype: object
-        """
         global err_str
         self.eq3 = None
         self.setup = thermeq3_setup()
@@ -218,9 +199,14 @@ class thermeq3_object(object):
         self.status = thermeq3_status()
 
         # import configuration
-        execfile("/root/config.py")
+        try:
+            execfile("/root/config.py")
+        except:
+            err_str = "Can't find config file!"
+            print err_str
+            exit()
 
-        if not self.setup.initPaths():
+        if not self.setup.init_paths():
             err_str = "Error: can't find mounted storage device! Please mount SD card or USB key and run program again."
 
         try:
@@ -230,11 +216,7 @@ class thermeq3_object(object):
                 raise
 
     def prepare(self):
-        """
-        Set variables
-        :return: nothing
-        """
-        self.setup.initIntervals()
+        self.setup.init_intervals()
         logmsg.start(self.setup.log_filename)
         # update status
         self.status.update('s')
@@ -242,23 +224,29 @@ class thermeq3_object(object):
         bridge.load(self.setup.bridgefile)
 
         # initialize variables
-        self.getControlValues()
+        self.get_control_values()
 
-        self.queueMsg("S")
+        self.queue_msg("S")
+
+        self.get_ip()
 
         self.eq3 = maxeq3.eq3data(self.setup.max_ip, 62910)
         self.eq3.read_data(True)
         # literal processing
         self._literal_process()
 
-        self.exportCSV("init")
+        self.export_csv("init")
         self.status.update('i')
 
-    def queueMsg(self, msg):
+    def queue_msg(self, msg):
         logmsg.update("Queqing [" + str(msg) + "]", 'D')
         self.var.msgQ.insert(0, msg)
 
-    def processMsg(self):
+    def _is_beta(self):
+        return (bridge.try_read("beta", "no", False).upper() == "YES")
+
+
+    def process_msg(self):
         """
         Process message queue
         :return: nothing
@@ -289,7 +277,7 @@ class thermeq3_object(object):
                         # action.do(False)
                         pass
 
-    def exportCSV(self, cmd="init"):
+    def export_csv(self, cmd="init"):
         csv_file = self.setup.csv_log
         if cmd == "init":
             if os.path.exists(csv_file):
@@ -311,22 +299,7 @@ class thermeq3_object(object):
             except Exception:
                 logmsg.update("Can't close CSV file!")
 
-    def isWinOpenTooLong(self, key):
-        """
-        Return True if window is open longer than defined interval
-        :param key: key
-        :return: boolean
-        """
-        """ return True if window open time is > defined warning interval """
-        v = self.eq3.devices[key]
-        if self.eq3.isWinOpen(key):
-            tmp = (datetime.datetime.now() - v[5]).total_seconds()
-            if tmp > self.setup.intervals["oww"][0]:
-                return True
-            else:
-                return False
-
-    def getControlValues(self):
+    def get_control_values(self):
         """ read control values from bridge """
         # try read preference settings, total or per
         self.setup.preference = bridge.try_read("pref", "per", True)
@@ -342,7 +315,7 @@ class thermeq3_object(object):
         # try read if autoupdate is OK
         self.setup.au = bridge.try_read("au", True, True)
         # try read how many minutes you can ignore valve after closing window
-        self.setup.ignore_time = bridge.try_read("ign_op", 30, True)
+        self.eq3.ignore_time = bridge.try_read("ign_op", 30, True)
         # and if open windows warning is disabled, 0 = enables, 1 = disabled
         self.setup.no_oww = bridge.try_read("no_oww", 0, True)
 
@@ -355,7 +328,7 @@ class thermeq3_object(object):
         else:
             return False
 
-    def _getCMD(self):
+    def _getcmd(self):
         cmd_cw = bridge.rcw("cmd")
         localcmd = bridge.get(cmd_cw)
         if localcmd is None:
@@ -382,13 +355,13 @@ class thermeq3_object(object):
     def _do_heat(self, state):
         if state:
             self.var.ht["total"][1] = time.time()
-            self.queueMsg("H")
+            self.queue_msg("H")
             if self.var.ventilating:
                 self.status.update("hv")
             else:
                 self.status.update("h")
         else:
-            self.queueMsg("S")
+            self.queue_msg("S")
             if self.var.ventilating:
                 self.status.update("iv")
             else:
@@ -409,16 +382,16 @@ class thermeq3_object(object):
                 open_windows.append(k)
                 logmsg.update("Warning condition for window " + str(k) + " met")
             if self.eq3.isBattError(k):
-                # sendWarning("battery", k, "")
+                # send_warning("battery", k, "")
                 pass
             if self.eq3.isRadioError(k):
-                # sendWarning("error", k, "")
+                # send_warning("error", k, "")
                 pass
 
         # check if ventilate and if not then send warning
         if not self.setup.no_oww and len(open_windows) < self.setup.ventilate_num:
             for idx, k in enumerate(open_windows):
-                # sendWarning("window", k, "")
+                # send_warning("window", k, "")
                 pass
         # else check if ventilating and update status
         else:
@@ -431,11 +404,11 @@ class thermeq3_object(object):
         # secWebFile("owl", tmp)
 
         if self.var.err2Clear and not self.var.error:
-            self.queueMsg("C")
+            self.queue_msg("C")
         if self.var.err2LastStatus:
             self.var.err2LastStatus = False
             if self.var.heating:
-                self.queueMsg("H")
+                self.queue_msg("H")
                 logmsg.update("Resuming heating state on status LED")
 
         # and now showtime
@@ -489,34 +462,33 @@ class thermeq3_object(object):
     def intervals(self):
         # do upgrade according schedule
         if self._is("upg"):
-            pass
-            # >>> doUpdate()
+            if not autoupdate.do(self.setup.version, self._is_beta()):
+                logmsg.update("Auto update is disabled or failed.")
+            else:
+                logmsg.update("thermeq3 updated.")
+                body = ("<h1>Device upgrade information.</h1>\n"
+                        "   <p>Hello, I'm your thermostat and I have a news for you.<br/>\n"
+                        "	Please take a note, that I found new version of thermeq3 app<br/>\n"
+                        "   and I'll be upgraded in few seconds.</br>\n"
+                        "	Resistance is futile :).<br/>")
+                # sendWarning("upgrade", temp_key, body)
         # do update variables according schedule
         if self._is("var"):
             # >>> updateAllTimes()
             bridge.save(self.setup.bridgefile)
-            tmp = public_ip.get()
-            if tmp == 0xFF:
-                logmsg.update("Error getting IP address from hostname, please check resolv.conf or hosts or both!", 'E')
-            else:
-                self.setup.myip = tmp
-                if public_ip.is_private(tmp):
-                    logstr = "Local"
-                else:
-                    logstr = "Public"
-                logmsg.update(logstr + " IP address: " + self.setup.myip)
+            self.get_ip()
             self.update_ignores_2sit()
         # check max according schedule
         if self._is("max"):
             # beta features here
-            if bridge.try_read("beta", "no", False).upper() == "YES":
+            if self._is_beta():
                 sm, am, kk = profiles.do(self.setup.selectedMode, self.var.actModeIndex, self.var.situation)
                 if sm != self.setup.selectedMode or am != self.var.actModeIndex:
                     self.setup.selectedMode = sm
                     self.var.actModeIndex = am
                     self.set_mode(kk)
             # end of beta
-            cmd = self._getCMD()
+            cmd = self._getcmd()
             if cmd == "quit":
                 return 0xFF
             elif cmd == "log_debug":
@@ -539,9 +511,9 @@ class thermeq3_object(object):
                 pass
             elif cmd == "led":
                 if self.var.heating:
-                    self.queueMsg("H")
+                    self.queue_msg("H")
                 else:
-                    self.queueMsg("S")
+                    self.queue_msg("S")
             elif cmd == "upgrade":
                 # doUpdate()
                 pass
@@ -549,7 +521,7 @@ class thermeq3_object(object):
                 logmsg.update(self._status_msg())
                 logmsg.update(self.eq3.plain(), 'I')
                 # update JSONs
-                self.getControlValues()
+                self.get_control_values()
                 self.control()
                 # doDevLogging()
                 pass
@@ -621,12 +593,12 @@ class thermeq3_object(object):
                         logmsg.update("Deleting old daily key: " + str(k), 'D')
                         del self.var.ht[k]
                 # and close CSV file
-                self.exportCSV("close")
+                self.export_csv("close")
             # create the new key
             logmsg.update("Creating new daily key: " + str(nw))
             self.var.ht.update({nw: [0, time.time()]})
             # so its a new day, update other values
-            self.exportCSV("init")
+            self.export_csv("init")
             # day readings warning, take number of heated readings and divide by 2
             drw = self.var.heatReadings / 2
             logmsg.update("Day reading warnings value=" + str(drw))
@@ -682,3 +654,129 @@ class thermeq3_object(object):
         # just sleep value, always calculated as max[0] / slp[1]
         self.setup.intervals["slp"][0] = int(value[4] / self.setup.intervals["slp"][1])
         bridge.put("int", self.setup.intervals["max"][0])
+
+    def get_ip(self):
+        """
+        Get IP and set variables
+        :return: nothing
+        """
+        tmp = public_ip.get()
+        if tmp == 0xFF:
+            logmsg.update("Error getting IP address from hostname, please check resolv.conf or hosts or both!", 'E')
+        else:
+            self.setup.myip = tmp
+            if public_ip.is_private(tmp):
+                logstr = "Local"
+            else:
+                logstr = "Public"
+            logmsg.update(logstr + " IP address: " + self.setup.myip)
+
+    # some warnings
+    def send_warning(self, selector, dev_key, body_txt):
+        subject = ""
+        body = ""
+        d = self.eq3.devices[dev_key]
+        dn = d[2]
+        r = d[3]
+        rn = self.eq3.rooms[str(r)]
+        sil = self.silence(dev_key, selector == "window")
+        if sil == 1:
+            logmsg.update("Warning for device " + str(dev_key) + " is muted!")
+            return
+        mutestr = "http://" + self.setup.myip + ":" + str(self.setup.extport) + "/data/put/command/mute" + str(dev_key)
+        if selector == "window":
+            owd = int((datetime.datetime.now() - self.eq3.devices[dev_key][5]).total_seconds())
+            oww = int((datetime.datetime.now() - self.eq3.windows[dev_key][0]).total_seconds())
+            if sil == 0 and oww < self.setup.intervals["oww"][1]:
+                return
+            subject = "Open window in room " + str(rn[0]) + ". Warning from thermeq3 device"
+            body = """<h1>Device %(a0)s warning.</h1>
+            <p>Hello, I'm your thermostat and I have a warning for you.<br/>
+            Please take a care of window <b>%(a0)s</b> in room <b>%(a1)s</b>.
+            Window in this room is now opened more than <b>%(a2)d</b> mins.<br/>
+            Threshold for warning is <b>%(a3)d</b> mins.<br/>
+            </p><p>You can <a href="%(a4)s">mute this warning</a> for %(a5)s mins.""" % \
+                   {'a0': str(dn),
+                    'a1': str(rn[0]),
+                    'a2': int(owd / 60),
+                    'a3': int(self.setup.intervals["oww"][0] / 60),
+                    'a4': str(mutestr),
+                    'a5': int(self.setup.intervals["oww"][2] / 60)}
+        else:
+            if sil == 0 and not self._is("wrn"):
+                return
+            if selector == "battery":
+                subject = "Battery status for device " + str(dn) + ". Warning from thermeq3 device"
+                body = """<h1>Device %(a0)s battery status warning.</h1>
+                <p>Hello, I'm your thermostat and I have a warning for you.<br/>
+                Please take a care of device <b>%(a0)s</b> in room <b>%(a1)s</b>.
+                This device have low batteries, please replace batteries.<br/>
+                </p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins.""" % \
+                       {'a0': str(dn),
+                        'a1': str(rn[0]),
+                        'a2': str(mutestr),
+                        'a3': int(self.setup.intervals["wrn"][1] / 60)}
+            elif selector == "error":
+                subject = "Error report for device " + str(dn) + ". Warning from thermeq3 device"
+                body = """<h1>Device %(a0)s radio error.</h1>
+                <p>Hello, I'm your thermostat and I have a warning for you.<br/>
+                Please take a care of device <b>%(a0)s</b> in room <b>%(a1)s</b>.
+                This device reports error.<br/>
+                </p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins.""" % \
+                       {'a0': str(dn),
+                        'a1': str(rn[0]),
+                        'a2': str(mutestr),
+                        'a3': int(self.setup.intervals["wrn"][1] / 60)}
+            elif selector == "openmax":
+                subject = "Can't connect to MAX! Cube! Warning from thermeq3 device"
+                body = body_txt
+            elif selector == "upgrade":
+                subject = "thermeq3 device is going to be upgraded"
+                body = body_txt
+
+        m_id = self.setup.get_mail_data()
+        m_id.update({"s": subject})
+        msg = mailer.compose(m_id, body)
+
+        if mailer.send_email(m_id, msg.as_string()) == 0 and selector == "window":
+            self.eq3.windows[dev_key][0] = datetime.datetime.now()
+
+    def silence(self, key, is_win):
+        #
+        # d_w = key: OW_time(thisnow), isMuted(False), warning/error count(0)
+        #
+        # is there key in dict?
+        dt = datetime.datetime.now()
+        if key not in self.eq3.windows:
+            # there no key, so its new warning
+            logmsg.update("No key " + str(key) + " in windows. Key added.")
+            if is_win:
+                self.eq3.windows.update({key: [self.eq3.devices[key][5], False, 0]})
+            else:
+                self.eq3.windows.update({key: [dt, False, 0]})
+            return 2
+        else:
+            # yes, there it is, so check if we are silent, if so exit, otherwise reset mute
+            # threshold, send every X, muted for X
+            # "oww": [10*60, 30*60, 45*60]
+            # threshold, muted for X, time.time()
+            # "wrn": [60*60, 60*60, tm]
+            if self.eq3.windows[key][1]:
+                # yes, we must be silent
+                if is_win:
+                    tmp = self.eq3.windows[key][0] + datetime.timedelta(seconds=self.setup.intervals["oww"][2])
+                else:
+                    tmp = self.eq3.windows[key][0] + datetime.timedelta(seconds=self.setup.intervals["wrn"][1])
+                if tmp < dt:
+                    return 1
+                else:
+                    # silence is over
+                    self.eq3.windows[key][1] = False
+
+        # increment warning counter for this key
+        self.eq3.windows[key][2] += 1
+        if self.eq3.windows[key][2] > self.setup.abnormalCount:
+            logmsg.update(
+                "Abnormal #warnings for device [" + str(key) + "], name [" + str(self.eq3.devices[key][2]) + "]")
+            self.eq3.windows[key][2] = 0
+        return 0

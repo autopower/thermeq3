@@ -21,7 +21,7 @@ fi
 
 mkdir /root/thermeq3-install
 echo Downloading thermeq3 app
-wget --no-check-certificate --quiet --output-document /root/thermeq3-install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/scripts/thermeq3.zip
+wget --no-check-certificate --quiet --output-document /root/thermeq3-install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/thermeq3.zip
 if [ $? -ne 0 ]; then
 	echo "Error during downloading thermeq3 app: $?"
 	exit $?
@@ -32,9 +32,7 @@ unzip -q /root/thermeq3-install/thermeq3.zip -d /root/thermeq3
 if [ $? -ne 0 ]; then
 	echo "Error during unzipping thermeq3 app: $?"
 	exit $?
-fi
-rm -rf /root/thermeq3-install/*
-rm -rf /root/thermeq3-install 
+fi 
 
 echo "Installing libraries"
 opkg install python-openssl --verbosity=0

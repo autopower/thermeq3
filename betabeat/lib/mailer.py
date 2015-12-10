@@ -2,6 +2,7 @@ import smtplib
 import logmsg
 import os
 import traceback
+import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -11,7 +12,7 @@ from email.encoders import encode_base64
 def compose(m_id, m_body):
     """
     Compose message
-    :param m_id: list
+    :param m_id: dictionary
     :param m_body: string
     :return:
     """
@@ -63,7 +64,7 @@ def send_error_log(m_id, stderr_log, devname):
 def send_email(m_id, message):
     """
     sends email
-    :param m_id:
+    :param m_id: dictionary
     :param message:
     :return:
     """
@@ -95,3 +96,4 @@ def send_email(m_id, message):
             logmsg.update("Mail was sent.")
             return True
     return False
+

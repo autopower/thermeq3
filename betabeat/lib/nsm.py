@@ -33,7 +33,7 @@ if __name__ == '__main__':
     t3 = thermeq3.thermeq3_object()
     t3.prepare()
 
-    if mailer.send_error_log(t3.setup.getMailData(), t3.setup.stderr_log, t3.setup.devname):
+    if mailer.send_error_log(t3.setup.get_mail_data(), t3.setup.stderr_log, t3.setup.devname):
         os.remove(t3.setup.stderr_log)
 
     redir_err(True)
