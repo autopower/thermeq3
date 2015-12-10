@@ -54,7 +54,7 @@ def is_time():
         nt = datetime.datetime.strptime(k[1], "%H:%M").time()
         if time_in_range(nf, nt, this_now):
             ret_value = table.day.index(k)
-    logmsg.update("IsTime=" + str(ret_value))
+    # logmsg.update("IsTime=" + str(ret_value))
     return ret_value
 
 
@@ -62,7 +62,7 @@ def time_mode():
     global table
     # day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
     md = is_time()
-    logmsg.update("Actual index=" + str(table.act_mode_idx), 'D')
+    # logmsg.update("Actual index=" + str(table.act_mode_idx), 'D')
     if md != -1:
         if md != table.act_mode_idx:
             kv = table.day[md]

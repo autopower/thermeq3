@@ -216,6 +216,7 @@ class thermeq3_object(object):
                 raise
 
     def prepare(self):
+        self.eq3 = maxeq3.eq3data(self.setup.max_ip, 62910)
         self.setup.init_intervals()
         logmsg.start(self.setup.log_filename)
         # update status
@@ -230,7 +231,6 @@ class thermeq3_object(object):
 
         self.get_ip()
 
-        self.eq3 = maxeq3.eq3data(self.setup.max_ip, 62910)
         self.eq3.read_data(True)
         # literal processing
         self._literal_process()
@@ -466,11 +466,6 @@ class thermeq3_object(object):
                 logmsg.update("Auto update is disabled or failed.")
             else:
                 logmsg.update("thermeq3 updated.")
-                body = ("<h1>Device upgrade information.</h1>\n"
-                        "   <p>Hello, I'm your thermostat and I have a news for you.<br/>\n"
-                        "	Please take a note, that I found new version of thermeq3 app<br/>\n"
-                        "   and I'll be upgraded in few seconds.</br>\n"
-                        "	Resistance is futile :).<br/>")
                 # sendWarning("upgrade", temp_key, body)
         # do update variables according schedule
         if self._is("var"):
@@ -518,7 +513,7 @@ class thermeq3_object(object):
                 # doUpdate()
                 pass
             if self.eq3.read_data(False):
-                logmsg.update(self._status_msg())
+                logmsg.update(self._status_msg() + " Every" + str(self.setup.intervals["max"][0]) + " sec", 'I')
                 logmsg.update(self.eq3.plain(), 'I')
                 # update JSONs
                 self.get_control_values()

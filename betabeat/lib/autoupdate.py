@@ -53,9 +53,9 @@ def download_file(home_dir, filename):
 
 def checkUpdate(version, beta):
     if beta:
-        github = "https://raw.github.com/autopower/thermeq3/master/install/beta"
+        github = "https://github.com/autopower/thermeq3/raw/master/install/beta/"
     else:
-        github = "https://raw.github.com/autopower/thermeq3/master/install/"
+        github = "https://github.com/autopower/thermeq3/raw/master/install/"
     home_dir = "/root/thermeq3"
     errstr = "Unable to get latest version info - "
     try:

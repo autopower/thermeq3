@@ -40,8 +40,7 @@ if __name__ == '__main__':
 
     while 1:
         t3.intervals()
-        # time.sleep(t3.setup.intervals["slp"][0])
-        break
+        time.sleep(t3.setup.intervals["slp"][0])
 
     print bridge.export()
 
