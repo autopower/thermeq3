@@ -13,13 +13,25 @@ thermeq3 features:
 * daily summary
 * simple html status on user selectable port (via uhttpd)
 
+##Installation instructions
+To install thermeq3 please type this command, while logged in:
+```
+wget --no-check-certificate --quiet --output-document /root/install.sh https://github.com/autopower/thermeq3/raw/master/scripts/install.sh|chmod +x /root/install.sh
+```
+And after that (you can change thermeq3 name to your own):
+```
+cd /root
+./install.sh thermeq3
+```
+
 ##Check betabeat directory
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
 ###2015-Dec-10
-* new librariezed version in betabeat
+* new librarysed version in betabeat
 * new install script for lib version in scripts
+* some code overhaul :)
 
 ###2015-Dec-04
 * betabeat: new RPi version 
