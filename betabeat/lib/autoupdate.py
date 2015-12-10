@@ -32,7 +32,7 @@ def download_file(home_dir, filename):
     except httplib.HTTPException:
         errstr += "HTTPException"
     except Exception, e:
-        errstr += "Exception = " + str(traceback.format_exc()) + ", " + str(e.reason)
+        errstr += "Exception = " + str(traceback.format_exc())
     else:
         try:
             f = file(home_dir + filename, "wb")
@@ -43,8 +43,8 @@ def download_file(home_dir, filename):
             f.write(response)
             f.close()
             errstr = ""
+            request.close()
     finally:
-        request.close()
         if not errstr == "":
             logmsg.update(errstr)
             return False
@@ -56,8 +56,10 @@ def checkUpdate(version, beta):
         github = "https://github.com/autopower/thermeq3/raw/master/install/beta/"
     else:
         github = "https://github.com/autopower/thermeq3/raw/master/install/"
+
     home_dir = "/root/thermeq3"
     errstr = "Unable to get latest version info - "
+
     try:
         request = urllib2.urlopen(github + "autoupdate.data")
         response = request.read().rstrip("\r\n")
@@ -84,7 +86,7 @@ def checkUpdate(version, beta):
             logmsg.update("Available file: " + str(t[1]) + ", V" + str(tmp_ver) + " with hash " + str(t[3]))
             if new_hash != t[3] and version <= tmp_ver:
                 logmsg.update("Downloading new version V" + str(tmp_ver))
-                down_result = download_file(home_dir, t[1])
+                down_result = download_file(home_dir, github + t[1])
                 if down_result:
                     logmsg.update("V" + str(tmp_ver) + " downloaded. Hash is " + str(t[3]))
                     return [2, t[1]]
