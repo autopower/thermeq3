@@ -18,7 +18,7 @@ Plase check sketch (in fritzing) and setup below.
 First you must upload sketch from yun-sketch to the yun. Then login to yun via ssh.
 To install thermeq3 please type this command, while logged in:
 ```
-wget --no-check-certificate --quiet --output-document /root/install.sh https://github.com/autopower/thermeq3/raw/master/scripts/install/install.sh|chmod +x /root/install.sh
+wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/install.sh|chmod +x /root/install.sh
 ```
 And after that (you can change thermeq3 name to your own):
 ```
