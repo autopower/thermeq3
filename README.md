@@ -1,8 +1,8 @@
 #thermeq3
-Boiler actor device for ELV/EQ-3 MAX! cube. And this is quick&dirty readme.
+Boiler actor device for ELV/EQ-3 MAX! cube.
 thermeq3 features:
 * switching DHW/Boiler according to valve position, you can set how many valves must be opened for how many %, or sum of the all valves in house to switch on DHW/Boiler
-* profiles to choose right control values for any daypart
+* profiles to choose right control values based on time or external temperature
 * senses open windows and start heating after safe time to eliminate "panic" heating after forced ventilation
 * any event on MAX! cube tracked down to log file
 * notifies owner about opened windows after defined period, this period is automatically set according to external temperature
@@ -14,9 +14,11 @@ thermeq3 features:
 * simple html status on user selectable port (via uhttpd)
 
 ##Installation instructions
+Plase check sketch (in fritzing) and setup below.
+First you must upload sketch from yun-sketch to the yun. Then login to yun via ssh.
 To install thermeq3 please type this command, while logged in:
 ```
-wget --no-check-certificate --quiet --output-document /root/install.sh https://github.com/autopower/thermeq3/raw/master/scripts/install.sh|chmod +x /root/install.sh
+wget --no-check-certificate --quiet --output-document /root/install.sh https://github.com/autopower/thermeq3/raw/master/scripts/install/install.sh|chmod +x /root/install.sh
 ```
 And after that (you can change thermeq3 name to your own):
 ```
@@ -28,6 +30,9 @@ cd /root
 There's always new code, which seems to work on my development thermeq :)
 
 ##What is new?
+###2015-Dec-11
+* some cleanup on github
+
 ###2015-Dec-10
 * new librarysed version in betabeat
 * new install script for lib version in scripts
@@ -108,7 +113,7 @@ There's always new code, which seems to work on my development thermeq :)
 * Implemented support for day table, just enable beta functionality (thermeq3.ip/data/put/beta/yes) and edit table in nsm.py. You can control boiler in different way during day.
 
 ##Setup
-You'll need:
+###You'll need:
 * Arduino Yún
 * 5V relay
 * two or three (or one RGB LED) LED diodes and min 220ohm resistors
@@ -118,7 +123,7 @@ You'll need:
 * credentials for mail server with TLS (or modify code)
 * storage space on microSD or USB,
 
-Wiring:
+###Wiring:
 * 220ohm resitor to pin13, then to code_run LED (in my setup green LED, lit when arduino script is reading messages from python part, this is sign of activity)
 * 220ohm resitor to pin8, then to error LED (in my setup red LED, lit when any error)
 * 220ohm resitor to pin9, then to status LED (in my setup blue LED, lit when heating is on)
