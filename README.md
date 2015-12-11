@@ -25,6 +25,7 @@ And after that (you can change thermeq3 name to your own):
 cd /root
 ./install.sh thermeq3
 ```
+**Don't forget to edit config.py file!**
 
 ##Check betabeat directory
 There's always new code, which seems to work on my development thermeq :)
