@@ -1,5 +1,5 @@
 #thermeq3
-Boiler actor device for ELV/EQ-3 MAX! cube.
+Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.eq-3.de/max-heizungssteuerung-produktdetail-kopie/items/bc-lgw-o-tw.html).
 thermeq3 features:
 * switching DHW/Boiler according to valve position, you can set how many valves must be opened for how many %, or sum of the all valves in house to switch on DHW/Boiler
 * profiles to choose right control values based on time or external temperature
