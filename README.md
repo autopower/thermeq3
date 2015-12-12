@@ -25,7 +25,7 @@ And after that (you can change thermeq3 name to your own):
 cd /root
 ./install.sh thermeq3
 ```
-**Don't forget to edit config.py file!**
+**Don't forget to edit config.py file!** Scroll down below for "In config.py file" chapter.
 
 ##Check betabeat directory
 There's always new code, which seems to work on my development thermeq :)
@@ -153,8 +153,9 @@ On start LEDs blink 4 times, then remains lit until arduino yun bridge component
 Then blinks 4 times again.
 
 ##How to change values?
-Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'interval' setting. E.g. if your browse to 
-`http://arduino.ip/data/put/valve_pos/<your value>` you can change valve_pos value (e.g. how many % must be valve opened).
+If you want change some values when nsm.py is running, just browse to `http://arduino.ip/data/put/interval/<your value>` 
+to change 'interval' setting. E.g. if your browse to `http://arduino.ip/data/put/valve_pos/<your value>` 
+you can change valve_pos value (e.g. how many % must be valve opened).
 
 ##What I can change?
 ###In Python code
@@ -163,7 +164,6 @@ Just browse to `http://arduino.ip/data/put/interval/<your value>` to change 'int
 * `status` = status of device (heating, idle, starting, error)
 * `totalerrs` = total errors from start
 * `valve_pos` = see above
-* `per_switch` = see above
 * `total_switch` = sum of valve positions, no matter how many valves are in house
 * `interval` = see above
 * `heattime` = total heat time from start, in seconds
@@ -222,5 +222,6 @@ Python code produce 3 files:
 * `/mnt/sd<x1>/<device_name>.bridge` saved bridge client values
 * `/root/nsm.error` low level errors, which cant be written do .log file (e.g. due to lack of mounted storage media)
 This file is also mailed to recipient on start. Then is truncated to zero size.
+Please note, that <x1> stands for <a1> or <b1>, so full path will be `/mnt/sda1` or `/mnt/sdb1`.
 
 ###Thats all folks. Stay tuned :)
