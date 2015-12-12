@@ -221,7 +221,8 @@ Python code produce 3 files:
 * `/mnt/sd<x1>/<device_name>_error.log`, python stderr redirected, use in case of crash, or send me this file.
 * `/mnt/sd<x1>/<device_name>.bridge` saved bridge client values
 * `/root/nsm.error` low level errors, which cant be written do .log file (e.g. due to lack of mounted storage media)
+
 This file is also mailed to recipient on start. Then is truncated to zero size.
-Please note, that <x1> stands for <a1> or <b1>, so full path will be `/mnt/sda1` or `/mnt/sdb1`.
+Please note, that x1 stands for a1 or b1, so full path will be `/mnt/sda1` or `/mnt/sdb1`.
 
 ###Thats all folks. Stay tuned :)
