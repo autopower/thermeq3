@@ -28,7 +28,7 @@ from math import exp
 
 class setup(object):
 	def __init__(self):
-		self.version = 145
+		self.version = 146
 		self.appStartTime = time.time()
 		# window ignore time, in minutes
 		self.window_ignore_time = 15
@@ -358,7 +358,7 @@ def tryRead(cw, default, save):
 
 	tmp_str = var.value.get(lcw)
 
-	if tmp_str == "None" or tmp_str == "":
+	if tmp_str == "None" or tmp_str == "" or tmp_str is None:
 		tmp = default
 	else:
 		if isNum:
