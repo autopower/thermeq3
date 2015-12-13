@@ -1,5 +1,6 @@
 #thermeq3
 Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.eq-3.de/max-heizungssteuerung-produktdetail-kopie/items/bc-lgw-o-tw.html).
+
 thermeq3 features:
 * switching DHW/Boiler according to valve position, you can set how many valves must be opened for how many %, or sum of the all valves in house to switch on DHW/Boiler
 * profiles to choose right control values based on time or external temperature
@@ -215,14 +216,13 @@ you can change valve_pos value (e.g. how many % must be valve opened).
 * `R` restart app, eg. after upgrade
 
 ##How to debug?
-Python code produce 3 files:
+Python code produce these files:
 * `/mnt/sd<x1>/<device_name>.csv`, simple comma separated value file with valve positions and temperature readings
 * `/mnt/sd<x1>/<device_name>.log`, log file, really huge on `log_debug`
 * `/mnt/sd<x1>/<device_name>_error.log`, python stderr redirected, use in case of crash, or send me this file.
 * `/mnt/sd<x1>/<device_name>.bridge` saved bridge client values
-* `/root/nsm.error` low level errors, which cant be written do .log file (e.g. due to lack of mounted storage media)
+* `/root/nsm.error` low level errors, which cant be written do .log file (e.g. due to lack of mounted storage media). This file is also mailed to recipient on start. Then is truncated to zero size.
 
-This file is also mailed to recipient on start. Then is truncated to zero size.
 Please note, that x1 stands for a1 or b1, so full path will be `/mnt/sda1` or `/mnt/sdb1`.
 
 ###Thats all folks. Stay tuned :)
