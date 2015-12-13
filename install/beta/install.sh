@@ -21,7 +21,7 @@ fi
 
 mkdir /root/thermeq3-install
 echo Downloading thermeq3 app
-wget --no-check-certificate --quiet --output-document /root/thermeq3-install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/thermeq3.zip
+wget --no-check-certificate --quiet --output-document /root/thermeq3-install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/beta/thermeq3.zip
 if [ $? -ne 0 ]; then
 	echo "Error during downloading thermeq3 app: $?"
 	exit $?
