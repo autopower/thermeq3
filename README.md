@@ -28,10 +28,14 @@ cd /root
 ```
 **Don't forget to edit config.py file!** Scroll down below for "In config.py file" chapter.
 
-##Check betabeat directory
+##Check install/beta directory
 There's always new code, which seems to work on my development thermeq :)
 
-##What is new?
+##What's new?
+###2015-Dec-13
+* directory structure reorganised
+* new install script for all version (old one in one file (nsm.py), new one with libraries)
+
 ###2015-Dec-11
 * some cleanup on github
 
