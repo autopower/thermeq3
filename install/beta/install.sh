@@ -79,6 +79,8 @@ fi
 echo "Creating directories and cgi scripts" 
 mkdir -p $DIR/www
 cd $DIR/www
+mkdir -p $DIR/csv
+cd $DIR/www
 mkdir -p cgi-bin
 cd cgi-bin
 

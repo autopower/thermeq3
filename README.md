@@ -32,6 +32,9 @@ cd /root
 There's always new code, which seems to work on my development thermeq :)
 
 ##What's new?
+###2015-Dec-18
+* lib version updated
+
 ###2015-Dec-13
 * directory structure reorganised
 * new install script for all version (old one in one file (nsm.py), new one with libraries)
