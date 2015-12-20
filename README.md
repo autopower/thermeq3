@@ -224,10 +224,10 @@ you can change valve_pos value (e.g. how many % must be valve opened).
 
 ##How to debug?
 Python code produce these files:
-* `/mnt/sd<x1>/<device_name>.csv`, simple comma separated value file with valve positions and temperature readings
+* `/mnt/sd<x1>/csv/<device_name>.csv`, simple comma separated value file with valve positions and temperature readings
 * `/mnt/sd<x1>/<device_name>.log`, log file, really huge on `log_debug`
 * `/mnt/sd<x1>/<device_name>_error.log`, python stderr redirected, use in case of crash, or send me this file.
-* `/mnt/sd<x1>/<device_name>.bridge` saved bridge client values
+* `/root/<device_name>.bridge` saved bridge client values
 * `/root/nsm.error` low level errors, which cant be written do .log file (e.g. due to lack of mounted storage media). This file is also mailed to recipient on start. Then is truncated to zero size.
 
 Please note, that x1 stands for a1 or b1, so full path will be `/mnt/sda1` or `/mnt/sdb1`.

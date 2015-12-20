@@ -1,0 +1,53 @@
+#Diagnostics
+If something goes wrong, please do some diagnostics and paste results to the issues.
+
+##Network issues
+From shell on yun please check if you have connection to MAX!Cube:
+* ping your MAX!Cube: `ping <maxcube_ip_address> -c 4`
+* telnet to MAX!Cube: `telnet <maxcube_ip_address> 62910`, 62910 is default port 
+
+##Version
+Please check log file for version you are using. Find line like this:
+```
+thermeq3 - INFO - --> V139 started with PID=1851 <--
+```
+It tells you, that you are using version 139.
+Latest version is 147.
+If you are using beta, latest is 210.
+You can always check latest version for:
+* production, in [autoupdate file](https://github.com/autopower/thermeq3/blob/master/install/autoupdate.data)
+* beta, in [autoupdate file](https://github.com/autopower/thermeq3/blob/master/install/beta/autoupdate.data)
+
+First 3 chars denote version. 
+
+##config.py file
+Did you edit `config.py` file correctly?
+
+##Log file, error log
+Please check your error log (located in `/mnt/sda1` or `/mnt/sdb1` or `/root` directory, depends on version and file).
+If you see information like this:
+```
+thermeq3 - ERROR - Traceback: Traceback (most recent call last):
+  File "/root/nsm.py", line 796, in openMAX
+    var.client_socket.connect((stp.max_ip, 62910))
+  File "/usr/lib/python2.7/socket.py", line 224, in meth
+    return getattr(self._sock,name)(*args)
+error: [Errno 148] No route to host
+```
+Probably you have problem with MAX!Cube connection.
+
+If you see error like this:
+```
+thermeq3 - ERROR - Traceback: Traceback (most recent call last):
+  File "/root/nsm.py", line 382, in sendEmail
+    server = smtplib.SMTP(stp.mailserver, stp.mailport)
+  File "/usr/lib/python2.7/smtplib.py", line 249, in __init__
+    (code, msg) = self.connect(host, port)
+  File "/usr/lib/python2.7/smtplib.py", line 309, in connect
+    self.sock = self._get_socket(host, port, self.timeout)
+  File "/usr/lib/python2.7/smtplib.py", line 284, in _get_socket
+    return socket.create_connection((port, host), timeout)
+  File "/usr/lib/python2.7/socket.py", line 553, in create_connection
+    for res in getaddrinfo(host, port, 0, SOCK_STREAM):
+```
+Probably you din't edit config.py file with correct mail server information/credentials.
