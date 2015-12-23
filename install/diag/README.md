@@ -63,3 +63,6 @@ thermeq3 - ERROR - Traceback: Traceback (most recent call last):
     for res in getaddrinfo(host, port, 0, SOCK_STREAM):
 ```
 Probably you din't edit config.py file with correct mail server information/credentials.
+
+##Any problem or question
+Keep asking! If you have any problem or issue, just ask on [facebook](https://www.facebook.com/autopow) or via [email](mailto:autopowerdevice@gmail.com).
