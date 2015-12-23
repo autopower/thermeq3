@@ -1,10 +1,22 @@
 #Diagnostics
 If something goes wrong, please do some diagnostics and paste results to the issues.
+Or run:
+```
+wget --no-check-certificate --quiet --output-document /root/diag.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/diag/diag.sh|chmod +x /root/diag.sh
+```
+If everything goes ok, run `./diag.sh <max!cube ip address>`, e.g. `./diag.sh 192.168.0.222`. And send me `/root/diag.txt`.
+
+
+##Yun
+Always [upgrade to latest yun firmware](https://www.arduino.cc/en/Tutorial/YunSysupgrade).
+
+Check storage mount points `cd /mnt|ls -al`, is there any storage mounted (USB or SD card?). Is your card/USB key readable in your PC/Mac? Is FAT32/exfat formatted? 
 
 ##Network issues
 From shell on yun please check if you have connection to MAX!Cube:
 * ping your MAX!Cube: `ping <maxcube_ip_address> -c 4`
 * telnet to MAX!Cube: `telnet <maxcube_ip_address> 62910`, 62910 is default port 
+* save results from `ifconfig > /root/ifconfig.txt`
 
 ##Version
 Please check log file for version you are using. Find line like this:
