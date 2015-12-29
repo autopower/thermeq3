@@ -6,7 +6,7 @@ if [ $# -lt 1 ]; then
 fi
 
 if [ -f /root/diag.txt ]; then
-	echo "Previous diag.txt exists!"
+	echo "Previous diag.txt exists! Appending to file."
 fi
 echo "--- Diag script ---------" >> /root/diag.txt
 date >> /root/diag.txt
@@ -20,4 +20,8 @@ echo "--- Ping ---------" >> /root/diag.txt
 ping $1 -c 4 >> /root/diag.txt
 echo "--- Telnet to MAX!Cube ---------" >> /root/diag.txt
 sleep 3 | telnet $1 62910 >> /root/diag.txt
+read -p "Include config.py file? WARNING: config.py file may contains user credentials to email service! [y/n]" yn
+case $yn in
+	[Yy]* ) echo "--- config.py ---------" >> /root/diag.txt; cat /root/config.py >> /root/diag.txt
+esac
 echo "Please post diag.txt to autopowerdevice@gmail.com"
