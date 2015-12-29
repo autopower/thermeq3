@@ -28,9 +28,10 @@ And after that (you can change thermeq3 name to your own):
 cd /root
 ./install.sh thermeq3
 ```
-**Don't forget to edit config.py file!** Scroll down below for "In config.py file" chapter.
+* **Don't forget to edit config.py file!** Scroll down below for "In config.py file" chapter.
+* if anything fail use [simple diag](https://github.com/autopower/thermeq3/tree/master/install/diag)
 
-##Check install/beta directory
+##Check `install/beta` directory
 There's always new code, which seems to work on my development thermeq :)
 
 ##What's new?
