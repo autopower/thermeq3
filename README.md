@@ -15,9 +15,11 @@ thermeq3 features:
 * simple html status on user selectable port (via uhttpd)
 
 ##Installation instructions
-Plase check sketch (in fritzing) and setup below.
-First you must upload sketch from yun-sketch to the yun. Then login to yun via ssh.
-To install thermeq3 please type this command, while logged in:
+* check sketch (in fritzing) and setup below
+* check if latest [python bridge library](https://github.com/arduino/YunBridge/tree/master/bridge) is installed 
+* upload sketch from yun-sketch to the yun
+* login to yun via ssh
+* to install thermeq3 please type this command, while logged in:
 ```
 wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/install.sh|chmod +x /root/install.sh
 ```
