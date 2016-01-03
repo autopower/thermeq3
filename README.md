@@ -211,7 +211,7 @@ you can change valve_pos value (e.g. how many % must be valve opened).
 * `#define LOOP_LED 13` activity/loop LED pin
 * `#define BLINK_INTERVAL 150` blink interval in miliseconds
 * `#define WAIT_UPDATE_SYNC 10000` how many millis wait to rerun upgraded python code
-* `#define IWANNABESAFE` in case of any trouble shutdown relay, undef for stay in last selected mode
+* `#define IWANNABESAFE` in case of any trouble, shutdown relay, undef for stay in last selected mode
 * `unsigned long interval = 10*1000;` loop interval in seconds, arduino'll check for messages every 10 seconds, change 10 to anything you want
 * `unsigned long app_interval = 10*60000;` check for running app interval in minutes, change 10 to anything you want
 
