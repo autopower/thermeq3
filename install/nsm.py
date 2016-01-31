@@ -29,7 +29,7 @@ from math import exp
 
 class setup(object):
     def __init__(self):
-        self.version = 147
+        self.version = 148
         self.appStartTime = time.time()
         # window ignore time, in minutes
         self.window_ignore_time = 15
@@ -977,35 +977,39 @@ def maxCmd_L(line):
     es = base64.b64decode(line[0])
     es_pos = 0
     while (es_pos < len(es)):
-        dev_len = ord(es[es_pos]) + 1
-        valve_adr = hexify(es[es_pos + 1:es_pos + 4])
+        dev_len = ord(es[es_pos])
+        valve_adr = hexify(es[es_pos + 0x01:es_pos + 0x04])
         valve_status = ord(es[es_pos + 0x05])
         valve_info = ord(es[es_pos + 0x06])
         valve_temp = 0xFF
         valve_curtemp = 0xFF
+        lsb = ord(es[es_pos + 0x08]) & 0b01111111
+        msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
         # WallMountedThermostat (dev_type 3)
-        if dev_len == 13:
-            if valve_info & 3 != 2:
-                # get set temp
-                valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2
+        if dev_len == 12:
+            if valve_info & 0b00010000 != 0b00010000:
+                # get set temp 
+                valve_temp = float(lsb) / 2
                 # get measured temp
-                valve_curtemp = float(int(hexify(es[es_pos + 0x0C]), 16)) / 10
+                lsb = int(es[es_pos + 0x0C])
+                valve_curtemp = float(msb + lsb) / 10
                 # extract room name from this WallMountedThermostat
                 wall_room_id = str(stp.devices[valve_adr][3])
                 # and update its value to current temperature as read from WallMountedthermostat
                 stp.rooms[wall_room_id][3] = valve_curtemp
-            # HeatingThermostat (dev_type 1 or 2)
-        elif dev_len == 12:
+        # HeatingThermostat (dev_type 1 or 2)
+        elif dev_len == 11:
             valve_pos = ord(es[es_pos + 0x07])
-            if valve_info & 3 != 2:
+            if valve_info & 0b00010000 != 0b00010000:
                 # get set temp
-                valve_temp = float(int(hexify(es[es_pos + 0x08]), 16)) / 2
+                valve_temp = float(lsb) / 2
                 # extract room name from this HeatingThermostat
                 valve_room_id = str(stp.devices[valve_adr][3])
-                # if room temp not set i.e. still returning default 99.99
+                # if room temp not set i.e. still returning default 99.99 it means there is no wall thermostat
                 if stp.rooms[valve_room_id][3] == 99.99:
                     # get room temp from this valve
-                    valve_curtemp = float(ord(es[es_pos + 0x0A])) / 10
+                    lsb = ord(es[es_pos + 0x09])
+                    valve_curtemp = float(msb + lsb) / 10 
                     # and update room temp too
                     stp.rooms[valve_room_id][3] = valve_curtemp
                 else:
@@ -1013,7 +1017,7 @@ def maxCmd_L(line):
                     valve_curtemp = stp.rooms[valve_room_id][3]
             stp.valves.update({valve_adr: [valve_pos, valve_temp, valve_curtemp]})
         # WindowContact
-        elif dev_len == 7:
+        elif dev_len == 6:
             tmp_open = ord(es[es_pos + 0x06]) & 2
             if tmp_open != stp.devices[valve_adr][4]:
                 tmp_txt = "Window contact " + str(stp.devices[valve_adr][2]) + " is now "
@@ -1035,7 +1039,7 @@ def maxCmd_L(line):
         # save status and info
         stp.devices[valve_adr][6] = valve_status
         stp.devices[valve_adr][7] = valve_info
-        es_pos += dev_len
+        es_pos += (dev_len + 1)
 
 
 def readMAX(refresh):
