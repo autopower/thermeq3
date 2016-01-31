@@ -235,7 +235,7 @@ def llError(err_string):
         print "Error writing to error file!"
         print err_string
     else:
-        err_file.write(time.strftime("%H:%M:%S", time.localtime()) + "\t" + err_string + "\r\n")
+        err_file.write(time.strftime("%H:%M:%S", time.localtime()) + "\t" + err_string + "\n")
         err_file.close()
 
 
@@ -477,7 +477,7 @@ def saveBridge():
                 tmp = ""
             if tmp == "None" or tmp is None:
                 tmp = str(v[1])
-            f.write(v[0] + "=" + str(tmp) + "\r\n")
+            f.write(v[0] + "=" + str(tmp) + "\n")
         f.close()
         var.logger.debug("Bridge file saved.")
 
@@ -515,7 +515,7 @@ def loadBridge():
     if os.path.exists(stp.bridgefile):
         with open(stp.bridgefile, "r") as f:
             for line in f:
-                t = (line.rstrip("\r\n")).split('=')
+                t = (line.rstrip("\n")).split('=')
                 localCW = t[0]
                 setValue = t[1]
                 if localCW in cw:
@@ -859,7 +859,7 @@ def exportCSV(onoff):
                 # and comment line below
                 name = stp.devices[k][2]
                 var.csv.write(name + "," + name + ",")
-            var.csv.write("\r\n")
+            var.csv.write("\n")
     elif onoff == "close":
         try:
             var.csv.close()
@@ -1140,7 +1140,7 @@ def writeStrings():
         # update rooms string
         room_id = str(getName(k)[0])
         roomStr = rooms[room_id][0]
-        roomStr += "\r\n\t[" + str(k) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(
+        roomStr += "\n\t[" + str(k) + "] " + '{:<20}'.format(str(stp.devices[k][2])) + "@" + '{:>3}'.format(
             str(v[0])) + "% @ " + \
                    '{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
         cv = countValve(k)
@@ -1150,16 +1150,19 @@ def writeStrings():
             roomStr += "(-)"
 
         rooms[room_id][0] = roomStr
+        # comment line below to use current temp 
         var.csv.write(str(v[0]) + "," + str(v[1]) + ",")
+        # uncomment line below to use current temp
+        # var.csv.write(str(v[0]) + "," + str(v[2]) + ",")
 
         current[room_id].update({str(k): [str(stp.devices[k][2]), str(v[0]),
                                           str(v[1]), str(v[2]), str(1 if cv else 0)]})
 
-    var.csv.write("\r\n")
+    var.csv.write("\n")
 
     logstr = "Actual positions:"
     for k, v in rooms.iteritems():
-        logstr += "\r\nRoom: " + str(k)
+        logstr += "\nRoom: " + str(k)
         if v[1]:
             logstr += ", window opened"
         logstr += str(v[0])
@@ -1172,10 +1175,10 @@ def writeStrings():
     # and bridge variable
     var.value.put(rCW("cur"), str(current))
     # nice text web
-    logstr.replace("\r\n", "<br/>")
+    logstr.replace("\n", "<br/>")
     logstr.replace("\t", "&#9;")
-    secWebFile("nice", "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" +
-               logstr + "</pre></p>\r\n</body>\r\n</html>")
+    secWebFile("nice", "<html>\n<title>\nStatus</title>\n<body>\n<p><pre>" +
+               logstr + "</pre></p>\n</body>\n</html>")
 
 
 def readMAXData(refresh):
@@ -1678,7 +1681,7 @@ if __name__ == '__main__':
 
     result = getPublicIP()
     if result == 255:
-        err_str = "Error getting IP address from hostname, please check resolv.conf or hosts or both!\r\n"
+        err_str = "Error getting IP address from hostname, please check resolv.conf or hosts or both!\n"
         llError(err_str)
         var.value.put(rCW("msg"), "Q")
         exit()
