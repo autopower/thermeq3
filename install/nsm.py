@@ -1,4 +1,4 @@
-7#!/usr/bin/env python
+#!/usr/bin/env python
 import sys
 import socket
 import base64
@@ -29,7 +29,7 @@ from math import exp
 
 class setup(object):
     def __init__(self):
-        self.version = 148
+        self.version = 149
         self.appStartTime = time.time()
         # window ignore time, in minutes
         self.window_ignore_time = 15
