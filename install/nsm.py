@@ -29,7 +29,7 @@ from math import exp
 
 class setup(object):
     def __init__(self):
-        self.version = 149
+        self.version = 151
         self.appStartTime = time.time()
         # window ignore time, in minutes
         self.window_ignore_time = 15
@@ -438,30 +438,31 @@ def checkVar():
 
 
 def sendEmail(sendTxt):
-    try:
-        server = smtplib.SMTP(stp.mailserver, stp.mailport)
-    except Exception, error:
-        var.logger.error(
-            "Error connecting to mail server " + str(stp.mailserver) + ":" + str(stp.mailport) + ". Error code: " + str(
-                error))
-        var.logger.error("Traceback: " + str(traceback.format_exc()))
-    else:
-        try:
-            server.ehlo()
-            if server.has_extn('STARTTLS'):
-                server.starttls()
-                server.ehlo()
-            server.login(stp.fromaddr, stp.frompwd)
-            server.sendmail(stp.fromaddr, stp.toaddr, sendTxt)
-        except smtplib.SMTPAuthenticationError:
-            var.logger.error("Authentification error during sending email.")
-        except Exception, error:
-            var.logger.error("Error during sending email. Error code: " + str(error))
-        else:
-            server.quit()
-            var.logger.info("Mail was sent.")
-            return 0
-    return 1
+	if stp.mailserver.find("foo.local") == 0: 
+	    try:
+	        server = smtplib.SMTP(stp.mailserver, stp.mailport)
+	    except Exception, error:
+	        var.logger.error("Error connecting to mail server " + str(stp.mailserver) + ":" + str(stp.mailport) + ". Error code: " + str(error))
+	        var.logger.error("Traceback: " + str(traceback.format_exc()))
+	    else:
+	        try:
+	            server.ehlo()
+	            if server.has_extn('STARTTLS'):
+	                server.starttls()
+	                server.ehlo()
+	            server.login(stp.fromaddr, stp.frompwd)
+	            server.sendmail(stp.fromaddr, stp.toaddr, sendTxt)
+	        except smtplib.SMTPAuthenticationError:
+	            var.logger.error("Authentification error during sending email.")
+	        except Exception, error:
+	            var.logger.error("Error during sending email. Error code: " + str(error))
+	        else:
+	            server.quit()
+	            var.logger.info("Mail was sent.")
+	            return 
+	else:
+		var.logger.error("Please edit mail server name!")
+	return 1
 
 
 def saveBridge():
@@ -970,7 +971,7 @@ def maxCmd_C(line):
     if ord(es[0x04]) == 1:
         dev_adr = hexify(es[0x01:0x04])
         stp.devices[dev_adr][8] = es[0x16]
-
+        
 
 def maxCmd_L(line):
     """ process L response """
@@ -991,7 +992,8 @@ def maxCmd_L(line):
                 # get set temp 
                 valve_temp = float(lsb) / 2
                 # get measured temp
-                lsb = int(es[es_pos + 0x0C])
+                lsb = ord(es[es_pos + 0x0C])
+                var.logger.info("###" + str(msb) + "," + str(lsb))
                 valve_curtemp = float(msb + lsb) / 10
                 # extract room name from this WallMountedThermostat
                 wall_room_id = str(stp.devices[valve_adr][3])
@@ -1012,6 +1014,7 @@ def maxCmd_L(line):
                     valve_curtemp = float(msb + lsb) / 10 
                     # and update room temp too
                     stp.rooms[valve_room_id][3] = valve_curtemp
+                    var.logger.info(">>>" + str(msb) + "," + str(lsb))
                 else:
                     # read room temp which was earlier set by wall thermostat
                     valve_curtemp = stp.rooms[valve_room_id][3]
