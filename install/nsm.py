@@ -29,7 +29,7 @@ from math import exp
 
 class setup(object):
     def __init__(self):
-        self.version = 151
+        self.version = 152
         self.appStartTime = time.time()
         # window ignore time, in minutes
         self.window_ignore_time = 15
@@ -973,6 +973,10 @@ def maxCmd_C(line):
         stp.devices[dev_adr][8] = es[0x16]
         
 
+def is_valid(valve_info):
+	return bool((valve_info & 0b00010000) >> 4)
+	
+
 def maxCmd_L(line):
     """ process L response """
     es = base64.b64decode(line[0])
@@ -988,12 +992,11 @@ def maxCmd_L(line):
         msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
         # WallMountedThermostat (dev_type 3)
         if dev_len == 12:
-            if valve_info & 0b00010000 != 0b00010000:
+            if is_valid(valve_info):
                 # get set temp 
                 valve_temp = float(lsb) / 2
                 # get measured temp
                 lsb = ord(es[es_pos + 0x0C])
-                var.logger.info("###" + str(msb) + "," + str(lsb))
                 valve_curtemp = float(msb + lsb) / 10
                 # extract room name from this WallMountedThermostat
                 wall_room_id = str(stp.devices[valve_adr][3])
@@ -1002,7 +1005,7 @@ def maxCmd_L(line):
         # HeatingThermostat (dev_type 1 or 2)
         elif dev_len == 11:
             valve_pos = ord(es[es_pos + 0x07])
-            if valve_info & 0b00010000 != 0b00010000:
+            if is_valid(valve_info):
                 # get set temp
                 valve_temp = float(lsb) / 2
                 # extract room name from this HeatingThermostat
@@ -1013,8 +1016,7 @@ def maxCmd_L(line):
                     lsb = ord(es[es_pos + 0x09])
                     valve_curtemp = float(msb + lsb) / 10 
                     # and update room temp too
-                    stp.rooms[valve_room_id][3] = valve_curtemp
-                    var.logger.info(">>>" + str(msb) + "," + str(lsb))
+                    stp.rooms[valve_room_id][3] = valve_curtemp     
                 else:
                     # read room temp which was earlier set by wall thermostat
                     valve_curtemp = stp.rooms[valve_room_id][3]
