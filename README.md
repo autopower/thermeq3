@@ -32,6 +32,7 @@ cd /root
 * if anything fail use [simple diag](https://github.com/autopower/thermeq3/tree/master/install/diag)
 * **check config.py for mail server address and credentials!** yeah, again config.py its really important file :)
 * **generate Open Weather Map API key** [here](http://openweathermap.org/appid), click for signup (it's free) and change API key in code, look for string `&appid=2de143494c0b295cca9337e1e96b00e0`
+* replace this key in file config.py
 
 ##Check `install/beta` directory
 There's always new code, which seems to work on my development thermeq :)

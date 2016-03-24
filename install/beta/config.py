@@ -1,0 +1,9 @@
+self.setup.max_ip = "192.168.0.10"
+self.setup.fromaddr = "devices@foo.local"
+self.setup.toaddr = "user@foo.local"
+self.setup.mailserver = "mail.foo.local"
+self.setup.mailport = 25
+self.setup.frompwd = "this.is.password"
+self.setup.devname = "hellmostat"
+self.setup.timeout = 10
+self.setup.api_key = "blablabla"
