@@ -29,7 +29,9 @@ from math import exp
 
 class setup(object):
     def __init__(self):
-        self.version = 152
+        self.version = 153
+        # PLEASE USE OWN API KEY!!!
+        self.api_key = "290587b9382138c3724919fcaa8f9ebd"
         self.appStartTime = time.time()
         # window ignore time, in minutes
         self.window_ignore_time = 15
@@ -1401,11 +1403,18 @@ def rightTime(what):
 
 # beta features
 def weather_for_woeid(woeid):
-    """ returns weather from yahoo weather from given WOEID """
-    # please change u='c' to u='f' for farenheit below
-    baseurl = "https://query.yahooapis.com/v1/public/yql?"
+    """
+    Returns weather from yahoo weather from given WOEID
+    :param woeid: integer, yahoo weather ID
+    :return: dictionary, {"current_temp": temp, "city": city, "humidity": humidity}
+    """
+    city = "Error city"
+    temp = None
+    humidity = None
+    # please change u='c' to u='f' for fahrenheit below
+    base_url = "https://query.yahooapis.com/v1/public/yql?"
     yql_query = "select * from weather.forecast where woeid=" + str(woeid) + " and u='c'"
-    yql_url = baseurl + urllib.urlencode({'q': yql_query}) + "&format=json"
+    yql_url = base_url + urllib.urlencode({'q': yql_query}) + "&format=json"
 
     try:
         result = urllib2.urlopen(yql_url).read()
@@ -1413,45 +1422,37 @@ def weather_for_woeid(woeid):
     except Exception, error:
         var.logger.error("Yahoo communication error: " + str(error))
         var.logger.error("Traceback: " + str(traceback.format_exc()))
-        city = "Error"
-        temp = 0
-        humidity = 50
     else:
-        city = data["query"]["results"]["channel"]["location"]["city"]
-        temp = int(data["query"]["results"]["channel"]["item"]["condition"]["temp"])
-        humidity = int(data["query"]["results"]["channel"]["atmosphere"]["humidity"])
-    finally:
-        # and check if yahoo is correct, PLEASE USE OWN API KEY!!!
-        if city == "Error":
-            url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(
-                stp.city) + "&appid=2de143494c0b295cca9337e1e96b00e0"
-        else:
-            url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(
-                city) + "&appid=2de143494c0b295cca9337e1e96b00e0"
-        try:
-            result = json.load(urllib2.urlopen(url))
-        except Exception, error:
-            var.logger.error("OWM communication error: " + str(error))
-            var.logger.error("Traceback: " + str(traceback.format_exc()))
-        else:
-            owm_temp = abs(round(result["main"]["temp"] / 100))
-            yho_temp = abs(round(temp))
-            if city == "Error":
-                city = stp.city
-                temp = owm_temp
+        if data is not None:
+            try:
+                city = data["query"]["results"]["channel"]["location"]["city"]
+                temp = int(data["query"]["results"]["channel"]["item"]["condition"]["temp"])
+                humidity = int(data["query"]["results"]["channel"]["atmosphere"]["humidity"])
+            except Exception:
+                pass
             else:
-                if abs(yho_temp - owm_temp) > 1.5:
-                    var.logger.info("Difference between Yahoo and OWM temperatures. Yahoo=" + str(yho_temp) + \
+                # and check if yahoo is correct
+                url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + \
+                      "&appid=" & stp.api_key
+                try:
+                    result = json.load(urllib2.urlopen(url))
+                except Exception, error:
+                    var.logger.error("OWM communication error: " + str(error))
+                    var.logger.error("Traceback: " + str(traceback.format_exc()))
+                else:
+                    owm_temp = round(result["main"]["temp"] / 100)
+                    yho_temp = round(temp)
+                    if abs(yho_temp - owm_temp) > 1.5:
+                        var.logger.info("Difference between Yahoo and OWM temperatures. Yahoo=" + str(yho_temp) + \
                                     " OWM=" + str(owm_temp))
-                # end check
-        var.logger.info(
-            "Current temperature in " + str(city) + " is " + str(temp) + ", humidity " + str(humidity) + "%")
+                        # end check
+                var.logger.info("Current temperature in " + str(city) + " is " + str(temp) + ", humidity " + str(humidity) + "%")
 
-        return {
-            "current_temp": temp,
-            "city": city,
-            "humidity": humidity
-        }
+    return {
+        "current_temp": temp,
+        "city": city,
+        "humidity": humidity
+    }
 
 
 def scale(val, src, dst):
@@ -1474,18 +1475,19 @@ def interval_scale(temp, t, r, w, test):
 
 def update_ignores_2sit():
     var.sit = weather_for_woeid(stp.location)
-    temp = int(var.sit["current_temp"])
-    if temp is not None:
-        # modify OWW
-        tmr = interval_scale(temp, (-35.0, 35.0), (0, 10), (10, 360), True)
-        stp.intervals["oww"] = [tmr * 60, (3 * tmr) * 60, (3 * tmr) * 60]
-        var.logger.debug("OWW interval updated to " + str(stp.intervals["oww"]))
-
-        # and now modify valve ignore time
-        tmr = interval_scale(temp, (0.0, 35.0), (1.7, 3.0), (15, 120), False)
-        var.ignore_time = stp.window_ignore_time + tmr
-        var.value.put(rCW("ign_op"), str(var.ignore_time))
-        var.logger.debug("Valve ignore interval updated to " + str(var.ignore_time))
+    if None not in var.sit.viewvalues():
+	    temp = int(var.sit["current_temp"])
+	    if temp is not None:
+	        # modify OWW
+	        tmr = interval_scale(temp, (-35.0, 35.0), (0, 10), (10, 360), True)
+	        stp.intervals["oww"] = [tmr * 60, (3 * tmr) * 60, (3 * tmr) * 60]
+	        var.logger.debug("OWW interval updated to " + str(stp.intervals["oww"]))
+	
+	        # and now modify valve ignore time
+	        tmr = interval_scale(temp, (0.0, 35.0), (1.7, 3.0), (15, 120), False)
+	        var.ignore_time = stp.window_ignore_time + tmr
+	        var.value.put(rCW("ign_op"), str(var.ignore_time))
+	        var.logger.debug("Valve ignore interval updated to " + str(var.ignore_time))
 
 
 def time_in_range(start, end, x):
