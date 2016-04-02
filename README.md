@@ -35,6 +35,19 @@ cd /root
 * **check config.py for mail server address and credentials!** yeah, again config.py its really important file :)
 * **generate Open Weather Map API key** [here](http://openweathermap.org/appid), click for signup (it's free) and change API key in code, look for string `&appid=2de143494c0b295cca9337e1e96b00e0`
 * replace this key in file config.py
+ 
+##How to ignore some valves forever :)
+It's really simple. After succesfull start of thermeq3, check log file for heater thermostat IDs (HT).
+Then find out bridge file and run editor (vi for example).
+Look for "ignored" word (with quotes), if it's empty (looks like `"ignored":{}`) and update. Let be HT1=06ABCD and HT2=06ABCE, then ignored will look like this:
+```
+...
+"ignored":{"06ABCD": 1924991999, "06ABCE": 1924991999}
+...
+```
+Save file and wait. If you aren't sporting `vi` just use browser and set ignored with URL:
+`http://<arduino.local>/data/put/ignored/{"06ABCD": 1924991999, "06ABCE": 1924991999}`
+And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/2030. 
 
 ##Check `install/beta` directory
 There's always new code, which seems to work on my development thermeq :)
