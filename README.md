@@ -17,10 +17,10 @@ thermeq3 features:
 ##Installation instructions
 * check sketch (in fritzing) and setup below
 * check if latest [python bridge library](https://github.com/arduino/YunBridge/tree/master/bridge) is installed
-* check if latest wget is installed, if not upgrade
+* check if latest wget is installed, if not, upgrade
 * upload sketch from yun-sketch to the yun, for V200 beta please use [this sketch](https://raw.githubusercontent.com/autopower/thermeq3/master/install/beta/thermeq3.ino)
 * login to yun via ssh
-* for V200 beta setup please follow [this link](https://github.com/autopower/thermeq3/tree/master/install/beta)
+* for V200 beta setup please follow [this link](https://github.com/autopower/thermeq3/tree/master/install/beta) and return
 * to install thermeq3 please type this command, while logged in:
 ```
 wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/install.sh|chmod +x /root/install.sh
@@ -33,10 +33,10 @@ cd /root
 * **Don't forget to edit config.py file!** Scroll down below for "In config.py file" chapter.
 * if anything fail use [simple diag](https://github.com/autopower/thermeq3/tree/master/install/diag)
 * **check config.py for mail server address and credentials!** yeah, again config.py its really important file :)
-* **generate Open Weather Map API key** [here](http://openweathermap.org/appid), click for signup (it's free) and change API key in code, look for string `&appid=2de143494c0b295cca9337e1e96b00e0`
+* **generate Open Weather Map API key** [here](http://openweathermap.org/appid), click for signup (it's free)
 * replace this key in file config.py
  
-##How to ignore some valves forever :)
+##How to ignore some valves "forever"
 It's really simple. After succesfull start of thermeq3, check log file for heater thermostat IDs (HT).
 Then find out bridge file and run editor (vi for example).
 Look for "ignored" word (with quotes), if it's empty (looks like `"ignored":{}`) and update. Let be HT1=06ABCD and HT2=06ABCE, then ignored will look like this:
@@ -217,7 +217,7 @@ you can change valve_pos value (e.g. how many % must be valve opened).
 * `stp.fromaddr = "devices@foo.local"` from, user name
 * `stp.toaddr = "user@foo.local"` to email 
 * `stp.mailserver = "mail.foo.local"` via this server
-* `stp.mailport = 25` on port
+* `stp.mailport = 25` on this port
 * `stp.frompwd = "this.is.password"` login with this password
 * `stp.devname = "hellmostat"` device name
 * `stp.timeout = 10` timeout in secods, used in communicating with MAX! Cube and as a sleep time for flushing msg queue, set to similar value as `unsigned long interval` in arduino sketch
