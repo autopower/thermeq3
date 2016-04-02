@@ -1,4 +1,4 @@
-﻿#thermeq3
+#thermeq3
 Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.eq-3.de/max-heizungssteuerung-produktdetail-kopie/items/bc-lgw-o-tw.html).
 For complete readme, click [here](https://github.com/autopower/thermeq3/blob/master/README.md)
 

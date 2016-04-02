@@ -100,6 +100,14 @@ chmod +x status
 chmod +x owl
 chmod +x nice
 
+echo "Creating nsm.py compatibility file"
+echo "#!/usr/bin/env python
+import sys
+
+sys.path.insert(0, "/root/thermeq3/")
+execfile("/root/thermeq3/nsm.py")
+" > /root/nsm.py
+
 echo "Installing scripts with $1 as device name and $DIR as target directory"
 echo "tail -n 50 $DIR/$1.log" > /root/ct
 echo "cat $DIR/$1_error.log" > /root/err
