@@ -16,8 +16,9 @@ thermeq3 features:
 
 ##Installation instructions
 * check sketch (in fritzing) and setup below
-* check if latest [python bridge library](https://github.com/arduino/YunBridge/tree/master/bridge) is installed 
-* upload sketch from yun-sketch to the yun
+* check if latest [python bridge library](https://github.com/arduino/YunBridge/tree/master/bridge) is installed
+* check if latest wget is installed, if not upgrade
+* upload sketch from yun-sketch to the yun, for V200 beta please use [this sketch](https://raw.githubusercontent.com/autopower/thermeq3/master/install/beta/thermeq3.ino)
 * login to yun via ssh
 * for V200 beta setup please follow [this link](https://github.com/autopower/thermeq3/tree/master/install/beta)
 * to install thermeq3 please type this command, while logged in:
