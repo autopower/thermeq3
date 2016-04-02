@@ -222,6 +222,9 @@ you can change valve_pos value (e.g. how many % must be valve opened).
 * `stp.devname = "hellmostat"` device name
 * `stp.timeout = 10` timeout in secods, used in communicating with MAX! Cube and as a sleep time for flushing msg queue, set to similar value as `unsigned long interval` in arduino sketch
 * `stp.extport = 29080` external port, this is the port (typically) on firewall where NAT is defined (so you can mute thermeq3 from internet), please setup your firewall/router to such scenario
+* `self.setup.owm_api_key = "your owm api key"` this is API key for OWM service
+
+For V200+ is `stp.`` replaced with `self.setup.`
 
 ###In arduino sketch
 * `#define DEBUG_PRG` if you wanna print debug values via serial connection
