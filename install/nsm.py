@@ -29,7 +29,7 @@ from math import exp
 
 class setup(object):
     def __init__(self):
-        self.version = 153
+        self.version = 154
         # PLEASE USE OWN API KEY!!!
         self.api_key = "290587b9382138c3724919fcaa8f9ebd"
         self.appStartTime = time.time()
@@ -1432,8 +1432,7 @@ def weather_for_woeid(woeid):
                 pass
             else:
                 # and check if yahoo is correct
-                url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + \
-                      "&appid=" & stp.api_key
+                url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + "&appid=" + stp.api_key
                 try:
                     result = json.load(urllib2.urlopen(url))
                 except Exception, error:
