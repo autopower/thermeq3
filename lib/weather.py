@@ -6,16 +6,19 @@ from math import exp
 import json
 
 
-def weather_for_woeid(woeid):
+def weather_for_woeid(woeid, owm_api_key):
     """
     Returns weather from yahoo weather from given WOEID
     :param woeid: integer, yahoo weather ID
-    :return: dictonary, {"current_temp": temp, "city": city, "humidity": humidity}
+    :return: dictionary, {"current_temp": temp, "city": city, "humidity": humidity}
     """
-    # please change u='c' to u='f' for farenheit below
-    baseurl = "https://query.yahooapis.com/v1/public/yql?"
+    city = "Error city"
+    temp = None
+    humidity = None
+    # please change u='c' to u='f' for fahrenheit below
+    base_url = "https://query.yahooapis.com/v1/public/yql?"
     yql_query = "select * from weather.forecast where woeid=" + str(woeid) + " and u='c'"
-    yql_url = baseurl + urllib.urlencode({'q': yql_query}) + "&format=json"
+    yql_url = base_url + urllib.urlencode({'q': yql_query}) + "&format=json"
 
     try:
         result = urllib2.urlopen(yql_url).read()
@@ -23,31 +26,35 @@ def weather_for_woeid(woeid):
     except Exception, error:
         logmsg.update("Yahoo communication error: " + str(error), 'E')
         logmsg.update("Traceback: " + str(traceback.format_exc()), 'E')
-        city = "Error city"
-        temp = 0
-        humidity = 50
     else:
-        city = data["query"]["results"]["channel"]["location"]["city"]
-        temp = int(data["query"]["results"]["channel"]["item"]["condition"]["temp"])
-        humidity = int(data["query"]["results"]["channel"]["atmosphere"]["humidity"])
-
-        # and check if yahoo is correct, PLEASE USE OWN API KEY!!!
-        url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + \
-              "&appid=2de143494c0b295cca9337e1e96b00e0"
-        try:
-            result = json.load(urllib2.urlopen(url))
-        except Exception, error:
-            logmsg.update("OWM communication error: " + str(error), 'E')
-            logmsg.update("Traceback: " + str(traceback.format_exc()), 'E')
-        else:
-            owm_temp = abs(round(result["main"]["temp"] / 100))
-            yho_temp = abs(round(temp))
-            if abs(yho_temp - owm_temp) > 1.5:
-                logmsg.update("Difference between Yahoo and OWM temperatures. Yahoo=" + str(yho_temp) +
-                              " OWM=" + str(owm_temp), 'I')
-                # end check
-        logmsg.update(
-            "Current temperature in " + str(city) + " is " + str(temp) + ", humidity " + str(humidity) + "%", 'I')
+        if data is not None:
+            try:
+                city = data["query"]["results"]["channel"]["location"]["city"]
+                temp = int(data["query"]["results"]["channel"]["item"]["condition"]["temp"])
+                humidity = int(data["query"]["results"]["channel"]["atmosphere"]["humidity"])
+            except Exception:
+                pass
+            else:
+                # and check if yahoo is correct
+                url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + "&appid=" + owm_api_key
+                try:
+                    result = json.load(urllib2.urlopen(url))
+                except Exception, error:
+                    logmsg.update("OWM communication error: " + str(error), 'E')
+                    logmsg.update("Traceback: " + str(traceback.format_exc()), 'E')
+                else:
+                    if "main" in result:
+                        owm_temp = round(result["main"]["temp"] / 100)
+                        yho_temp = round(temp)
+                        if abs(yho_temp - owm_temp) > 1.5:
+                            logmsg.update("Difference between Yahoo and OWM temperatures. Yahoo=" + str(yho_temp) +
+                                          " OWM=" + str(owm_temp), 'I')
+                            # end check
+                    else:
+                        logmsg.update("Error during parsing result.", 'D')
+                logmsg.update(
+                    "Current temperature in " + str(city) + " is " + str(temp) + ", humidity " + str(humidity) +
+                    "%", 'I')
 
     return {
         "current_temp": temp,
@@ -67,6 +74,14 @@ def _scale(val, src, dst):
 
 
 def interval_scale(temp, t, r, w, test):
+    """
+    :param temp: int, temperature
+    :param t: list, temperature min, max range
+    :param r: list, min, max for exp()
+    :param w: list, target range, min max
+    :param test: boolean, test for range violation
+    :return: int, mapped value
+    """
     if test:
         if temp < t[0]:
             temp = t[0]
