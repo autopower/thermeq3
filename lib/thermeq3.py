@@ -13,7 +13,7 @@ import profiles
 import autoupdate
 import secweb
 import csvfile
-
+import sys
 
 # import action
 
@@ -217,7 +217,7 @@ class Thermeq3Object(object):
             execfile("/root/config.py")
         except:
             self.err_str = "Can't find config file!"
-            exit()
+            sys.exit(self.err_str)
 
         if not self.setup.init_paths():
             self.err_str = "Error: can't find mounted storage device!\n" + \
