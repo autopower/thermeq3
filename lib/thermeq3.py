@@ -795,38 +795,41 @@ class Thermeq3Object(object):
         :param obj_prefix: string
         :return: nothing
         """
-        for k, v in bridge_data.iteritems():
-            if k in bridge.pcw:
-                pcw_v = bridge.pcw[k]
-                if pcw_v[1]:
-                    d = pcw_v[2].split(".")
-                    default = pcw_v[0]
-                    cwt = type(default)
-                    obj = obj_prefix + d[0]
-                    name = d[1]
-                    if cwt is str:
-                        value = str(v)
-                    elif cwt is int:
-                        value = int(v)
-                    elif cwt is bool:
-                        value = bool(v)
-                    elif cwt is float:
-                        value = float(v)
-                    elif cwt is dict:
-                        value = ast.literal_eval(v)
-                    else:
-                        value = v
-                    try:
-                        obj_obj = eval(obj)
-                    except:
-                        logmsg.update("Error evaluating object: " + str(obj), 'E')
-                    else:
+        try:
+            for k, v in bridge_data.iteritems():
+                if k in bridge.pcw:
+                    pcw_v = bridge.pcw[k]
+                    if pcw_v[1]:
+                        d = pcw_v[2].split(".")
+                        default = pcw_v[0]
+                        cwt = type(default)
+                        obj = obj_prefix + d[0]
+                        name = d[1]
+                        if cwt is str:
+                            value = str(v)
+                        elif cwt is int:
+                            value = int(v)
+                        elif cwt is bool:
+                            value = bool(v)
+                        elif cwt is float:
+                            value = float(v)
+                        elif cwt is dict:
+                            value = ast.literal_eval(v)
+                        else:
+                            value = v
                         try:
-                            setattr(obj_obj, name, value)
-                            # logmsg.debug("object:", obj, ", name:", name, " to:", value)
+                            obj_obj = eval(obj)
                         except:
-                            logmsg.update("Error processing object: " + str(obj) + ", with name: " + str(name), 'E')
-
+                            logmsg.update("Error evaluating object: " + str(obj), 'E')
+                        else:
+                            try:
+                                setattr(obj_obj, name, value)
+                                # logmsg.debug("object:", obj, ", name:", name, " to:", value)
+                            except:
+                                logmsg.update("Error processing object: " + str(obj) + ", with name: " + str(name), 'E')
+        except AttributeError:
+            logmsg.update('Bridge file has attribute error. Possibly missing')
+            
     def update_ignores_2sit(self):
         """
         Update open window variables according to weather
