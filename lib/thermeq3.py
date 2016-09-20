@@ -106,6 +106,23 @@ class Thermeq3Setup(object):
         # Weather info
         self.owm_api_key = None # open weather map API key, ie "123456789"
         self.location = None # geographic location, as per Yahoo WOEID. ie. "12345"
+        
+        # import /root/config.py, overriding per-install variables above
+        try:
+            execfile("/root/config.py")
+        except:
+            self.err_str = "Can't find config file!"
+            sys.exit(self.err_str)
+        
+        if not self.init_paths():
+            self.err_str = "Error: can't find mounted storage device!\n" + \
+                           "Please mount SD card or USB key and run program again."
+        
+        try:
+            os.makedirs(self.place + "www")
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
 
     def __repr__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
@@ -215,22 +232,6 @@ class Thermeq3Object(object):
         self.status = Thermeq3Status()
         self.secweb = secweb.SecWeb()
         self.err_str = ""
-        # import configuration
-        try:
-            execfile("/root/config.py")
-        except:
-            self.err_str = "Can't find config file!"
-            sys.exit(self.err_str)
-
-        if not self.setup.init_paths():
-            self.err_str = "Error: can't find mounted storage device!\n" + \
-                           "Please mount SD card or USB key and run program again."
-
-        try:
-            os.makedirs(self.setup.place + "www")
-        except OSError as exception:
-            if exception.errno != errno.EEXIST:
-                raise
 
     def __repr__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
