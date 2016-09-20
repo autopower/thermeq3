@@ -176,10 +176,6 @@ class Thermeq3Setup(object):
         ]
         profiles.init(self.day, self.temp)
 
-    def get_mail_data(self):
-        return {"f": self.fromaddr, "t": self.toaddr, "sr": self.mailserver, "p": self.mailport, "pw": self.frompwd,
-                "d": self.devname}
-
 
 class Thermeq3Variables(object):
     def __init__(self):
@@ -953,11 +949,9 @@ class Thermeq3Object(object):
                 subject = "thermeq3 device is going to be upgraded"
                 body = body_txt
 
-        m_id = self.setup.get_mail_data()
-        m_id.update({"s": subject})
         msg = mailer.compose(m_id, body)
 
-        if mailer.send_email(m_id, msg.as_string()) and selector == "window":
+        if mailer.send_email(self.setup, msg.as_string()) and selector == "window":
             # original code
             # self.eq3.windows[dev_key][0] = dt_now
             # dev code
