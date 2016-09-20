@@ -17,7 +17,7 @@ def compose(m_id, m_body):
     """
     c_msg = MIMEMultipart()
     c_msg["From"] = '"' + m_id["d"] + '" <' + m_id["f"] + ">"
-    c_msg["To"] = ', '.join(m_id["t"])
+    c_msg["To"] = m_id['t'] if isinstance(m_id['t'], basestring) else ','.join(m_id["t"])
     c_msg["Subject"] = m_id["s"]
     body = """<html><body><font face="arial,sans-serif">""" + m_body + "</p></body></html>"
     c_msg.attach(MIMEText(body, "html"))

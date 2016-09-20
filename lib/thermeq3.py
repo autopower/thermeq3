@@ -98,7 +98,7 @@ class Thermeq3Setup(object):
         self.max_ip = None # ie. "192.168.0.10"
         # e-mail
         self.fromaddr = None # ie. "devices@foo.local"
-        self.toaddr = None # ie. "user@foo.local"
+        self.toaddr = None # ie. "user@foo.local", or a list: ["user1@foo.local", user@bar.local]
         self.mailserver = None # SMTP host ie. "mail.foo.local"
         self.mailport = None # SMTP port ie. 25
         self.frompwd = None # SMTP authentication password, ie. "password"
