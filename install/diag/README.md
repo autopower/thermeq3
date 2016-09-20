@@ -9,7 +9,7 @@ If everything goes ok, run `./diag.sh <max!cube ip address>`, e.g. `./diag.sh 19
 
 ##Yun
 Always [upgrade to latest yun firmware](https://www.arduino.cc/en/Tutorial/YunSysupgrade).
-
+Perhaps update [bridge library](https://github.com/arduino/YunBridge/tree/master/bridge)
 Check storage mount points `cd /mnt|ls -al`, is there any storage mounted (USB or SD card?). Is your card/USB key readable in your PC/Mac? Is FAT32/exfat formatted? 
 
 ##Network issues
