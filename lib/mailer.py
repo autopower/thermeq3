@@ -51,7 +51,7 @@ def send_error_log(m_id, stderr_log, devname):
     """
     if os.path.isfile(stderr_log) and os.path.getsize(stderr_log) > 0:
         body = ("<h1>%(a0)s status email.</h1>\n"
-                "<p>Hello, I'm your thermostat and I sending you this email with error logfile as attachment.<br/>") \
+                "<p>Hello, I'm your thermostat. I found this error log. It's attached.<br/>") \
                % {"a0": str(devname)}
         m_id.update({"s": m_id["d"] + " log email (thermeq3 device)"})
         msg = compose(m_id, body)
