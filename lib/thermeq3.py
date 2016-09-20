@@ -17,7 +17,6 @@ import sys
 
 # import action
 
-
 class Thermeq3Status(object):
     def __init__(self):
         self.status_str = {
@@ -48,10 +47,9 @@ class Thermeq3Status(object):
 
 class Thermeq3Setup(object):
     def __init__(self):
+        ### thermeq3 configuration variables, overridable in /root/config.py
         self.version = 219
         self.target = "yun"
-        # PLEASE USE OWN API KEY!!!
-        self.owm_api_key = "blablabla"
         # window ignore time, in minutes
         self.window_ignore_time = 15
         # my IP address
@@ -60,8 +58,6 @@ class Thermeq3Setup(object):
         self.place = ""
         # where is stderr log located, def setup.place+setup.devname+"_error.log"
         self.stderr_log = ""
-        # update this to your location, yahoo WOEID
-        self.location = 818717
         # difference from last known valve value, in %
         self.percentage = 3
         # github location for auto update
@@ -72,7 +68,8 @@ class Thermeq3Setup(object):
         self.abnormalCount = 30
         # how many windows must be open to recognize that we are ventilating
         self.ventilate_num = 3
-        """ this is in config.py file, here just for set type """
+        self.timeout = 10
+        self.extport = 80
         self.max_ip = ""
         self.fromaddr = ""
         self.toaddr = ""
@@ -99,6 +96,21 @@ class Thermeq3Setup(object):
         self.intervals = {}
         self.temp = []
         self.day = []
+        
+        ### Required per-install variables, configured in /root/config.py
+        # Reported name of this thermeq3 installation
+        self.devname = None # ie. "thermeq3"
+        # MAX Cube
+        self.max_ip = None # ie. "192.168.0.10"
+        # e-mail
+        self.fromaddr = None # ie. "devices@foo.local"
+        self.toaddr = None # ie. "user@foo.local"
+        self.mailserver = None # SMTP host ie. "mail.foo.local"
+        self.mailport = None # SMTP port ie. 25
+        self.frompwd = None # SMTP authentication password, ie. "password"
+        # Weather info
+        self.owm_api_key = None # open weather map API key, ie "123456789"
+        self.location = None # geographic location, as per Yahoo WOEID. ie. "12345"
 
     def __repr__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
