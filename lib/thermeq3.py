@@ -71,12 +71,6 @@ class Thermeq3Setup(object):
         self.timeout = 10
         self.extport = 80
         self.max_ip = ""
-        self.fromaddr = ""
-        self.toaddr = ""
-        self.mailserver = ""
-        self.mailport = 25
-        self.frompwd = ""
-        self.devname = ""
         self.timeout = 10
         self.extport = 80
         # which mode is selected
