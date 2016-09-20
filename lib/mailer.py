@@ -82,7 +82,7 @@ def send_email(eq3Setup, message):
             if server.has_extn('STARTTLS'):
                 server.starttls()
                 server.ehlo()
-            server.login(eq3Setup.fromaddr, eq3Setup.frompwd)
+            server.login(eq3Setup.mailuser, eq3Setup.mailpassword)
             server.sendmail(eq3Setup.fromaddr, eq3Setup.toaddr, message)
         except smtplib.SMTPAuthenticationError:
             logmsg.update("Authentication error during sending email.")
