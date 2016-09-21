@@ -1,5 +1,5 @@
 #thermeq3
-Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.eq-3.de/max-heizungssteuerung-produktdetail-kopie/items/bc-lgw-o-tw.html).
+Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.eq-3.de/max-heizungssteuerung-produktdetail-kopie/items/bc-lgw-o-tw.html). Monitors radiators with MAX! eTRVs, so that the boiler will fire up when any radiator calls for heat. You will need a boiler with switched heat via wire, ie. an external thermostat. This will replace that. Designed to run on Arduino Yún.
 
 thermeq3 features:
 * switching DHW/Boiler according to valve position, you can set how many valves must be opened for how many %, or sum of the all valves in house to switch on DHW/Boiler
@@ -14,27 +14,49 @@ thermeq3 features:
 * daily summary
 * simple html status on user selectable port (via uhttpd)
 
-##Installation instructions
-* check sketch (in fritzing) and setup below
-* check if latest [python bridge library](https://github.com/arduino/YunBridge/tree/master/bridge) is installed
-* check if latest wget is installed, if not, upgrade
-* upload sketch from yun-sketch to the yun, for V200 beta please use [this sketch](https://raw.githubusercontent.com/autopower/thermeq3/master/install/beta/thermeq3.ino)
-* login to yun via ssh
-* for V200 beta setup please follow [this link](https://github.com/autopower/thermeq3/tree/master/install/beta) and return
-* to install thermeq3 please type this command, while logged in:
-```
-wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/install.sh|chmod +x /root/install.sh
-```
-And after that (you can change thermeq3 name to your own):
-```
-cd /root
-./install.sh thermeq3
-```
-* **Don't forget to edit config.py file!** Scroll down below for "In config.py file" chapter.
-* if anything fail use [simple diag](https://github.com/autopower/thermeq3/tree/master/install/diag)
-* **check config.py for mail server address and credentials!** yeah, again config.py its really important file :)
-* **generate Open Weather Map API key** [here](http://openweathermap.org/appid), click for signup (it's free)
-* replace this key in file config.py
+##Setup
+
+### Equipment
+
+* Arduino Yún
+* 5V relay
+* two or three (or one RGB LED) LED diodes and min 220ohm resistors
+* installed and correctly running ELV/EQ-3 MAX! Cube
+* boiler with switched heat by wire, via relay
+* python-openssl library `opkg update; opkg install python-openssl`
+* credentials for mail server with TLS (or modify code)
+* storage space on microSD or USB
+
+### Installation
+
+1. Verify your ELV/EQ-3 MAX! Cube is up and running, and get its IP address.
+1. On Arduino Yún or other Linux board with Arduino's Python Bridge library installed
+  1. Wire 3 status LEDs and boiler relay as per `sketch` directory (circuit diagram or Fritzing sketch)
+    * 220ohm resitor to pin13, then to code_run LED (in my setup green LED, lit when arduino script is reading messages from python part, this is sign of activity)
+    * 220ohm resitor to pin8, then to error LED (in my setup red LED, lit when any error)
+    * 220ohm resitor to pin9, then to status LED (in my setup blue LED, lit when heating is on)
+    * relay voltage +5V to pin8, or to the power 5V and you must comment `RELAY_POWER`
+    * relay in to pin10
+    * relay GND to GND
+    * LED diodes to GND
+    * your DHW/Boiler to com and NO (or NC) pins of relay (check your boiler documentation)
+  1. Upload Arduino sketch `thermeq3.ino` to Yún using Arduino IDE on your computer
+    * For v150, use `yun-sketch/thermeq3.ino`
+    * For v200+, use `install/beta/thermeq3.info`
+1. Via SSH
+  * Update `opkg`: `opkg update`
+  * Update `wget`: `opkg upgrade wget`
+  * Install `thermeq3`
+    * For v150, use  `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/install.sh`
+    * For v200+, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/beta/install.sh|chmod +x /root/install.sh`
+    * Make the installer executable: `chmod +x /root/install.sh`
+    * Run the installer script: `/root/install.sh thermeq3`
+    * Fill out the required values in the config file: `/root/config.py`
+      * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
+
+## Troubleshooting
+
+See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/install/diag/README.md)
  
 ##How to ignore some valves "forever"
 It's really simple. After succesfull start of thermeq3, check log file for heater thermostat IDs (HT).
@@ -149,26 +171,7 @@ instructions. Please keep in mind, that current temperature on heater thermostat
 * Redesigned bridge functions (load/save), little bit failsafe (nothing extraordinary)
 * Implemented support for day table, just enable beta functionality (thermeq3.ip/data/put/beta/yes) and edit table in nsm.py. You can control boiler in different way during day.
 
-##Setup
-###You'll need:
-* Arduino Yún
-* 5V relay
-* two or three (or one RGB LED) LED diodes and min 220ohm resistors
-* installed and correctly running ELV/EQ-3 MAX! Cube
-* boiler with switched heat by wire, via relay
-* python-openssl library `opkg update; opkg install python-openssl`
-* credentials for mail server with TLS (or modify code)
-* storage space on microSD or USB,
 
-###Wiring:
-* 220ohm resitor to pin13, then to code_run LED (in my setup green LED, lit when arduino script is reading messages from python part, this is sign of activity)
-* 220ohm resitor to pin8, then to error LED (in my setup red LED, lit when any error)
-* 220ohm resitor to pin9, then to status LED (in my setup blue LED, lit when heating is on)
-* relay voltage +5V to pin8, or to the power 5V and you must comment `RELAY_POWER`
-* relay in to pin10
-* relay GND to GND
-* LED diodes to GND
-* your DHW/Boiler to com and NO (or NC) pins of relay (check your boiler documentation)
 
 ##Code
 There are two parts of thermeq3:

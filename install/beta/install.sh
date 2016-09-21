@@ -34,6 +34,13 @@ if [ $? -ne 0 ]; then
 	exit $?
 fi 
 
+echo Downloading thermeq3 config file
+wget --no-check-certificate --quiet --output-document /root/config.py https://github.com/autopower/thermeq3/raw/master/install/beta/config.py
+if [ $? -ne 0 ]; then
+	echo "Error during downloading thermeq3 config file: $?"
+	exit $?
+fi
+
 echo "Installing libraries"
 opkg install python-openssl --verbosity=0
 if [ $? -ne 0 ]; then
