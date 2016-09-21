@@ -1,6 +1,7 @@
 import os
 import logging
 import logging.handlers
+import inspect
 
 log_messages = []
 logs = ['I', 'D', 'E']
@@ -20,6 +21,15 @@ def update(message, log='D'):
     else:
         log_messages.append(['E', message])
     flush()
+
+
+def debug(*args):
+    ln = len(args)
+    if ln > 0:
+        tmp_str = "## " + str(inspect.stack()[1][3]) + " ## "
+        for i in range(0, ln):
+            tmp_str += str(args[i])
+        update(tmp_str, 'D')
 
 
 def flush():
@@ -57,7 +67,7 @@ def start(log_filename):
     fh = logging.handlers.TimedRotatingFileHandler(log_filename, when="W0", interval=4, backupCount=12)
     fh.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y/%m/%d %H:%M:%S")
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y/%m/%d %H:%M:%S")
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 

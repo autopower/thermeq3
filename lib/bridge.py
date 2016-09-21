@@ -1,13 +1,11 @@
 import sys
-import time
-import datetime
 import os
 import logmsg
 import json
 
 
 _result = False
-if os.name != "nt":
+if os.name == "posix":
     try:
         sys.path.insert(0, "/usr/lib/python2.7/bridge/")
         from bridgeclient import BridgeClient
@@ -19,130 +17,141 @@ if not _result:
     # if exception, it means no yun, abstraction to bridge, simplyfied code of arduino yun
     class BridgeClient:
         def __init__(self):
-            self.json = {}
+            self.bridge_var = {}
 
         def get(self, key):
-            if key in self.json:
-                r = self.json[key]
+            if key in self.bridge_var:
+                r = self.bridge_var[key]
             else:
                 r = None
             return r
 
+        def getall(self):
+            return self.bridge_var
+
         def put(self, key, value):
-            self.json.update({key: value})
+            self.bridge_var.update({key: value})
 
-bridgeclient = BridgeClient()
+bridge_client = BridgeClient()
 
+
+# required values, if any error in bridge then defaults is used [1]
+# format codeword: ["codeword in bridge", default value, literal processing, variable]
 cw = {
-    """ required values, if any error in bridge then defaults is used [1]
-    format codeword: ["codeword in bridge", default value, literal processing] """
-    # thermeq3 mode, auto or manual
-    "mode": ["mode", "auto", False],
+    "mode": ["mode", "auto", True, "var.mode"],
     # valve position in % to start heating
-    "valve": ["valve_pos", 35, False],
+    "valve": ["valve_pos", 35, True, "setup.valve_pos"],
     # start heating if single valve position in %, no matter how many valves are needed to start to heating
-    "svpnmw": ["svpnmw", 75, False],
+    "svpnmw": ["svpnmw", 75, True, "setup.svpnmw"],
     # how many valves must be in position stated above
-    "valves": ["valves", 2, False],
+    "valves": ["valves", 2, True, "setup.valves"],
     # if in total mode, sum of valves position to start heating
-    "total": ["total_switch", 150, False],
+    "total": ["total_switch", 150, True, "setup.total_switch"],
     # preference, "per" = per valve, "total" to total mode
-    "pref": ["preference", "per", False],
+    "pref": ["preference", "per", True, "setup.preference"],
     # interval, seconds to read MAX!Cube
-    "int": ["interval", 90, False],
+    "int": ["interval", 90, True, "setup.intervals['max'][0]"],
     #
-    "ign_op": ["ignore_opened", 15, False],
-    # use autoupdate function?
-    "au": ["autoupdate", True, False],
+    "ign_op": ["ignore_opened", 15, True, "eq3.ignore_time"],
+    # use auto update function?
+    "au": ["autoupdate", True, True, "setup.au"],
     # beta features on (yes) or off (no)
-    "beta": ["beta", "no", False],
+    "beta": ["beta", "no", True, "var.beta"],
     # profile type, time or temp, temp profile type means that external temperature (yahoo weather) is used
-    "profile": ["profile", "time", False],
-    "no_oww": ["no_oww", 0, False],
-    #
-    # optional values
-    #
-    "ht": ["heattime",
-           {"total": [0, 0.0], datetime.datetime.date(datetime.datetime.now()).strftime("%d-%m-%Y"): [0, time.time()]},
-           True],
-    # communication errors, how many times failed communication between thermeq3 and MAX!Cube, 0 after sending status
-    "errs": ["error", 0, False],
-    # same as above, but cumulative number
-    "terrs": ["totalerrors", 0, False],
-    "cmd": ["command", "", False],
-    "msg": ["msg", "", False],
-    "uptime": ["uptime", "", False],
-    "appuptime": ["app_uptime", 0, False],
-    "htstr": ["heattime_string", str(datetime.timedelta(seconds=0)), False],
-    "daily": ["daily", "", False],
-    "status": ["status", "defaults", False],
-    "cur": ["current_status", "{}", False],
+    "profile": ["profile", "time", False, ""],
     # list of ignored devices
-    "ign": ["ignored", "{}", True]}
+    "ign": ["ignored", {}, True, "eq3.ignored_valves"],
+    # no open window warning, if True then no window warning via email
+    "no_oww": ["no_oww", 0, True, "setup.no_oww"],
+    # heat time dictionary
+    "ht": ["heattime", {}, True, "var.ht"],
+    # communication errors, how many times failed communication between thermeq3 and MAX!Cube, 0 after sending status
+    "errs": ["error", 0, False, ""],
+    # same as above, but cumulative number
+    "terrs": ["totalerrors", 0, False, ""],
+    "cmd": ["command", "", False, ""],
+    "msg": ["msg", "", False, ""],
+    "uptime": ["uptime", "", False, ""],
+    "appuptime": ["app_uptime", 0, False, ""],
+    "status": ["status", "defaults", False, ""],
+    "sys": ["system_status", {}, False, ""]
+    }
 
 
-def save(bridgefile):
-    global bridgeclient, cw
+def get_pcw():
+    global cw
+    lcw = {}
+    for k, v in cw.iteritems():
+        # key : [default, literal]
+        lcw.update({v[0]: [v[1], v[2], v[3]]})
+    return lcw
+
+pcw = get_pcw()
+
+
+def save(bridge_file):
+    """
+    Save bridge to bridge_file, if success return True, else False
+    :param bridge_file: string
+    :return: boolean
+    """
+    global bridge_client
     try:
-        f = open(bridgefile, "w")
+        tmp = bridge_client.getall()
     except Exception:
-        logmsg.update("Error writing to bridgefile!", 'E')
+        logmsg.update("Error reading bridge!", 'E')
     else:
-        for k, v in cw.iteritems():
-            try:
-                tmp = bridgeclient.get(v[0])
-            except Exception:
-                tmp = ""
-            if tmp == "None" or tmp is None:
-                tmp = str(v[1])
-            f.write(v[0] + "=" + str(tmp) + "\r\n")
-        f.close()
-        return True
+        try:
+            f = open(bridge_file, "w")
+        except Exception:
+            logmsg.update("Error writing to bridge file!", 'E')
+        else:
+            f.write(json.dumps(tmp, sort_keys=True))
+            f.close()
+            logmsg.update("Bridge file saved.", 'D')
+            return True
+    return False
 
 
 def process_bridge_cw(codeword, def_value, set_value):
-    global bridgeclient
+    global bridge_client
     # check if correct values are loaded
     if set_value == "" or set_value is None:
         result = def_value
     else:
         result = set_value
     # put bridge value
-    bridgeclient.put(codeword, result)
+    bridge_client.put(codeword, result)
 
 
-def load(bridgefile):
-    global bridgeclient, cw
-    # prepare dictionary
-    lcw = {}
-    for k in cw.iteritems():
-        # key : [default, literal]
-        lcw.update({k[1][0]: [k[1][1], k[1][2]]})
-
-    if os.path.exists(bridgefile):
-        with open(bridgefile, "r") as f:
-            for line in f:
-                t = (line.rstrip("\r\n")).split('=')
-                localcw = t[0]
-                setvalue = t[1]
-                if localcw in lcw:
-                    process_bridge_cw(localcw, lcw[localcw][0], setvalue)
-            f.close()
+def load(bridge_file):
+    """
+    Load data from bridge_file and return dictionary or None
+    :param bridge_file: string
+    :return: dictionary
+    """
+    data = {}
+    if os.path.exists(bridge_file):
+        with open(bridge_file, "r") as f:
+            try:
+                data = json.load(f)
+            except:
+                pass
+            finally:
+                f.close()
         logmsg.update("Bridge file loaded.", 'D')
-    # >>>>>>> updateAllTimes()
     else:
-        for k, v in lcw.iteritems():
-            process_bridge_cw(k, v[0], v[0])
-        logmsg.update("Error loading bridge file, using defaults!", 'E')
+        logmsg.update("Error loading bridge file!", 'E')
+        data = None
+    return data
 
 
-def rcw(lcw):
+def get_cw(lcw):
     """
     Return codeword from dictionary
     :param lcw: key
-    :return:
+    :return: string
     """
-    """ returns command word, always string """
     global cw
     if lcw in cw:
         return str(cw[lcw][0])
@@ -150,29 +159,37 @@ def rcw(lcw):
         return "wrong_key " + str(lcw)
 
 
-def try_read(lcw, default, _save):
+def get_cw_default(lcw):
     """
-    try read from bridge, if not there, save default value
+    Return codeword and default value from dictionary
+    :param lcw: key
+    :return: string
+    """
+    global cw
+    if lcw in cw:
+        return str(cw[lcw][0]), cw[lcw][1]
+    else:
+        return "wrong_key " + str(lcw), 0
+
+
+def try_read(lcw, _save=True):
+    """
+    try read from bridge, if key not there, save default value
     :param lcw: string, local codeword
-    :param default: default value, various
-    :param _save: boolean, if not in bridge save
+    :param _save: boolean, if not in bridge then save
     :return: various
     """
-    global bridgeclient, cw
-    if type(default) is str:
-        isnum = False
-    else:
-        isnum = True
-    temp_cw = rcw(lcw)
+    global bridge_client, cw
 
-    tmp_str = bridgeclient.get(temp_cw)
+    temp_cw, default = get_cw_default(lcw)
+    tmp_str = bridge_client.get(temp_cw)
 
     if tmp_str == "None" or tmp_str == "" or tmp_str is None:
         tmp = default
         if _save:
-            bridgeclient.put(temp_cw, str(tmp))
+            bridge_client.put(temp_cw, str(tmp))
     else:
-        if isnum:
+        if type(default) is int:
             try:
                 tmp = int(tmp_str)
             except Exception:
@@ -184,48 +201,38 @@ def try_read(lcw, default, _save):
 
 def put(key, value):
     """
-    Put value to the key in bridgeclient
+    Put value to the key in bridge_client
     :param key: key
     :param value: string
     :return: nothing
     """
-    global bridgeclient
-    bridgeclient.put(rcw(key), str(value))
+    global bridge_client
+    bridge_client.put(get_cw(key), str(value))
 
 
 def get(key):
     """
-    Get from bridgeclient by key, key is expanded through CW
+    Get from bridge_client by key, key is expanded through CW
     :param key: key
     :return:  string
     """
-    global bridgeclient
-    return str(bridgeclient.get(rcw(key)))
+    global bridge_client
+    return str(bridge_client.get(get_cw(key)))
 
 
 def export():
     """
-    Export bridgeclient.json as JSON
+    Export bridge_client.json as JSON
     :return: JSON string
     """
-    global bridgeclient
-    return json.dumps(bridgeclient.json)
+    global bridge_client
+    return json.dumps(bridge_client.getall())
 
 
-def import_(config_str):
-    """
-    Import config_str into bridgeclient.json dictionary
-    :param config_str: string/json
-    :return: boolean
-    """
-    global bridgeclient
-    result = False
-    try:
-        tmp = json.loads(config_str)
-    except ValueError:
-        logmsg.update("Error during importing JSON.", 'E')
-    else:
-        result = True
-        bridgeclient.json.update(tmp)
-
-    return result
+def get_cmd():
+    local_cmd = get("cmd")
+    if local_cmd is None:
+        return ""
+    elif len(local_cmd) > 0:
+        put("cmd", "")
+    return local_cmd

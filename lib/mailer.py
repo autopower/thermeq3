@@ -2,7 +2,6 @@ import smtplib
 import logmsg
 import os
 import traceback
-import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -14,7 +13,7 @@ def compose(m_id, m_body):
     Compose message
     :param m_id: dictionary
     :param m_body: string
-    :return:
+    :return: MIMEMultipart
     """
     c_msg = MIMEMultipart()
     c_msg["From"] = '"' + m_id["d"] + '" <' + m_id["f"] + ">"
@@ -30,13 +29,15 @@ def attach_file(filename):
     """
     Attach filename
     :param filename: string
-    :return:
+    :return: MIMEBase
     """
     part = MIMEBase("application", "octet-stream")
     part.set_payload(open(filename, "rb").read())
     encode_base64(part)
-    head, tail = os.path.split(filename)
-    part.add_header("Content-Disposition", "attachment; filename=\"" + tail + "\"\"")
+    basename = os.path.basename(filename)
+    attachment_filename = os.path.splitext(basename)[0]
+    # for better attachment handling and reading on mobile devices
+    part.add_header("Content-Disposition", "attachment; filename=\"" + attachment_filename + ".txt\"\"")
     return part
 
 
@@ -57,6 +58,7 @@ def send_error_log(m_id, stderr_log, devname):
         msg.attach(attach_file(stderr_log))
         return send_email(m_id, msg.as_string())
     else:
+        logmsg.update("Logfile: " + stderr_log)
         logmsg.update("Zero sized stderr log file, nothing'll be send")
         return False
 
@@ -66,13 +68,13 @@ def send_email(m_id, message):
     sends email
     :param m_id: dictionary
     :param message:
-    :return:
+    :return: boolean, true if success
     """
     m_server = m_id["sr"]
     m_port = m_id["p"]
-    m_fromaddr = m_id["f"]
-    m_frompwd = m_id["pw"]
-    m_toaddr = m_id["t"]
+    m_from_addr = m_id["f"]
+    m_from_pwd = m_id["pw"]
+    m_to_addr = m_id["t"]
     try:
         server = smtplib.SMTP(m_server, m_port)
     except Exception, error:
@@ -85,8 +87,8 @@ def send_email(m_id, message):
             if server.has_extn('STARTTLS'):
                 server.starttls()
                 server.ehlo()
-            server.login(m_fromaddr, m_frompwd)
-            server.sendmail(m_fromaddr, m_toaddr, message)
+            server.login(m_from_addr, m_from_pwd)
+            server.sendmail(m_from_addr, m_to_addr, message)
         except smtplib.SMTPAuthenticationError:
             logmsg.update("Authentication error during sending email.")
         except Exception, error:
@@ -96,4 +98,3 @@ def send_email(m_id, message):
             logmsg.update("Mail was sent.")
             return True
     return False
-
