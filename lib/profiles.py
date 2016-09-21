@@ -30,7 +30,7 @@ def check_day_table():
         for i in range(len(table.day) - 1):
             if time.strptime(table.day[i + 1][0], "%H:%M") <= time.strptime(table.day[i][0], "%H:%M"):
                 logmsg.update("Day mode table is wrong! Using default table!", 'E')
-                table.day = [["00:00", "23:59", 35, 185, "total", 120, 2]]
+                table.day = [["00:00", "23:59", 40, 185, "total", 120, 1]]
 
 
 def time_in_range(start, end, x):
@@ -95,7 +95,7 @@ def do(sel_mode, act_idx, sit):
     table.selected_mode = sel_mode
     table.act_mode_idx = act_idx
     table.sit = sit
-    tmp_prof = bridge.try_read("profile", False).upper()
+    tmp_prof = bridge.try_read("profile", "time", False).upper()
     kv = []
     if tmp_prof != table.selected_mode:
         table.selected_mode = tmp_prof

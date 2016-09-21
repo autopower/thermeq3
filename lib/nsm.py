@@ -4,15 +4,16 @@ import mailer
 import sys
 import time
 import os
+import bridge
 
 
-def redirect_error(on_off):
+def redir_err(onoff):
     """
     Turn error redirection on or off
-    :param on_off: boolean
+    :param onoff: boolean
     :return: nothing
     """
-    if on_off:
+    if onoff:
         t3.setup.stderr_log = t3.setup.place + t3.setup.devname + "_error.log"
         try:
             t3.var.ferr = open(t3.setup.stderr_log, "a")
@@ -29,21 +30,18 @@ def redirect_error(on_off):
 
 
 if __name__ == '__main__':
-    t3 = thermeq3.Thermeq3Object()
-    if not t3.err_str == "":
-        print t3.err_str
-        exit()
-
+    t3 = thermeq3.thermeq3_object()
     t3.prepare()
 
     if mailer.send_error_log(t3.setup.get_mail_data(), t3.setup.stderr_log, t3.setup.devname):
         os.remove(t3.setup.stderr_log)
 
-    redirect_error(True)
+    redir_err(True)
 
     while 1:
-        if t3.intervals() == 0xFF:
-            break
+        t3.intervals()
         time.sleep(t3.setup.intervals["slp"][0])
 
-    redirect_error(False)
+    print bridge.export()
+
+    redir_err(False)

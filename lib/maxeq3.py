@@ -9,23 +9,8 @@ import base64
 import datetime
 import json
 
-"""
-new devices dictionary
-devices = {
-    address: {
-        type: string,
-        serial: string,
-        name: string,
-            if type=1 then {pos: int, temp: float, c_temp: float}
-            if type=4 then {open: boolean, ow_time: datetime}
-        status: [status, info],
-        other: [temp_offset]
-        }
-    }
-"""
 
-
-class EQ3Data:
+class eq3data:
     def __init__(self, ip_address, port):
         self.max_ip = ip_address
         self.max_port = port
@@ -34,15 +19,10 @@ class EQ3Data:
         # dictionaries and lists
         #
         self.maxid = {"sn": "000000", "rf": "", "fw": ""}
-        # valves = {devices-addr: [0/valve_pos, 1/valve_temp, 2/valve_curtemp, 3/valve_name]}
         self.valves = {}
-        # rooms = {id : [0/room_name, 1/room_address, 2/is_win_open, 3/curr_temp, 4/average valve position]}
         self.rooms = {}
-        # devices = {address: [0/type, 1/serial, 2/name, 3/room:id, 4/OW, 5/OW_time, 6/status, 7/info, 8/temp offset]}
         self.devices = {}
-        # device log, used to monitor valve positions, if many same positions than probably error
-        self.device_log = {}
-        # opened windows = {key: OW_time(now), isMuted(False), warning/error count(0)}
+        # opened windows = {key: OW_time(thisnow), isMuted(False), warning/error count(0)}
         self.windows = {}
         # ignored valves
         self.ignored_valves = {}
@@ -50,6 +30,9 @@ class EQ3Data:
         self.return_error = []
         # logger messages queue
         self.log_messages = []
+        #
+        # variables
+        #
         # how many minutes after closing window is valve ignored
         self.ignore_time = 0
         # communication errors count
@@ -58,30 +41,8 @@ class EQ3Data:
         self.max_iteration = 3
         # outside init declaration
         self.client_socket = None
-        # set zero temp from HT or not
-        self.set_zero = True
 
-    def __repr__(self):
-        return str(self.__class__) + ": " + str(self.__dict__)
-
-    def __str__(self):
-        return str(self.__class__) + ": " + str(self.__dict__)
-
-    def is_same(self, key, error_interval=2):
-        """
-        Problem prediction routine, if during heating valve didn't change position, something is wrong
-        :param key: string, key
-        :param error_interval: integer, plus/minus value
-        :return: boolean
-        """
-        tmp = self.device_log[key][1]
-        kv = self.valves[key][1]
-        if tmp - error_interval <= kv <= tmp + error_interval:
-            return True
-        else:
-            return False
-
-    def get_full_name(self, k):
+    def getName(self, k):
         """
         Return complete names for valve, room
         :param k: key
@@ -92,15 +53,15 @@ class EQ3Data:
         rn = self.rooms[str(self.devices[k][3])][0]
         return [rn, dn, v]
 
-    def get_key_full_name(self, k):
+    def getKeyName(self, k):
         """
         Return complete names for valve, room as dictionary
         :param k: key
         :return: dictionary {key: [room name, device name, valve list for key]}
         """
-        return {k: self.get_full_name(k)}
+        return {k: self.getName(k)}
 
-    def device_name(self, k):
+    def deviceName(self, k):
         """
         Return device name
         :param k: key
@@ -110,7 +71,7 @@ class EQ3Data:
         dn = str(self.devices[k][2])
         return dn
 
-    def get_room_name(self, k):
+    def roomName(self, k):
         """
         Return device room name for device key/address
         :param k:
@@ -119,14 +80,7 @@ class EQ3Data:
         rn = self.rooms[str(self.devices[k][3])][0]
         return rn
 
-    def is_valid(self, valve_info):
-        """
-        :param valve_info: valve status info
-        :return: boolean, true if valid
-        """
-        return bool((valve_info & 0b00010000) >> 4)
-
-    def is_radio_error(self, key):
+    def isRadioError(self, key):
         """
         True if radio error on device with key
         :param key: key
@@ -138,7 +92,7 @@ class EQ3Data:
         else:
             return False
 
-    def is_battery_error(self, key):
+    def isBattError(self, key):
         """
         True if battery error on device with key
         :param key: key
@@ -151,7 +105,7 @@ class EQ3Data:
         else:
             return False
 
-    def is_window_open(self, key):
+    def isWinOpen(self, key):
         """
         Return true if window is open
         :param key: key
@@ -163,7 +117,7 @@ class EQ3Data:
         else:
             return False
 
-    def count_valve(self, key):
+    def countValve(self, key):
         """
         Return True if valve is NOT ignored
         :param key: key
@@ -176,19 +130,12 @@ class EQ3Data:
                 return False
         return True
 
-    def _hexify(self, addr):
-        """
-        Returns hexified address
-        :param addr: string, device address
-        :return: string
-        """
-        return "".join("%02x" % ord(c) for c in addr).upper()
+    def _hexify(self, tmpadr):
+        """ returns hexified address """
+        return "".join("%02x" % ord(c) for c in tmpadr).upper()
 
-    def _inc_error(self):
-        """
-        Increment error variable
-        :return: nothing
-        """
+    def _incError(self):
+        """ increment error variable """
         self.comm_error += 1
 
     def _readlines(self, sock, recv_buffer=4096, delim="\r\n"):
@@ -205,7 +152,7 @@ class EQ3Data:
                 return
         return
 
-    def _set_ignored_valves(self, key):
+    def _setIgnoredValves(self, key):
         room = self.devices[key][3]
         for k, v in self.devices.iteritems():
             # this is heating thermostat and is in room where we want ignore all heating thermostats
@@ -228,7 +175,7 @@ class EQ3Data:
             try:
                 self.client_socket.connect((self.max_ip, self.max_port))
             except Exception, e:
-                self._inc_error()
+                self._incError()
                 _i += 1
                 # wait predefined time
                 time.sleep(int(self.timeout / self.max_iteration))
@@ -243,48 +190,10 @@ class EQ3Data:
         """ close connection to MAX """
         self.client_socket.close()
 
-    def _process(self):
-        """
-        Update room average valve position
-        :return: nothing
-        """
-        tmp_room = {}
-        for k, v in self.valves.iteritems():
-            room_id = self.get_room_name(k)
-            if self.count_valve(k):
-                if room_id not in tmp_room:
-                    position = 0
-                    count = 1
-                else:
-                    position = tmp_room[room_id][0]
-                    count = tmp_room[room_id][1] + 1
-                tmp_room.update({room_id: [position + v[0], count]})
-
-        # erase rooms average valve position
-        for k, v in self.rooms.iteritems():
-            self.rooms[k][4] = 0
-        # set rooms average valve position
-        for k, v in tmp_room.iteritems():
-            try:
-                result = v[0] / v[1]
-            except:
-                result = 0
-            finally:
-                r_id = self.get_room_id_by_name(k)
-                if k is not None:
-                    self.rooms[r_id][4] = result
-
-    def get_room_id_by_name(self, r_name):
-        for k, v in self.rooms.iteritems():
-            if v[0] == r_name:
-                return k
-        return None
-
     def read_data(self, refresh=False):
         result = False
         if self.open():
             self.read(refresh)
-            self._process()
             result = True
         # close session
         self.close()
@@ -340,7 +249,7 @@ class EQ3Data:
             es_pos += 3
             if room_id not in self.rooms or refresh:
                 # id  :	0room_name, 1room_address,   2is_win_open, 3curr_temp
-                self.rooms.update({room_id: [room_name, self._hexify(room_adr), False, 99.99, 0]})
+                self.rooms.update({room_id: [room_name, self._hexify(room_adr), False, 99.99]})
         dev_num = ord(es[es_pos])
         es_pos += 1
         for _ in range(0, dev_num):
@@ -380,53 +289,43 @@ class EQ3Data:
         es = base64.b64decode(line[0])
         es_pos = 0
         while es_pos < len(es):
-            dev_len = ord(es[es_pos])
+            dev_len = ord(es[es_pos]) + 1
             valve_adr = self._hexify(es[es_pos + 1:es_pos + 4])
             valve_status = ord(es[es_pos + 0x05])
             valve_info = ord(es[es_pos + 0x06])
             valve_temp = 0xFF
-            valve_curr_temp = 0xFF
+            valve_curtemp = 0xFF
             # WallMountedThermostat (dev_type 3)
-            if dev_len == 12:
-                if self.is_valid(valve_info):
-                    lsb = ord(es[es_pos + 0x08]) & 0b01111111
-                    msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
+            if dev_len == 13:
+                if valve_info & 3 != 2:
                     # get set temp
-                    valve_temp = float(lsb) / 2
+                    valve_temp = float(int(self._hexify(es[es_pos + 0x08]), 16)) / 2
                     # get measured temp
-                    lsb = ord(es[es_pos + 0x0C])
-                    valve_curr_temp = float(msb + lsb) / 10
+                    valve_curtemp = float(int(self._hexify(es[es_pos + 0x0C]), 16)) / 10
                     # extract room name from this WallMountedThermostat
                     wall_room_id = str(self.devices[valve_adr][3])
                     # and update its value to current temperature as read from WallMountedthermostat
-                    self.rooms[wall_room_id][3] = valve_curr_temp
+                    self.rooms[wall_room_id][3] = valve_curtemp
             # HeatingThermostat (dev_type 1 or 2)
-            elif dev_len == 11:
+            elif dev_len == 12:
                 valve_pos = ord(es[es_pos + 0x07])
-                if self.is_valid(valve_info):
-                    lsb = ord(es[es_pos + 0x08]) & 0b01111111
-                    msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
+                if valve_info & 3 != 2:
                     # get set temp
-                    valve_temp = float(lsb) / 2
+                    valve_temp = float(int(self._hexify(es[es_pos + 0x08]), 16)) / 2
                     # extract room name from this HeatingThermostat
                     valve_room_id = str(self.devices[valve_adr][3])
                     # if room temp not set i.e. still returning default 99.99
                     if self.rooms[valve_room_id][3] == 99.99:
                         # get room temp from this valve
-                        lsb = ord(es[es_pos + 0x09])
-                        valve_curr_temp = float(msb + lsb) / 10
+                        valve_curtemp = float(ord(es[es_pos + 0x0A])) / 10
                         # and update room temp too
-                        self.rooms[valve_room_id][3] = valve_curr_temp
+                        self.rooms[valve_room_id][3] = valve_curtemp
                     else:
                         # read room temp which was earlier set by wall thermostat
-                        valve_curr_temp = self.rooms[valve_room_id][3]
-                # check if current temperature is 0.0 and if set_zero is disabled, then get "obsolete actual" temp,
-                # just to have no 0.0 in log or CSV
-                if valve_curr_temp == 0.0 and not self.set_zero:
-                    valve_curr_temp = self.valves[valve_adr][2]
-                self.valves.update({valve_adr: [valve_pos, valve_temp, valve_curr_temp]})
+                        valve_curtemp = self.rooms[valve_room_id][3]
+                self.valves.update({valve_adr: [valve_pos, valve_temp, valve_curtemp]})
             # WindowContact
-            elif dev_len == 6:
+            elif dev_len == 7:
                 tmp_open = ord(es[es_pos + 0x06]) & 2
                 # if state changed
                 if tmp_open != self.devices[valve_adr][4]:
@@ -437,9 +336,9 @@ class EQ3Data:
                         self.rooms[r_id][2] = False
                         if valve_adr in self.windows:
                             del self.windows[valve_adr]
-                        # check for window closed ignore interval, if non zero, set valves to ignore
+                        # now check for window closed ignore interval, if non zero set valves to ignore
                         if self.ignore_time > 0:
-                            self._set_ignored_valves(valve_adr)
+                            self._setIgnoredValves(valve_adr)
                     else:
                         # or is opened now
                         self.rooms[r_id][2] = True
@@ -448,7 +347,7 @@ class EQ3Data:
             # save status and info
             self.devices[valve_adr][6] = valve_status
             self.devices[valve_adr][7] = valve_info
-            es_pos += (dev_len + 1)
+            es_pos += dev_len
 
     def csv(self):
         """ format csv string, the second part, just valves """
@@ -464,12 +363,12 @@ class EQ3Data:
 
         for k, v in self.valves.iteritems():
             # update rooms string
-            room_id = str(self.get_full_name(k)[0])
+            room_id = str(self.getName(k)[0])
             room_str = rooms[room_id][0]
             room_str += "\r\n\t[" + str(k) + "] " + '{:<20}'.format(str(self.devices[k][2])) + "@" + \
                         '{:>3}'.format(str(v[0])) + "% @ " + \
                         '{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
-            cv = self.count_valve(k)
+            cv = self.countValve(k)
             if cv:
                 room_str += "(+)"
             else:
@@ -481,7 +380,7 @@ class EQ3Data:
         for k, v in rooms.iteritems():
             logstr += "\r\nRoom: " + str(k)
             if v[1]:
-                logstr += ", open window"
+                logstr += ", window opened"
             logstr += str(v[0])
 
         return logstr
@@ -494,7 +393,7 @@ class EQ3Data:
         """
         # devices = {addr: [type, serial, name, room, OW, OW_time, status, info, temp offset]}
         # rooms = {id:	[room_name, room_address, is_win_open, curr_temp]}
-        # valves = {valve_adr: [valve_pos, valve_temp, valve_curr_temp]}
+        # valves = {valve_adr: [valve_pos, valve_temp, valve_curtemp]}
         rooms = {}
         current = {}
         for k, v in self.rooms.iteritems():
@@ -503,8 +402,8 @@ class EQ3Data:
 
         for k, v in self.valves.iteritems():
             # update rooms string
-            room_id = self.get_room_name(k)
-            cv = self.count_valve(k)
+            room_id = self.roomName(k)
+            cv = self.countValve(k)
             if not cv:
                 till = time.localtime(self.ignored_valves[k])
             else:
@@ -520,18 +419,18 @@ class EQ3Data:
             current.update({str(v[0]): {}})
 
         for k, v in self.valves.iteritems():
-            room_id = str(self.get_full_name(k)[0])
-            cv = self.count_valve(k)
+            room_id = str(self.getName(k)[0])
+            cv = self.countValve(k)
             current[room_id].update(
                 {str(k): [str(self.devices[k][2]), str(v[0]), str(v[1]), str(v[2]), str(1 if cv else 0)]})
 
         return json.dumps(current)
 
     def nice(self):
-        tmp_str = self.plain()
-        tmp_str.replace("\r\n", "<br/>")
-        tmp_str.replace("\t", "&#9;")
-        return "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" + tmp_str + "</pre></p>\r\n</body>\r\n</html>"
+        tmpstr = self.plain()
+        tmpstr.replace("\r\n", "<br/>")
+        tmpstr.replace("\t", "&#9;")
+        return "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" + tmpstr + "</pre></p>\r\n</body>\r\n</html>"
 
     def headers(self, rn_vn=False):
         """
@@ -542,11 +441,11 @@ class EQ3Data:
         tmp = ""
         for k, v in self.valves.iteritems():
             if rn_vn:
-                room_id = str(self.get_full_name(k)[0])
+                room_id = str(self.getName(k)[0])
                 name = self.rooms[room_id][0] + "-" + self.devices[k][2]
             else:
                 name = self.devices[k][2]
-            tmp += name + "," + name + ","
+            tmp += name + "," + name + "," + name + ","
 
         return tmp[:-1]
 
@@ -560,9 +459,9 @@ class EQ3Data:
 
     def valve_status(self):
         """ returns json in format address: [data] """
-        # valves = {valve_adr: [valve_pos, valve_temp, valve_curr_temp, valve_name]}
+        # valves = {valve_adr: [valve_pos, valve_temp, valve_curtemp, valve_name]}
         tmp = {}
         for k, v in self.valves.iteritems():
-            valve_name = self.device_name(k)
+            valve_name = self.deviceName(k)
             tmp.update({k: [v[0], v[1], v[2], valve_name]})
         return json.dumps(tmp)

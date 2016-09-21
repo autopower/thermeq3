@@ -20,41 +20,38 @@ def get_hash(filename):
     return checksum
 
 
-def download_file(get_file, put_file):
-    err_str = ""
+def download_file(home_dir, filename):
+    errstr = ""
     try:
-        request = urllib2.urlopen(get_file)
+        request = urllib2.urlopen(filename)
         response = request.read()
     except urllib2.HTTPError, e:
-        err_str += "HTTPError = " + str(e.reason)
+        errstr += "HTTPError = " + str(e.reason)
     except urllib2.URLError, e:
-        err_str += "URLError = " + str(e.reason)
+        errstr += "URLError = " + str(e.reason)
     except httplib.HTTPException:
-        err_str += "HTTPException"
+        errstr += "HTTPException"
     except Exception, e:
-        err_str += "Exception = " + str(traceback.format_exc())
+        errstr += "Exception = " + str(traceback.format_exc())
     else:
-        tmp_dir = os.path.dirname(put_file)
-        if not os.path.exists(tmp_dir):
-            os.mkdir(tmp_dir)
         try:
-            f = file(put_file, "wb")
+            f = file(home_dir + filename, "wb")
         except Exception, e:
-            err_str = "Problem during saving new version. File: " + put_file + ". Error: " + str(
+            errstr = "Problem during saving new version. File: " + home_dir + filename + ". Error: " + str(
                 e) + " Traceback: " + str(traceback.format_exc())
         else:
             f.write(response)
             f.close()
-            err_str = ""
+            errstr = ""
             request.close()
     finally:
-        if not err_str == "":
-            logmsg.update(err_str)
+        if not errstr == "":
+            logmsg.update(errstr)
             return False
     return True
 
 
-def check_update(version, beta):
+def checkUpdate(version, beta):
     if beta:
         github = "https://github.com/autopower/thermeq3/raw/master/install/beta/"
     else:
@@ -86,11 +83,10 @@ def check_update(version, beta):
                 tmp_ver = int(t[0])
             except Exception:
                 tmp_ver = 0
-            logmsg.update("Available file: " + str(t[1]) + ", V" + str(tmp_ver) + " with hash " + str(t[3]), 'I')
-            logmsg.update("Actual version: " + str(version) + ", hash: " + str(new_hash), 'I')
-            if new_hash != t[3] and version < tmp_ver:
+            logmsg.update("Available file: " + str(t[1]) + ", V" + str(tmp_ver) + " with hash " + str(t[3]))
+            if new_hash != t[3] and version <= tmp_ver:
                 logmsg.update("Downloading new version V" + str(tmp_ver))
-                down_result = download_file(github + t[1], home_dir + "-install/" + t[1])
+                down_result = download_file(home_dir, github + t[1])
                 if down_result:
                     logmsg.update("V" + str(tmp_ver) + " downloaded. Hash is " + str(t[3]))
                     return [2, t[1]]
@@ -108,22 +104,14 @@ def do(version, beta):
     """
     Perform update
     :param version: string
-    :param beta: boolean
     :return: boolean, True if something updated
     """
     home_dir = "/root/thermeq3"
-    chk, filename = check_update(version, beta)
-    result = False
+    chk, filename = checkUpdate(version, beta)
     if chk == 2:
         # unzip files
         with zipfile.ZipFile(home_dir + "-install/" + filename, "r") as z:
-            try:
-                z.extractall(home_dir + "/")
-            except:
-                logmsg.update("Error during archive extraction", 'E')
-            else:
-                logmsg.update("Archive successfully extracted.", 'I')
-                result = True
-    elif chk == 1:
-        logmsg.update("Update is not necessary.")
-    return result
+            z.extractall(home_dir + "/", "*.py")
+        return True
+    else:
+        return False
