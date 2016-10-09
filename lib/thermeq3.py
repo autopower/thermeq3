@@ -17,6 +17,7 @@ import sys
 
 # import action
 
+
 class Thermeq3Status(object):
     def __init__(self):
         self.status_str = {
@@ -47,8 +48,8 @@ class Thermeq3Status(object):
 
 class Thermeq3Setup(object):
     def __init__(self):
-        ### thermeq3 configuration variables, overridable in /root/config.py
-        self.version = 219
+        # thermeq3 configuration variables, override in /root/config.py
+        self.version = 220
         self.target = "yun"
         # window ignore time, in minutes
         self.window_ignore_time = 15
@@ -91,21 +92,30 @@ class Thermeq3Setup(object):
         self.temp = []
         self.day = []
         
-        ### Required per-install variables, configured in /root/config.py
-        # Reported name of this thermeq3 installation
-        self.devname = None # ie. "thermeq3"
+        # Required per-install variables, configured in /root/config.py
+        # Reported name of this thermeq3 installation ie. "thermeq3"
+        self.devname = None
         # MAX Cube
-        self.max_ip = None # ie. "192.168.0.10"
+        # ie. "192.168.0.10"
+        self.max_ip = None
         # e-mail
-        self.fromaddr = None # ie. "devices@foo.local"
-        self.toaddr = None # ie. "user@foo.local", or a list: ["user1@foo.local", user@bar.local]
-        self.mailserver = None # SMTP host ie. "mail.foo.local"
-        self.mailport = None # SMTP port ie. 25
-        self.mailuser = None # SMTP authentication username, ie. "user@foo.local"
-        self.mailpassword = None # SMTP authentication password, ie. "password"
+        # ie. "devices@foo.local"
+        self.fromaddr = None
+        # ie. "user@foo.local", or a list: ["user1@foo.local", user@bar.local]
+        self.toaddr = None
+        # SMTP host ie. "mail.foo.local"
+        self.mailserver = None
+        # SMTP port ie. 25
+        self.mailport = None
+        # SMTP authentication username, ie. "user@foo.local"
+        self.mailuser = None
+        # SMTP authentication password, ie. "password"
+        self.mailpassword = None
         # Weather info
-        self.owm_api_key = None # open weather map API key, ie "123456789"
-        self.location = None # geographic location, as per Yahoo WOEID. ie. "12345"
+        # open weather map API key, ie "123456789"
+        self.owm_api_key = None
+        # geographic location, as per Yahoo WOEID. ie. "12345"
+        self.location = None
         
         # import /root/config.py, overriding per-install variables above
         try:
@@ -591,7 +601,8 @@ class Thermeq3Object(object):
         """
         # save open window dictionary for adjustment
         ow = self.get_open_windows()
-        if self.eq3.read_data(False):
+        eq3_result, eq3_error = self.eq3.read_data(False)
+        if eq3_result:
             # log messages
             logmsg.update(self._status_msg() + " Checking #" + str(self.setup.intervals["max"][0]) + " sec", 'I')
             logmsg.update(self.eq3.plain(), 'I')
@@ -613,6 +624,9 @@ class Thermeq3Object(object):
         else:
             self.var.heating = None
             self.queue_msg('E')
+            # flush error to log
+            for k in eq3_error:
+                logmsg.update(k, 'E')
 
     def _do_autoupdate(self):
         """
@@ -896,7 +910,7 @@ class Thermeq3Object(object):
         if sil == 1:
             logmsg.update("Warning for device " + str(dev_key) + " is muted!")
             return
-        mutestr = "http://" + self.setup.myip + ":" + str(self.setup.extport) + "/data/put/command/mute" + str(dev_key)
+        mute_str = "http://" + self.setup.myip + ":" + str(self.setup.extport) + "/data/put/command/mute" + str(dev_key)
         if selector == "window":
             dt_now = datetime.datetime.now()
             oww = int((dt_now - self.eq3.windows[dev_key][0]).total_seconds())
@@ -917,7 +931,7 @@ class Thermeq3Object(object):
                     'a2': str(owd).split('.')[0],
                     # 'a3': int(self.setup.intervals["oww"][0]/ 60),
                     'a3': int((self.setup.intervals["oww"][0] * self.eq3.windows[dev_key][3]) / 60),
-                    'a4': str(mutestr),
+                    'a4': str(mute_str),
                     'a5': int(self.setup.intervals["oww"][2] / 60)}
         else:
             if sil == 0 and not self._is("wrn"):
@@ -931,7 +945,7 @@ class Thermeq3Object(object):
                 </p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins.""" % \
                        {'a0': str(dn),
                         'a1': str(rn[0]),
-                        'a2': str(mutestr),
+                        'a2': str(mute_str),
                         'a3': int(self.setup.intervals["wrn"][1] / 60)}
             elif selector == "error":
                 subject = "Error report for device " + str(dn) + ". Warning from thermeq3 device"
@@ -942,7 +956,7 @@ class Thermeq3Object(object):
                 </p><p>You can <a href="%(a2)s">mute this warning</a> for %(a3)s mins.""" % \
                        {'a0': str(dn),
                         'a1': str(rn[0]),
-                        'a2': str(mutestr),
+                        'a2': str(mute_str),
                         'a3': int(self.setup.intervals["wrn"][1] / 60)}
             elif selector == "openmax":
                 subject = "Can't connect to MAX! Cube! Warning from thermeq3 device"
@@ -951,7 +965,7 @@ class Thermeq3Object(object):
                 subject = "thermeq3 device is going to be upgraded"
                 body = body_txt
 
-        msg = mailer.compose(m_id, body)
+        msg = mailer.compose(self.setup, subject, body)
 
         if mailer.send_email(self.setup, msg.as_string()) and selector == "window":
             # original code

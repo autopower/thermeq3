@@ -232,7 +232,7 @@ class EQ3Data:
                 _i += 1
                 # wait predefined time
                 time.sleep(int(self.timeout / self.max_iteration))
-                self.return_error = [Exception, e, str(traceback.format_exc())]
+                self.return_error.append([Exception, e, str(traceback.format_exc())])
             else:
                 _i = self.max_iteration
                 _result = True
@@ -281,6 +281,10 @@ class EQ3Data:
         return None
 
     def read_data(self, refresh=False):
+        """
+        :param refresh: passable argument
+        :return: boolean, list
+        """
         result = False
         if self.open():
             self.read(refresh)
@@ -288,7 +292,7 @@ class EQ3Data:
             result = True
         # close session
         self.close()
-        return result
+        return result, self.return_error
 
     def read(self, refresh):
         """
@@ -428,23 +432,28 @@ class EQ3Data:
             # WindowContact
             elif dev_len == 6:
                 tmp_open = ord(es[es_pos + 0x06]) & 2
-                # if state changed
-                if tmp_open != self.devices[valve_adr][4]:
-                    # get room id
-                    r_id = str(self.devices[valve_adr][3])
-                    # if window is now closed
-                    if tmp_open == 0:
-                        self.rooms[r_id][2] = False
-                        if valve_adr in self.windows:
-                            del self.windows[valve_adr]
-                        # check for window closed ignore interval, if non zero, set valves to ignore
-                        if self.ignore_time > 0:
-                            self._set_ignored_valves(valve_adr)
-                    else:
-                        # or is opened now
-                        self.rooms[r_id][2] = True
-                    self.devices[valve_adr][4] = tmp_open
-                    self.devices[valve_adr][5] = datetime.datetime.now()
+                # check if some this key is not remain of old installation, typically unpaired contact
+                if valve_adr in self.devices:
+                    # if state changed
+                    if tmp_open != self.devices[valve_adr][4]:
+                        # get room id
+                        r_id = str(self.devices[valve_adr][3])
+                        # if window is now closed
+                        if tmp_open == 0:
+                            self.rooms[r_id][2] = False
+                            if valve_adr in self.windows:
+                                del self.windows[valve_adr]
+                            # check for window closed ignore interval, if non zero, set valves to ignore
+                            if self.ignore_time > 0:
+                                self._set_ignored_valves(valve_adr)
+                        else:
+                            # or is opened now
+                            self.rooms[r_id][2] = True
+                        self.devices[valve_adr][4] = tmp_open
+                        self.devices[valve_adr][5] = datetime.datetime.now()
+                else:
+                    # some error logging
+                    self.return_error.append(["Wrong address: " + str(valve_adr)])
             # save status and info
             self.devices[valve_adr][6] = valve_status
             self.devices[valve_adr][7] = valve_info
