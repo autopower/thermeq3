@@ -455,8 +455,11 @@ class EQ3Data:
                     # some error logging
                     self.return_error.append(["Wrong address: " + str(valve_adr)])
             # save status and info
-            self.devices[valve_adr][6] = valve_status
-            self.devices[valve_adr][7] = valve_info
+            if valve_adr in self.devices:
+                self.devices[valve_adr][6] = valve_status
+                self.devices[valve_adr][7] = valve_info
+            else:
+                self.return_error.append(["Wrong address: " + str(valve_adr)])
             es_pos += (dev_len + 1)
 
     def csv(self):
@@ -540,7 +543,8 @@ class EQ3Data:
         tmp_str = self.plain()
         tmp_str.replace("\r\n", "<br/>")
         tmp_str.replace("\t", "&#9;")
-        return "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" + tmp_str + "</pre></p>\r\n</body>\r\n</html>"
+        return "<html>\r\n<title>\r\nStatus</title>\r\n<body>\r\n<p><pre>" + tmp_str + \
+               "</pre></p>\r\n</body>\r\n</html>"
 
     def headers(self, rn_vn=False):
         """
