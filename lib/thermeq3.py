@@ -14,6 +14,8 @@ import autoupdate
 import secweb
 import csvfile
 import sys
+import traceback
+
 
 # import action
 
@@ -49,7 +51,7 @@ class Thermeq3Status(object):
 class Thermeq3Setup(object):
     def __init__(self):
         # thermeq3 configuration variables, override in /root/config.py
-        self.version = 220
+        self.version = 221
         self.target = "yun"
         # window ignore time, in minutes
         self.window_ignore_time = 15
@@ -91,7 +93,7 @@ class Thermeq3Setup(object):
         self.intervals = {}
         self.temp = []
         self.day = []
-        
+
         # Required per-install variables, configured in /root/config.py
         # Reported name of this thermeq3 installation ie. "thermeq3"
         self.devname = None
@@ -116,18 +118,36 @@ class Thermeq3Setup(object):
         self.owm_api_key = None
         # geographic location, as per Yahoo WOEID. ie. "12345"
         self.location = None
-        
+
         # import /root/config.py, overriding per-install variables above
         try:
             execfile("/root/config.py")
-        except:
-            self.err_str = "Can't find config file!"
+        except IOError:
+            self.err_str = "Can't find config file or config file IO error!"
             sys.exit(self.err_str)
-        
+        except SyntaxError:
+            self.err_str = "Syntax error in config file!"
+            sys.exit(self.err_str)
+        except NameError as err:
+            detail = err.args[0]
+            self.err_str = "Name error in config file!\n" + \
+                           "Detail: " + str(detail) + "\n"
+            sys.exit(self.err_str)
+        except Exception as err:
+            error_class = err.__class__.__name__
+            detail = err.args[0]
+            cl, exc, tb = sys.exc_info()
+            line_number = traceback.extract_tb(tb)[-1][1]
+            self.err_str = "Can't find config file or config file error!\n" + \
+                           "Detail: " + str(error_class) + "\n" + str(detail) + "\n" + \
+                           str(cl) + "\n" + str(exc) + "\n" + str(tb) + "\n" + \
+                           str(line_number) + "\n"
+            sys.exit(self.err_str)
+
         if not self.init_paths():
             self.err_str = "Error: can't find mounted storage device!\n" + \
                            "Please mount SD card or USB key and run program again."
-        
+
         try:
             os.makedirs(self.place + "www")
         except OSError as exception:
@@ -674,7 +694,7 @@ class Thermeq3Object(object):
             self.eq3.windows[key][0] = datetime.datetime.now()
             self.eq3.windows[key][1] = True
             logmsg.update("OWW for key " + str(key) + " is muted for " + str(
-                    self.setup.intervals["oww"][2]) + " seconds.")
+                self.setup.intervals["oww"][2]) + " seconds.")
 
     def _add_dummy(self, status):
         """
@@ -847,7 +867,7 @@ class Thermeq3Object(object):
                                 logmsg.update("Error processing object: " + str(obj) + ", with name: " + str(name), 'E')
         except AttributeError:
             logmsg.update('Bridge file has attribute error. Possibly missing')
-            
+
     def update_ignores_2sit(self):
         """
         Update open window variables according to weather
@@ -973,7 +993,8 @@ class Thermeq3Object(object):
             # dev code
             # extend warning period by incrementing multiplicand * oww time
             self.eq3.windows[dev_key][3] += 1
-            self.eq3.windows[dev_key][0] = dt_now + datetime.timedelta(seconds=(self.setup.intervals["oww"][0] * self.eq3.windows[dev_key][3]))
+            self.eq3.windows[dev_key][0] = dt_now + datetime.timedelta(
+                seconds=(self.setup.intervals["oww"][0] * self.eq3.windows[dev_key][3]))
             logmsg.update("Multiplicand for " + str(dev_key) + " updated to " + str(self.eq3.windows[dev_key][3]), 'D')
 
     def silence(self, key, is_win):
@@ -1012,7 +1033,7 @@ class Thermeq3Object(object):
         self.eq3.windows[key][2] += 1
         if self.eq3.windows[key][2] > self.setup.abnormalCount:
             logmsg.update(
-                    "Abnormal #warnings for device [" + str(key) + "], name [" + str(self.eq3.devices[key][2]) + "]")
+                "Abnormal #warnings for device [" + str(key) + "], name [" + str(self.eq3.devices[key][2]) + "]")
             self.eq3.windows[key][2] = 0
         return 0
 
