@@ -25,7 +25,8 @@ class CsvObject(object):
         if self.is_init():
             raise NameError("Wrong init!")
         if os.path.exists(self.file):
-            os.rename(self.file, self.place + self.dev_name + "_" + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + ".csv")
+            os.rename(self.file,
+                      self.place + self.dev_name + "_" + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + ".csv")
         try:
             self.handle = open(self.file, "a")
         except Exception:
@@ -61,6 +62,7 @@ class CsvObject(object):
         self.handle.write(self._buffer + "\n")
         self.handle.flush()
         self._buffer = ""
+
 
 csv = CsvObject()
 

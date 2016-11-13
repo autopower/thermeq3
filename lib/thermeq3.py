@@ -15,8 +15,7 @@ import secweb
 import csvfile
 import sys
 import traceback
-
-
+# TBI RPI
 # import action
 
 
@@ -51,7 +50,8 @@ class Thermeq3Status(object):
 class Thermeq3Setup(object):
     def __init__(self):
         # thermeq3 configuration variables, override in /root/config.py
-        self.version = 221
+        self.version = 222
+        # please change to rpi for Raspberry Pi
         self.target = "yun"
         # window ignore time, in minutes
         self.window_ignore_time = 15
@@ -189,7 +189,20 @@ class Thermeq3Setup(object):
                 self.stderr_log = self.place + self.devname + "_error.log"
                 return True
             elif self.target == "rpi":
-                pass
+                # TBI RPI
+                # please update path according to RPi environment
+                if os.path.ismount("/mnt/sda1"):
+                    self.place = "/mnt/sda1/"
+                elif os.path.ismount("/mnt/sdb1"):
+                    self.place = "/mnt/sdb1/"
+                else:
+                    return False
+                # init path variables
+                self.log_filename = self.place + self.devname + ".log"
+                self.csv_log = self.place + "csv/" + self.devname + ".csv"
+                self.bridge_file = "/root/" + self.devname + ".bridge"
+                self.stderr_log = self.place + self.devname + "_error.log"
+                return True
 
     def init_intervals(self):
         # threshold in seconds, so 10 minutes are 10*60 seconds
@@ -329,9 +342,13 @@ class Thermeq3Object(object):
                     bridge.put("msg", to_send)
                 elif self.setup.target == "rpi":
                     if to_send == "H":
+                        # TBI RPI
+                        # uncomment line below for RPi
                         # action.do(True)
                         pass
                     elif to_send == "S":
+                        # TBI RPI
+                        # uncomment line below for RPi
                         # action.do(False)
                         pass
 

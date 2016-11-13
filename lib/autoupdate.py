@@ -32,7 +32,7 @@ def download_file(get_file, put_file):
     except httplib.HTTPException:
         err_str += "HTTPException"
     except Exception, e:
-        err_str += "Exception = " + str(traceback.format_exc())
+        err_str += "Exception = " + str(traceback.format_exc()) + ". Error: " + str(e)
     else:
         tmp_dir = os.path.dirname(put_file)
         if not os.path.exists(tmp_dir):

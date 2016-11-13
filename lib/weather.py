@@ -9,6 +9,7 @@ import json
 def weather_for_woeid(woeid, owm_api_key):
     """
     Returns weather from yahoo weather from given WOEID
+    :param owm_api_key:
     :param woeid: integer, yahoo weather ID
     :return: dictionary, {"current_temp": temp, "city": city, "humidity": humidity}
     """

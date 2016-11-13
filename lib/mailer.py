@@ -6,18 +6,19 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email.encoders import encode_base64
-                
-def compose(eq3Setup, subject, body):
+
+
+def compose(eq3_setup, subject, body):
     """
     Compose message
-    :param eq3Setup: thermeq3.setup
+    :param eq3_setup: thermeq3.setup
     :param subject: string
     :param body: string
     :return: MIMEMultipart
     """
     c_msg = MIMEMultipart()
-    c_msg["From"] = '"' + eq3Setup.devname + '" <' + eq3Setup.fromaddr + ">"
-    c_msg["To"] = eq3Setup.toaddr if isinstance(eq3Setup.toaddr, basestring) else ','.join(eq3Setup.toaddr)
+    c_msg["From"] = '"' + eq3_setup.devname + '" <' + eq3_setup.fromaddr + ">"
+    c_msg["To"] = eq3_setup.toaddr if isinstance(eq3_setup.toaddr, basestring) else ','.join(eq3_setup.toaddr)
     c_msg["Subject"] = subject
     body = """<html><body><font face="arial,sans-serif">""" + body + "</p></body></html>"
     c_msg.attach(MIMEText(body, "html"))
@@ -41,40 +42,40 @@ def attach_file(filename):
     return part
 
 
-def send_error_log(eq3Setup, stderr_log):
+def send_error_log(eq3_setup, stderr_log):
     """
     Send error log if any
-    :param eq3Setup: thermeq3.setup
+    :param eq3_setup: thermeq3.setup
     :param stderr_log: string
-    :param devname: string
     :return: -1 if no error log
     """
-    if os.path.isfile(stderr_log) and os.path.getsize(stderr_log) > 0:
-        subject = eq3Setup.devname + " log email (thermeq3 device)"
+    if not (not os.path.isfile(stderr_log) or not (os.path.getsize(stderr_log) > 0)):
+        subject = eq3_setup.devname + " log email (thermeq3 device)"
         body = ("<h1>%(a0)s status email.</h1>\n"
-                "<p>Hello, I'm your thermostat. I found this error log. It's attached.<br/>") \
-               % {"a0": str(eq3Setup.devname)}
-        msg = compose(eq3Setup, subject, body)
+                "<p>Hello, I'm your thermostat. I found this error log. It's attached.<br/>") % {"a0":
+                    str(eq3_setup.devname)}
+        msg = compose(eq3_setup, subject, body)
         msg.attach(attach_file(stderr_log))
-        return send_email(eq3Setup, msg.as_string())
+        return send_email(eq3_setup, msg.as_string())
     else:
         logmsg.update("Logfile: " + stderr_log)
         logmsg.update("Zero sized stderr log file, nothing'll be send")
         return False
 
 
-def send_email(eq3Setup, message):
+def send_email(eq3_setup, message):
     """
     sends email
-    :param eq3Setup: thermeq3.setup
+    :param eq3_setup: thermeq3.setup
     :param message:
     :return: boolean, true if success
     """
     try:
-        server = smtplib.SMTP(eq3Setup.mailserver, eq3Setup.mailport)
+        server = smtplib.SMTP(eq3_setup.mailserver, eq3_setup.mailport)
     except Exception, error:
         logmsg.update(
-            "Error connecting to mail server " + str(eq3Setup.mailserver) + ":" + str(eq3Setup.mailport) + ". Error code: " + str(error))
+            "Error connecting to mail server " + str(eq3_setup.mailserver) + ":" + str(
+                eq3_setup.mailport) + ". Error code: " + str(error))
         logmsg.update("Traceback: " + str(traceback.format_exc()))
     else:
         try:
@@ -82,8 +83,8 @@ def send_email(eq3Setup, message):
             if server.has_extn('STARTTLS'):
                 server.starttls()
                 server.ehlo()
-            server.login(eq3Setup.mailuser, eq3Setup.mailpassword)
-            server.sendmail(eq3Setup.fromaddr, eq3Setup.toaddr, message)
+            server.login(eq3_setup.mailuser, eq3_setup.mailpassword)
+            server.sendmail(eq3_setup.fromaddr, eq3_setup.toaddr, message)
         except smtplib.SMTPAuthenticationError:
             logmsg.update("Authentication error during sending email.")
         except Exception, error:
