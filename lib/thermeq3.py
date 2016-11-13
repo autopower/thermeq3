@@ -50,7 +50,7 @@ class Thermeq3Status(object):
 class Thermeq3Setup(object):
     def __init__(self):
         # thermeq3 configuration variables, override in /root/config.py
-        self.version = 222
+        self.version = 223
         # please change to rpi for Raspberry Pi
         self.target = "yun"
         # window ignore time, in minutes

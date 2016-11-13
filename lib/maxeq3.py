@@ -394,7 +394,7 @@ class EQ3Data:
             if dev_len == 12:
                 if self.is_valid(valve_info):
                     lsb = ord(es[es_pos + 0x08]) & 0b01111111
-                    msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
+                    msb = (ord(es[es_pos + 0x08]) & 0b00000001) * 256
                     # get set temp
                     valve_temp = float(lsb) / 2
                     # get measured temp
