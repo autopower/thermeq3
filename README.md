@@ -75,6 +75,12 @@ And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/203
 There's always new code, which seems to work on my development thermeq :)
 
 ##What's new?
+###2016-Nov-13
+* RPi preparedness. Please follow instruction in code. Unfortunatelly I don't have RPi to test it, please report if you need any changes.
+
+###2016-Nov-01
+* Lot of fixes. 
+
 ###2016-Apr-08
 * to use "current" temperature for loggging find out this text `# comment line below to use current temp` in nsm.py (for V1xx) or in thermeq3.py (for V2xx) and follow 
 instructions. Please keep in mind, that current temperature on heater thermostat can be 0.0 (zero) because of limitations of HT! 
