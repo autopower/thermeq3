@@ -29,9 +29,9 @@ from math import exp
 
 class setup(object):
     def __init__(self):
-        self.version = 154
+        self.version = 155
         # PLEASE USE OWN API KEY!!!
-        self.api_key = "290587b9382138c3724919fcaa8f9ebd"
+        self.api_key = "blablakey"
         self.appStartTime = time.time()
         # window ignore time, in minutes
         self.window_ignore_time = 15
@@ -991,10 +991,10 @@ def maxCmd_L(line):
         valve_temp = 0xFF
         valve_curtemp = 0xFF
         lsb = ord(es[es_pos + 0x08]) & 0b01111111
-        msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
         # WallMountedThermostat (dev_type 3)
         if dev_len == 12:
             if is_valid(valve_info):
+                msb = (ord(es[es_pos + 0x08]) & 0b00000001) * 256
                 # get set temp 
                 valve_temp = float(lsb) / 2
                 # get measured temp
@@ -1008,6 +1008,7 @@ def maxCmd_L(line):
         elif dev_len == 11:
             valve_pos = ord(es[es_pos + 0x07])
             if is_valid(valve_info):
+                msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
                 # get set temp
                 valve_temp = float(lsb) / 2
                 # extract room name from this HeatingThermostat
