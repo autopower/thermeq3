@@ -14,8 +14,8 @@ thermeq3 features:
 * daily summary
 * simple html status on user selectable port (via uhttpd)
 
-##How it works?
-Please take a look at this flow chart.
+##How it works (part I)?
+Please take a look at this flowchart. This flowchart is simple representation of decision process. Green color denotes variables.
 ![flow1](https://raw.githubusercontent.com/autopower/thermeq3/master/flowchart/flowchart_1.png)
 
 ##Setup
@@ -188,7 +188,7 @@ There are two parts of thermeq3:
 * python code, upload into /root/ files nsm.py and config.py and then please edit config.py
 * arduino code, upload with IDE
 
-##How it works?
+##How it works (part II)?
 Arduino sketch runs python script `nsm.py` located in /root. And then check if it's running.
 If not, runs it again from start. This script reads status from MAX! Cube and if any of radiator 
 thermostat's valve is opened above `valve_pos` value, the relay is switched on, thus boiler/DHW is switched on.
