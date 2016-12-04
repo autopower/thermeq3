@@ -14,6 +14,10 @@ thermeq3 features:
 * daily summary
 * simple html status on user selectable port (via uhttpd)
 
+##How it works?
+Please take a look at this flow chart.
+![flow1](https://raw.githubusercontent.com/autopower/thermeq3/master/flowchart/flowchart_1.png)
+
 ##Setup
 
 ### Equipment
