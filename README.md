@@ -39,14 +39,14 @@ Please take a look at this flowchart. This flowchart is simple representation of
     * 220ohm resitor to pin13, then to code_run LED (in my setup green LED, lit when arduino script is reading messages from python part, this is sign of activity)
     * 220ohm resitor to pin8, then to error LED (in my setup red LED, lit when any error)
     * 220ohm resitor to pin9, then to status LED (in my setup blue LED, lit when heating is on)
-    * relay voltage +5V to pin8, or to the power 5V and you must comment `RELAY_POWER`
     * relay in to pin10
     * relay GND to GND
     * LED diodes to GND
     * your DHW/Boiler to com and NO (or NC) pins of relay (check your boiler documentation)
   1. Upload Arduino sketch `thermeq3.ino` to Yún using Arduino IDE on your computer
-    * For v150, use `yun-sketch/thermeq3.ino`
-    * For v200+, use `install/beta/thermeq3.info`
+    * For v150, use `yun-sketch/thermeq3/thermeq3.ino`
+    * For v200+, use `yun-sketch/thermeq3_V200/thermeq3_V200.ino`
+    * if you are using DHT sensor, please use `yun-sketch/thermeq3_dht/thermeq3_dht.ino` by @bilbolodz
 1. Via SSH
   * Update `opkg`: `opkg update`
   * Update `wget`: `opkg upgrade wget`

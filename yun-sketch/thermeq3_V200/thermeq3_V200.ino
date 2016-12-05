@@ -3,7 +3,6 @@
 #include <Process.h>
 
 #define RELAY_PIN 10
-// #define RELAY_POWER 8
 #define STATUS_LED 9
 #define ERROR_LED 8
 #define LOOP_LED 13
@@ -46,18 +45,10 @@ void turnIt(boolean onoff) {
   if (sysStatus == onoff) return;
   
   if (onoff) {
-    #ifdef RELAY_POWER
-    digitalWrite(RELAY_POWER, HIGH);
-    delay(500);
-    #endif
     digitalWrite(RELAY_PIN, HIGH);
     digitalWrite(STATUS_LED, HIGH);
   } else {
     digitalWrite(RELAY_PIN, LOW);
-    #ifdef RELAY_POWER
-    delay(500);
-    digitalWrite(RELAY_POWER, LOW);
-    #endif
     digitalWrite(STATUS_LED, LOW);
   }
   sysStatus = onoff;
@@ -118,9 +109,6 @@ void setup() {
   #endif
   
   pinMode(RELAY_PIN, OUTPUT);
-  #ifdef RELAY_POWER
-  pinMode(RELAY_POWER, OUTPUT); 
-  #endif
   pinMode(ERROR_LED, OUTPUT);
   pinMode(STATUS_LED, OUTPUT);
   pinMode(LOOP_LED, OUTPUT);
