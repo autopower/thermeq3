@@ -11,6 +11,16 @@
 
 #define IWANNABESAFE
 
+// define this if you wanna use some optocoupler for relay or reverse logic
+// #define REVERSE_LOGIC
+#ifdef REVERSE_LOGIC
+  #define LOGIC_1 LOW
+  #define LOGIC_0 HIGH
+#else
+  #define LOGIC_1 HIGH
+  #define LOGIC_0 LOW
+#endif
+
 Process p;
 char bridgeBuffer[16];
 boolean sysStatus = false;
@@ -45,10 +55,10 @@ void turnIt(boolean onoff) {
   if (sysStatus == onoff) return;
   
   if (onoff) {
-    digitalWrite(RELAY_PIN, HIGH);
+    digitalWrite(RELAY_PIN, LOGIC_1);
     digitalWrite(STATUS_LED, HIGH);
   } else {
-    digitalWrite(RELAY_PIN, LOW);
+    digitalWrite(RELAY_PIN, LOGIC_0);
     digitalWrite(STATUS_LED, LOW);
   }
   sysStatus = onoff;
