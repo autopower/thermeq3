@@ -42,7 +42,7 @@ Please take a look at this flowchart. This flowchart is simple representation of
     * relay in to pin10
     * relay GND to GND
     * LED diodes to GND
-    * your DHW/Boiler to com and NO (or NC) pins of relay (check your boiler documentation)
+    * your DHW/Boiler to COM and NO (or NC) pins of relay (check your boiler documentation)
   1. Upload Arduino sketch `thermeq3.ino` to Yún using Arduino IDE on your computer
     * For v150, use `yun-sketch/thermeq3/thermeq3.ino`
     * For v200+, use `yun-sketch/thermeq3_V200/thermeq3_V200.ino`
