@@ -230,6 +230,7 @@ you can change valve_pos value (e.g. how many % must be valve opened).
   * `upgrade` checks for upgrade, and if new version is available, upgrades nsm.py
 
 ###In config.py file
+You scan edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
 * `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
 * `stp.fromaddr = "devices@foo.local"` from, user name
 * `stp.toaddr = "user@foo.local"` to email 
