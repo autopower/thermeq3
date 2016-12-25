@@ -25,6 +25,9 @@ table = Profile()
 
 
 def check_day_table():
+    """
+    :return:
+    """
     global table
     if len(table.day) > 1:
         for i in range(len(table.day) - 1):
@@ -34,6 +37,12 @@ def check_day_table():
 
 
 def time_in_range(start, end, x):
+    """
+    :param start:
+    :param end:
+    :param x:
+    :return:
+    """
     today = datetime.date.today()
     start = datetime.datetime.combine(today, start)
     end = datetime.datetime.combine(today, end)
@@ -46,6 +55,9 @@ def time_in_range(start, end, x):
 
 
 def is_time():
+    """
+    :return:
+    """
     global table
     this_now = datetime.datetime.now().time()
     ret_value = -1
@@ -59,6 +71,9 @@ def is_time():
 
 
 def time_mode():
+    """
+    :return:
+    """
     global table
     # day = [0-from_str, 1-to_str, 2-total or per, 3-mode ("total"/"per"), 4-check interval, 5-valves]
     md = is_time()
@@ -72,14 +87,20 @@ def time_mode():
 
 
 def temp_mode():
+    """
+    :return:
+    """
     global table
-    c_temp = int(table.sit["current_temp"])
-    for k in table.temp:
-        kv = table.temp[k]
-        if kv[1] > c_temp >= kv[0]:
-            table.act_mode_idx = k
-            logmsg.update("Switching temp mode to " + str(kv[0]) + " ~ " + str(kv[1]), 'I')
-            return kv
+    if None not in table.sit.viewvalues():
+        c_temp = int(table.sit["current_temp"])
+        for k in range(0, len(table.temp)):
+            kv = table.temp[k]
+            if kv[1] > c_temp >= kv[0]:
+                table.act_mode_idx = k
+                logmsg.update("Switching temp mode to " + str(kv[0]) + " ~ " + str(kv[1]), 'I')
+                return kv
+    else:
+        logmsg.update("Weather situation error", 'E')
 
 
 def do(sel_mode, act_idx, sit):
@@ -105,6 +126,7 @@ def do(sel_mode, act_idx, sit):
         kv = time_mode()
     elif tmp_prof == "TEMP":
         kv = temp_mode()
+
     return [table.selected_mode, table.act_mode_idx, kv]
 
 

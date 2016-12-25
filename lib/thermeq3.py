@@ -15,6 +15,8 @@ import secweb
 import csvfile
 import sys
 import traceback
+
+
 # TBI RPI
 # import action
 
@@ -50,13 +52,13 @@ class Thermeq3Status(object):
 class Thermeq3Setup(object):
     def __init__(self):
         # thermeq3 configuration variables, override in /root/config.py
-        self.version = 223
+        self.version = 231
         # please change to rpi for Raspberry Pi
         self.target = "yun"
         # window ignore time, in minutes
         self.window_ignore_time = 15
         # my IP address
-        self.myip = "127.0.0.1"
+        self.my_ip = "127.0.0.1"
         # sd card or usb key mount point, default is /mnt/sda1/
         self.place = ""
         # where is stderr log located, def setup.place+setup.devname+"_error.log"
@@ -72,15 +74,13 @@ class Thermeq3Setup(object):
         # how many windows must be open to recognize that we are ventilating
         self.ventilate_num = 3
         self.timeout = 10
-        self.extport = 80
-        self.max_ip = ""
-        self.timeout = 10
-        self.extport = 80
-        # which mode is selected
+        self.ext_port = 80
+        # which mode is selected: [TIME, TEMP, NORMAL]
         self.selected_mode = "TIME"
         # control values
         self.preference = "per"
         self.valve_switch = 35
+        # single valve position, no matter what
         self.svpnmw = 80
         self.total_switch = 150
         self.valve_num = 2
@@ -171,7 +171,7 @@ class Thermeq3Setup(object):
             # init path variables
             self.log_filename = self.place + self.devname + ".log"
             self.csv_log = self.place + "csv/" + self.devname + ".csv"
-            self.bridge_file = "d:/root/" + self.devname + ".bridge"
+            self.bridge_file = self.place + self.devname + ".bridge"
             self.stderr_log = self.place + self.devname + "_error.log"
             return True
         else:
@@ -185,7 +185,7 @@ class Thermeq3Setup(object):
                 # init path variables
                 self.log_filename = self.place + self.devname + ".log"
                 self.csv_log = self.place + "csv/" + self.devname + ".csv"
-                self.bridge_file = "/root/" + self.devname + ".bridge"
+                self.bridge_file = self.place + self.devname + ".bridge"
                 self.stderr_log = self.place + self.devname + "_error.log"
                 return True
             elif self.target == "rpi":
@@ -200,7 +200,7 @@ class Thermeq3Setup(object):
                 # init path variables
                 self.log_filename = self.place + self.devname + ".log"
                 self.csv_log = self.place + "csv/" + self.devname + ".csv"
-                self.bridge_file = "/root/" + self.devname + ".bridge"
+                self.bridge_file = self.place + self.devname + ".bridge"
                 self.stderr_log = self.place + self.devname + "_error.log"
                 return True
 
@@ -217,8 +217,8 @@ class Thermeq3Setup(object):
             # threshold, muted for X, time.time()
             "wrn": [6 * 60 * 60, 24 * 60 * 60, tm],
             "err": [0, 0, 0.0],
-            # just sleep value, always calculated as max[0] / slp[1]
-            "slp": [40, 3, 0]}
+            # sleep value
+            "slp": [30, 3, tm]}
         # day windows/intervals
         # day = [0/from_str, 1/to_str, 2/total or per, 3/mode ("total"/"per"), 4/check interval, 5/valves]
         self.day = [
@@ -282,11 +282,36 @@ class Thermeq3Object(object):
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
 
+    def get_target(self):
+        return self.setup.target
+
+    def check_target(self):
+        if self.is_target_yun() and os.name == "posix":
+            return True
+        else:
+            return False
+
+    def is_target_yun(self):
+        if self.get_target() == "yun":
+            return True
+        else:
+            return False
+
     def prepare(self):
         self.eq3 = maxeq3.EQ3Data(self.setup.max_ip, 62910)
         self.setup.init_intervals()
         logmsg.start(self.setup.log_filename)
         self.status.update('s')
+
+        # check if bridge file is in /root, from V230 bridge file is on sd card
+        if os.path.exists("/root/" + self.setup.devname + ".bridge"):
+            result = 0
+            try:
+                result = os.system("mv /root/" + self.setup.devname + ".bridge " + self.setup.place + self.setup.devname + ".bridge")
+            except TypeError:
+                pass
+            if not result >> 8 == 0:
+                logmsg.update("Error " + str(result >> 8) + " during moving bridge file.", 'E')
 
         br_data = bridge.load(self.setup.bridge_file)
         self._literal_process(br_data)
@@ -329,18 +354,23 @@ class Thermeq3Object(object):
         """
         while len(self.var.msgQ) > 0:
             logmsg.update("Message queue: " + str(self.var.msgQ), 'D')
-            tmp_br = bridge.get("msg")
-            logmsg.debug("bridge:", tmp_br)
-            if not tmp_br == "":
-                time.sleep(self.setup.timeout)
-            else:
+            wait_cycle = False
+            if self.is_target_yun():
+                # this is waiting routine to ensure that msg queue is processed by 32u4 part
+                tmp_br = bridge.get("msg")
+                logmsg.debug("bridge:", tmp_br)
+                if not tmp_br == "":
+                    time.sleep(self.setup.timeout)
+                    wait_cycle = True
+            if not wait_cycle:
                 to_send = self.var.msgQ.pop()
                 logmsg.update("Sending message [" + str(to_send) + "]", 'D')
                 if to_send == "R":
                     bridge.save(self.setup.bridge_file)
-                if self.setup.target == "yun":
+                if self.is_target_yun():
+                    # signal to 32u4 that we have something to process
                     bridge.put("msg", to_send)
-                elif self.setup.target == "rpi":
+                elif self.get_target() == "rpi":
                     if to_send == "H":
                         # TBI RPI
                         # uncomment line below for RPi
@@ -351,6 +381,10 @@ class Thermeq3Object(object):
                         # uncomment line below for RPi
                         # action.do(False)
                         pass
+                elif os.name() == "nt":
+                    # insert windows code here
+                    # print "nt"
+                    pass
 
     def export_csv(self, cmd="init"):
         if cmd == "init":
@@ -396,7 +430,7 @@ class Thermeq3Object(object):
         bridge.put("ign", self.eq3.ignored_valves)
 
     # check if its right time to update
-    def _is(self, selector):
+    def isrt(self, selector):
         tm = time.time()
         if tm > self.setup.intervals[selector][2]:
             self.setup.intervals[selector][2] = tm + self.setup.intervals[selector][0]
@@ -578,10 +612,10 @@ class Thermeq3Object(object):
 
     def intervals(self):
         # do upgrade according schedule
-        if self._is("upg"):
+        if self.isrt("upg"):
             self._do_autoupdate()
         # do update variables according schedule
-        if self._is("var"):
+        if self.isrt("var"):
             logmsg.update("Updating variables...")
             self.update_all()
             bridge.save(self.setup.bridge_file)
@@ -589,7 +623,7 @@ class Thermeq3Object(object):
             self.update_ignores_2sit()
             self.set_control_values()
         # check max according schedule
-        if self._is("max"):
+        if self.isrt("max"):
             self._do_beta()
             if self._process_command():
                 return 0xFF
@@ -640,11 +674,11 @@ class Thermeq3Object(object):
         ow = self.get_open_windows()
         eq3_result, eq3_error = self.eq3.read_data(False)
         if eq3_result:
+            # set values
+            self.get_control_values()
             # log messages
             logmsg.update(self._status_msg() + " Checking #" + str(self.setup.intervals["max"][0]) + " sec", 'I')
             logmsg.update(self.eq3.plain(), 'I')
-            # set values
-            self.get_control_values()
             # do control
             self.control()
             # update JSONs
@@ -685,12 +719,13 @@ class Thermeq3Object(object):
         Select profile according to selected profile mode
         :return: nothing
         """
-        sm, am, kk = profiles.do(self.setup.selected_mode, self.var.act_mode_idx, self.var.situation)
-        if sm != self.setup.selected_mode or am != self.var.act_mode_idx:
-            self.setup.selected_mode = sm
-            self.var.act_mode_idx = am
-            self.set_mode(kk)
-            self.set_control_values()
+        if not self.setup.selected_mode == "NORMAL":
+            sm, am, kk = profiles.do(self.setup.selected_mode, self.var.act_mode_idx, self.var.situation)
+            if sm != self.setup.selected_mode or am != self.var.act_mode_idx:
+                self.setup.selected_mode = sm
+                self.var.act_mode_idx = am
+                self.set_mode(kk)
+                self.set_control_values()
 
     def _do_beta(self):
         """
@@ -928,18 +963,22 @@ class Thermeq3Object(object):
         if tmp == 0xFF:
             logmsg.update("Error getting IP address from hostname, please check resolv.conf or hosts or both!", 'E')
         else:
-            self.setup.myip = tmp
+            self.setup.my_ip = tmp
             if public_ip.is_private(tmp):
                 log_str = "Local"
             else:
                 log_str = "Public"
-            logmsg.update(log_str + " IP address: " + self.setup.myip)
+            logmsg.update(log_str + " IP address: " + self.setup.my_ip)
 
     # some warnings
     def send_warning(self, selector, dev_key, body_txt):
         subject = ""
         body = ""
-        d = self.eq3.devices[dev_key]
+        try:
+            d = self.eq3.devices[dev_key]
+        except KeyError:
+            d = [1, "KeyError", "Key Error", 99, 0, datetime.datetime(2016, 01, 01, 12, 00, 00), 18, 56, 7]
+            logmsg.update("Key error: " + str(dev_key), 'E')
         dn = d[2]
         r = d[3]
         rn = self.eq3.rooms[str(r)]
@@ -947,7 +986,8 @@ class Thermeq3Object(object):
         if sil == 1:
             logmsg.update("Warning for device " + str(dev_key) + " is muted!")
             return
-        mute_str = "http://" + self.setup.myip + ":" + str(self.setup.extport) + "/data/put/command/mute" + str(dev_key)
+        mute_str = "http://" + self.setup.my_ip + ":" + str(self.setup.ext_port) + "/data/put/command/mute" + \
+                   str(dev_key)
         if selector == "window":
             dt_now = datetime.datetime.now()
             oww = int((dt_now - self.eq3.windows[dev_key][0]).total_seconds())
@@ -971,7 +1011,7 @@ class Thermeq3Object(object):
                     'a4': str(mute_str),
                     'a5': int(self.setup.intervals["oww"][2] / 60)}
         else:
-            if sil == 0 and not self._is("wrn"):
+            if sil == 0 and not self.isrt("wrn"):
                 return
             if selector == "battery":
                 subject = "Battery status for device " + str(dn) + ". Warning from thermeq3 device"

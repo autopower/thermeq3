@@ -50,13 +50,17 @@ Please take a look at this flowchart. This flowchart is simple representation of
 1. Via SSH
   * Update `opkg`: `opkg update`
   * Update `wget`: `opkg upgrade wget`
-  * Install `thermeq3`
-    * For v150, use  `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/install.sh`
-    * For v200+, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/beta/install.sh|chmod +x /root/install.sh`
-    * Make the installer executable: `chmod +x /root/install.sh`
-    * Run the installer script: `/root/install.sh thermeq3`
+  * Install `thermeq3` (V200+ is current version, V1xx is obsolete, sorry for such mess, fix in progress)
+    * For v150, use  `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/obsolete/install.sh`
+    * For v200+, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/install.sh`
+    * Make the installer executable: `chmod +x /root/install.sh` (if you are upgrading from V231-, skip this step )
+    * Run the installer script: `/root/install.sh thermeq3` (if you are upgrading from V231-, run `/root/upgrade.sh`)
     * Fill out the required values in the config file: `/root/config.py`
       * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
+
+###Upgrading from V2xx to V231+
+If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
+Beta directory is symlink for compatibility and semiauto update.
 
 ## Troubleshooting
 

@@ -3,18 +3,20 @@ import os
 import logmsg
 import json
 
+_os = os.name
+fake_bridge = True
 
-_result = False
-if os.name == "posix":
+if _os == "posix":
     try:
         sys.path.insert(0, "/usr/lib/python2.7/bridge/")
         from bridgeclient import BridgeClient
-        _result = True
+        fake_bridge = False
     except:
-        _result = False
+        pass
 
-if not _result:
-    # if exception, it means no yun, abstraction to bridge, simplyfied code of arduino yun
+if fake_bridge:
+    # if exception = no yun, abstraction to bridge, simplified code inspired by arduino yun
+    # abstract bridge client
     class BridgeClient:
         def __init__(self):
             self.bridge_var = {}
@@ -31,6 +33,9 @@ if not _result:
 
         def put(self, key, value):
             self.bridge_var.update({key: value})
+
+    # run httpd server here
+    # end of abstraction
 
 bridge_client = BridgeClient()
 
@@ -111,17 +116,6 @@ def save(bridge_file):
             logmsg.update("Bridge file saved.", 'D')
             return True
     return False
-
-
-def process_bridge_cw(codeword, def_value, set_value):
-    global bridge_client
-    # check if correct values are loaded
-    if set_value == "" or set_value is None:
-        result = def_value
-    else:
-        result = set_value
-    # put bridge value
-    bridge_client.put(codeword, result)
 
 
 def load(bridge_file):

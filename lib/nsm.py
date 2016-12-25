@@ -2,8 +2,9 @@
 import thermeq3
 import mailer
 import sys
-import time
 import os
+import httplib
+import time
 
 
 def redirect_error(on_off):
@@ -28,6 +29,16 @@ def redirect_error(on_off):
         t3.var.ferr.close()
 
 
+def stop_httpd(port):
+    """
+    Send QUIT request to http server running on localhost:<port>
+    :param port:
+    :return:
+    """
+    conn = httplib.HTTPConnection("localhost:%d" % port)
+    conn.request("QUIT", "/")
+    conn.getresponse()
+
 if __name__ == '__main__':
     t3 = thermeq3.Thermeq3Object()
     if not t3.err_str == "":
@@ -41,9 +52,12 @@ if __name__ == '__main__':
 
     redirect_error(True)
 
+    one_run = False
     while 1:
-        if t3.intervals() == 0xFF:
-            break
+        if t3.isrt("slp"):
+            one_run = True
+            if t3.intervals() == 0xFF:
+                break
         time.sleep(t3.setup.intervals["slp"][0])
 
     redirect_error(False)

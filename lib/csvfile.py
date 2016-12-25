@@ -25,10 +25,21 @@ class CsvObject(object):
         if self.is_init():
             raise NameError("Wrong init!")
         if os.path.exists(self.file):
-            os.rename(self.file,
-                      self.place + self.dev_name + "_" + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + ".csv")
+            try:
+                os.rename(self.file,
+                          self.place + self.dev_name + "_" + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + ".csv")
+            except Exception:
+                pass
         try:
             self.handle = open(self.file, "a")
+        except IOError:
+            this_path = os.path.dirname(self.file)
+            if not os.path.exists(this_path):
+                try:
+                    os.makedirs(this_path)
+                except Exception:
+                    logmsg.update("Can't create directory for CSV files (" + str(this_path) + ")")
+                    raise
         except Exception:
             logmsg.update("Can't open CSV file: " + str(self.file))
             raise
