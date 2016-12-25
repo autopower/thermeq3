@@ -18,7 +18,9 @@ def weather_for_woeid(woeid, owm_api_key):
     humidity = None
 
     if woeid == None:
-        logmsg("Wrong WOEID! Please set WOEID in config.py.", 'E')
+        logmsg.update("Wrong WOEID! Please set WOEID in config.py.", 'E')
+    elif owm_api_key is None:
+        logmsg.update("OWM API key not set!", 'E')
     else:
         # please change u='c' to u='f' for fahrenheit below
         base_url = "https://query.yahooapis.com/v1/public/yql?"

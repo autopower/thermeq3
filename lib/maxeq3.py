@@ -393,8 +393,10 @@ class EQ3Data:
             # WallMountedThermostat (dev_type 3)
             if dev_len == 12:
                 if self.is_valid(valve_info):
+                    # lsb = ord(es[es_pos + 0x08]) & 0b01111111
+                    # msb = (ord(es[es_pos + 0x08]) & 0b00000001) * 256
                     lsb = ord(es[es_pos + 0x08]) & 0b01111111
-                    msb = (ord(es[es_pos + 0x08]) & 0b00000001) * 256
+                    msb = (ord(es[es_pos + 0x08]) & 0b1000000 >> 7) * 256
                     # get set temp
                     valve_temp = float(lsb) / 2
                     # get measured temp
@@ -408,8 +410,10 @@ class EQ3Data:
             elif dev_len == 11:
                 valve_pos = ord(es[es_pos + 0x07])
                 if self.is_valid(valve_info):
+                    # lsb = ord(es[es_pos + 0x08]) & 0b01111111
+                    # msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
                     lsb = ord(es[es_pos + 0x08]) & 0b01111111
-                    msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
+                    msb = (ord(es[es_pos + 0x08]) & 0b00000001) * 256
                     # get set temp
                     valve_temp = float(lsb) / 2
                     # extract room name from this HeatingThermostat
