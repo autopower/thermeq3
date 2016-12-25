@@ -79,6 +79,13 @@ And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/203
 There's always new code, which seems to work on my development thermeq :)
 
 ##What's new?
+###2016-Dec-25
+* bridge file moved to sd card, if found in `/root` then moved do sd card
+* some new shell scripts below
+  * [upgrade](https://github.com/autopower/thermeq3/tree/master/install/upgrade.sh) thermeq3
+  * [recreate uhttpd files](https://github.com/autopower/thermeq3/tree/master/install/recreate_http.sh) on sd card
+  * [create nsm file](https://github.com/autopower/thermeq3/tree/master/install/create_nsm.sh) in `/root`, just for compatibility issues 
+
 ###2016-Nov-13
 * RPi preparedness. Please follow instruction in code. Unfortunatelly I don't have RPi to test it, please report if you need any changes.
 
