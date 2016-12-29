@@ -66,6 +66,10 @@ def start(log_filename):
     :return:
     """
     global logger
+    if log_filename is "" or log_filename is None:
+        # set default log filename
+        log_filename = "/mnt/sda1/thermeq3.log"
+
     logger = logging.getLogger("thermeq3")
     logger.setLevel(logging.DEBUG)
 
