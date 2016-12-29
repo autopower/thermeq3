@@ -148,6 +148,10 @@ class Thermeq3Setup(object):
 
     def init_paths(self):
         if os.name == "nt":
+            if os.path.exists("t:/mnt/sda1"):
+                self.place = "t:/mnt/sda1/"
+            elif os.path.exists("t:/mnt/sdb1"):
+                self.place = "t:/mnt/sdb1/"
             else:
                 return False
             # init path variables
