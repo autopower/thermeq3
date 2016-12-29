@@ -2,7 +2,7 @@
 If something goes wrong, please do some diagnostics and paste results to the issues.
 Or run:
 ```
-wget --no-check-certificate --quiet --output-document /root/diag.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/diag/diag.sh|chmod +x /root/diag.sh
+wget --no-check-certificate --quiet --output-document /root/diag.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/diag/diag.sh;chmod +x /root/diag.sh
 ```
 If everything goes ok, run `./diag.sh <max!cube ip address>`, e.g. `./diag.sh 192.168.0.222`. And send me `/root/diag.txt`.
 
@@ -24,16 +24,17 @@ Please check log file for version you are using. Find line like this:
 thermeq3 - INFO - --> V139 started with PID=1851 <--
 ```
 It tells you, that you are using version 139.
-Latest version is 147.
-If you are using beta, latest is 210.
 You can always check latest version for:
-* production, in [autoupdate file](https://github.com/autopower/thermeq3/blob/master/install/autoupdate.data)
+* production, in [autoupdate file](https://github.com/autopower/thermeq3/blob/master/install/current/autoupdate.data)
 * beta, in [autoupdate file](https://github.com/autopower/thermeq3/blob/master/install/beta/autoupdate.data)
 
 First 3 chars denote version. 
 
 ##config.py file
-Did you edit `config.py` file correctly?
+Did you edit `config.py` file correctly? Check for common mistakes such:
+* all values must be string, 
+* no API key for openweather
+* wrong woeid
 
 ##Log file, error log
 Please check your error log (located in `/mnt/sda1` or `/mnt/sdb1` or `/root` directory, depends on version and file).
@@ -63,6 +64,13 @@ thermeq3 - ERROR - Traceback: Traceback (most recent call last):
     for res in getaddrinfo(host, port, 0, SOCK_STREAM):
 ```
 Probably you din't edit config.py file with correct mail server information/credentials.
+
+##Everything installed correctly, but nothing happens
+* did you upload sketch file (.ino)?
+* if arduino starts blink 4x, then LED is on, blinks 4x again?
+* if you login to linux part, `/root/psg` reports fully functional bridge (`python -d bridge`)?
+* did you insert SD crad or USB key?
+* is this storage correctly formated (fat32, extfs2/3/4)?
 
 ##Any problem or question
 Keep asking! If you have any problem or issue, just ask on [facebook](https://www.facebook.com/autopow) or via [email](mailto:autopowerdevice@gmail.com).
