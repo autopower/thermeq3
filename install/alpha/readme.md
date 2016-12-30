@@ -1,7 +1,7 @@
 #Alpha version
 
 Not so very well tested version.
-Just for upgrade issues.
+Just for test issues.
 
 ##Whats new?
 * new config file format (json)
