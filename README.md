@@ -81,6 +81,10 @@ And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/203
 
 
 ##What's new?
+###2016-Dec-30
+* for the bravest there is an [alpha channel](https://github.com/autopower/thermeq3/tree/master/install/alpha)
+* this is only for upgrade, please use [this upgrade script](https://github.com/autopower/thermeq3/tree/master/install/alpha/upgrade.sh)
+
 ###2016-Dec-25
 * bridge file moved to sd card, if found in `/root` then moved do sd card
 * some new shell scripts below
