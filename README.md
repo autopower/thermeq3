@@ -76,8 +76,8 @@ You scan edit `config.py` file with default editor `vi`. If you are no familiar 
 * `stp.extport = 29080` external port, this is the port (typically) on firewall where NAT is defined (so you can mute thermeq3 from internet), please setup your firewall/router to such scenario
 * `stp.owm_api_key = "your owm api key"` this is API key for OWM service
 
-For V200+ is `stp.`` replaced with `self.setup.` or `self.`
-Version 231+ automatically reads od config.py file format (plain python code) and converts it to JSON format.
+For V200+ `stp.` is replaced with `self.setup.` or `self.`
+Version 231+ automatically read old config.py file format (plain python code) and converts it to JSON format.
 
 ###Some variables in bridge
 You can access variables by using standard yún bridge: `http://arduino.local/data/get/<variable_name>`
