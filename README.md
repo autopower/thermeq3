@@ -14,25 +14,23 @@ thermeq3 features:
 * daily summary
 * simple html status on user selectable port (via uhttpd)
 
-##How it works (part I)?
-Please take a look at this flowchart. This flowchart is simple representation of decision process. Green color denotes variables.
-![flow1](https://raw.githubusercontent.com/autopower/thermeq3/master/flowchart/flowchart_1.png)
-
-##Setup
-
-### Equipment
-
+## Equipment
 * Arduino Yún
 * 5V relay
-* two or three (or one RGB LED) LED diodes and min 220ohm resistors
+* three LED diodes (or one RGB LED) and min 220ohm resistors
 * installed and correctly running ELV/EQ-3 MAX! Cube
 * boiler with switched heat by wire, via relay
 * python-openssl library `opkg update; opkg install python-openssl`
 * credentials for mail server with TLS (or modify code)
 * storage space on microSD or USB
+ 
+##Setup
+Please follow these steps:
+* setup and install hardware
+* install application
+* modify config
 
-### Installation
-
+###Setup and install hardware
 1. Verify your ELV/EQ-3 MAX! Cube is up and running, and get its IP address.
 1. On Arduino Yún or other Linux board with Arduino's Python Bridge library installed
   1. Wire 3 status LEDs and boiler relay as per `sketch` directory (circuit diagram or Fritzing sketch)
@@ -44,26 +42,66 @@ Please take a look at this flowchart. This flowchart is simple representation of
     * LED diodes to GND
     * your DHW/Boiler to COM and NO (or NC) pins of relay (check your boiler documentation)
   1. Upload Arduino sketch `thermeq3.ino` to Yún using Arduino IDE on your computer
-    * For v150, use `yun-sketch/thermeq3/thermeq3.ino`
     * For v200+, use `yun-sketch/thermeq3_V200/thermeq3_V200.ino`
     * if you are using DHT sensor, please use `yun-sketch/thermeq3_dht/thermeq3_dht.ino` by @bilbolodz
-1. Via SSH
-  * Update `opkg`: `opkg update`
-  * Update `wget`: `opkg upgrade wget`
-  * Install `thermeq3` (V200+ is current version, V1xx is obsolete, sorry for such mess, fix in progress)
-    * For v150, use  `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/obsolete/install.sh`
-    * For v200+, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/install.sh`
-    * Make the installer executable: `chmod +x /root/install.sh` (if you are upgrading from V231-, skip this step )
-    * Run the installer script: `/root/install.sh thermeq3` (if you are upgrading from V231-, run `/root/upgrade.sh`)
-    * Fill out the required values in the config file: `/root/config.py`
-      * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
+    * For v150, use `yun-sketch/thermeq3/thermeq3.ino` (this is obsolete version)
+
+###Install application
+Access yún via ssh (e.g. Windows users can use putty)
+* Update `opkg`: `opkg update`
+
+* Update `wget`: `opkg upgrade wget`
+
+* Install `thermeq3` (V200+ is current version, V1xx is obsolete, sorry for 
+such mess, fix in progress) * For v200+, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/install.sh` 
+* For v150, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/obsolete/install.sh` 
+* Make the installer executable: `chmod +x /root/install.sh`
+* Run the installer script: `/root/install.sh <your installation name>` (if you are upgrading from V231-, run `/root/upgrade.sh`), for example `/root/install.sh <boilerstarter>`, this `boilerstarter` name will be used as 
+device name
+* Edit required values in the config file: `/root/config.py`* * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
 
 ###Upgrading from V2xx to V231+
-If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
-Beta directory is symlink for compatibility and semiauto update.
+**If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
+
+###Modify config.py file
+You scan edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
+* `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
+* `stp.fromaddr = "devices@foo.local"` from, user name
+* `stp.toaddr = "user@foo.local"` to email 
+* `stp.mailserver = "mail.foo.local"` via this server
+* `stp.mailport = 25` on this port
+* `stp.frompwd = "this.is.password"` login with this password
+* `stp.devname = "hellmostat"` device name
+* `stp.timeout = 10` timeout in secods, used in communicating with MAX! Cube and as a sleep time for flushing msg queue, set to similar value as `unsigned long interval` in arduino sketch
+* `stp.extport = 29080` external port, this is the port (typically) on firewall where NAT is defined (so you can mute thermeq3 from internet), please setup your firewall/router to such scenario
+* `stp.owm_api_key = "your owm api key"` this is API key for OWM service
+
+For V200+ is `stp.`` replaced with `self.setup.` or `self.`
+
+###Some variables in bridge
+You can access variables by using standard yún bridge: `http://arduino.local/data/get/<variable_name>`
+* `devname` = device name
+* `error` = errors since last status reports
+* `status` = status of device (heating, idle, starting, error)
+* `totalerrs` = total errors from start
+* `valve_pos` = see above
+* `total_switch` = sum of valve positions, no matter how many valves are in house
+* `interval` = see above
+* `heattime` = total heat time from start, in seconds
+* `command` = can be:
+  * `quit` quits application
+  * `mail` sends status report via mail
+  * `init` reinits python app
+  * `uptime` updates uptime value
+  * `log_debug` turns on logging on debug level
+  * `log_info` turns on loggin on info level (default)
+  * `mute` mutes warning for defined interval
+  * `rebridge` reloads bridge file
+  * `updatetime` updates uptime and heat time
+  * `led` turns on or off heating LED (according to current heat status)
+  * `upgrade` checks for upgrade, and if new version is available, upgrades thermeq3
 
 ## Troubleshooting
-
 See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/install/diag/README.md)
  
 ##How to ignore some valves "forever"
@@ -202,7 +240,10 @@ There are two parts of thermeq3:
 * python code, upload into /root/ files nsm.py and config.py and then please edit config.py
 * arduino code, upload with IDE
 
-##How it works (part II)?
+##How it works?
+Please take a look at this flowchart. This flowchart is simple representation of decision process. Green color denotes variables.
+![flow1](https://raw.githubusercontent.com/autopower/thermeq3/master/flowchart/flowchart_1.png)
+
 Arduino sketch runs python script `nsm.py` located in /root. And then check if it's running.
 If not, runs it again from start. This script reads status from MAX! Cube and if any of radiator 
 thermostat's valve is opened above `valve_pos` value, the relay is switched on, thus boiler/DHW is switched on.
@@ -221,43 +262,6 @@ to change 'interval' setting. E.g. if your browse to `http://arduino.ip/data/put
 you can change valve_pos value (e.g. how many % must be valve opened).
 
 ##What I can change?
-###In Python code
-* `devname` = device name
-* `error` = errors since last status reports
-* `status` = status of device (heating, idle, starting, error)
-* `totalerrs` = total errors from start
-* `valve_pos` = see above
-* `total_switch` = sum of valve positions, no matter how many valves are in house
-* `interval` = see above
-* `heattime` = total heat time from start, in seconds
-* `command` = can be:
-  * `quit` quits application
-  * `mail` sends status report via mail
-  * `init` reinits python app
-  * `uptime` updates uptime value
-  * `log_debug` turns on logging on debug level
-  * `log_info` turns on loggin on info level (default)
-  * `mute` mutes warning for some time
-  * `rebridge` reloads bridge file
-  * `updatetime` updates uptime and heat time
-  * `led` turns on or off heating LED (according to current heat status)
-  * `upgrade` checks for upgrade, and if new version is available, upgrades nsm.py
-
-###In config.py file
-You scan edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
-* `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
-* `stp.fromaddr = "devices@foo.local"` from, user name
-* `stp.toaddr = "user@foo.local"` to email 
-* `stp.mailserver = "mail.foo.local"` via this server
-* `stp.mailport = 25` on this port
-* `stp.frompwd = "this.is.password"` login with this password
-* `stp.devname = "hellmostat"` device name
-* `stp.timeout = 10` timeout in secods, used in communicating with MAX! Cube and as a sleep time for flushing msg queue, set to similar value as `unsigned long interval` in arduino sketch
-* `stp.extport = 29080` external port, this is the port (typically) on firewall where NAT is defined (so you can mute thermeq3 from internet), please setup your firewall/router to such scenario
-* `stp.owm_api_key = "your owm api key"` this is API key for OWM service
-
-For V200+ is `stp.`` replaced with `self.setup.`
-
 ###In arduino sketch
 * `#define DEBUG_PRG` if you wanna print debug values via serial connection
 * `#define RELAY_PIN 10` where is the relay pin?
