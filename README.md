@@ -58,7 +58,8 @@ such mess, fix in progress) * For v200+, use `wget --no-check-certificate --quie
 * Make the installer executable: `chmod +x /root/install.sh`
 * Run the installer script: `/root/install.sh <your installation name>` (if you are upgrading from V231-, run `/root/upgrade.sh`), for example `/root/install.sh <boilerstarter>`, this `boilerstarter` name will be used as 
 device name
-* Edit required values in the config file: `/root/config.py`* * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
+* **Edit required values in the config file: `/root/config.py`** 
+* You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
 
 ###Upgrading from V2xx to V231+
 **If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
