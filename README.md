@@ -77,6 +77,7 @@ You scan edit `config.py` file with default editor `vi`. If you are no familiar 
 * `stp.owm_api_key = "your owm api key"` this is API key for OWM service
 
 For V200+ is `stp.`` replaced with `self.setup.` or `self.`
+Version 231+ automatically reads od config.py file format (plain python code) and converts it to JSON format.
 
 ###Some variables in bridge
 You can access variables by using standard yún bridge: `http://arduino.local/data/get/<variable_name>`
@@ -101,9 +102,11 @@ You can access variables by using standard yún bridge: `http://arduino.local/da
   * `led` turns on or off heating LED (according to current heat status)
   * `upgrade` checks for upgrade, and if new version is available, upgrades thermeq3
 
-## Troubleshooting
-See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/install/diag/README.md)
- 
+##How to change value?
+If you want change some values when nsm.py is running, just browse to `http://arduino.ip/data/put/interval/<your value>` 
+to change 'interval' setting. E.g. if your browse to `http://arduino.ip/data/put/valve_pos/<your value>` 
+you can change valve_pos value (e.g. how many % must be valve opened).
+
 ##How to ignore some valves "forever"
 It's really simple. After succesfull start of thermeq3, check log file for heater thermostat IDs (HT).
 Then find out bridge file and run editor (vi for example).
@@ -117,7 +120,9 @@ Save file and wait. If you aren't sporting `vi` just use browser and set ignored
 `http://<arduino.local>/data/put/ignored/{"06ABCD": 1924991999, "06ABCE": 1924991999}`
 And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/2030. 
 
-
+## Troubleshooting
+See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/install/diag/README.md)
+ 
 ##What's new?
 ###2016-Dec-30
 * for the bravest there is an [alpha channel](https://github.com/autopower/thermeq3/tree/master/install/alpha)
@@ -245,9 +250,9 @@ Please take a look at this flowchart. This flowchart is simple representation of
 ![flow1](https://raw.githubusercontent.com/autopower/thermeq3/master/flowchart/flowchart_1.png)
 
 Arduino sketch runs python script `nsm.py` located in /root. And then check if it's running.
-If not, runs it again from start. This script reads status from MAX! Cube and if any of radiator 
+If not, runs it again from beginning. This script reads status from MAX! Cube and if any of radiator 
 thermostat's valve is opened above `valve_pos` value, the relay is switched on, thus boiler/DHW is switched on.
-This is done by saving char into the 'msg' bridge value, which is readable at Arduino side.
+This is done by saving char into the 'msg' bridge value, which is readable at Arduino (32u4) side.
 Heating also can be started if sum of radiator valves positions are geater than `num_of_valves * stp.per_switch`, 
 where `stp.per_switch` is value in %. So if you have 10 valves in house and `stp.per_switch=8`, and sum of these
 valves positions are 80+, relay is switched on. You can turn on this feature by `stp.preference="per"` in python code.
@@ -255,11 +260,6 @@ If you need only simple total value, set `stp.preference="total"` and setup `tot
 
 On start LEDs blink 4 times, then remains lit until arduino yun bridge component is initialized. 
 Then blinks 4 times again.
-
-##How to change values?
-If you want change some values when nsm.py is running, just browse to `http://arduino.ip/data/put/interval/<your value>` 
-to change 'interval' setting. E.g. if your browse to `http://arduino.ip/data/put/valve_pos/<your value>` 
-you can change valve_pos value (e.g. how many % must be valve opened).
 
 ##What I can change?
 ###In arduino sketch
