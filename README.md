@@ -65,6 +65,7 @@ device name
 **If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
 
 ###Modify config.py file
+If you are using V231+ please use current config file in JSON format with name `thermeq.json`
 You scan edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
 * `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
 * `stp.fromaddr = "devices@foo.local"` from, user name
@@ -125,6 +126,9 @@ And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/203
 See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/install/diag/README.md)
  
 ##What's new?
+###2017-Jan-14
+* file del_dev.py in support directory for deleting devices from cube. In case that you have corrupted condfiguration and many Wrong address errors in log file.
+
 ###2016-Dec-30
 * for the bravest there is an [alpha channel](https://github.com/autopower/thermeq3/tree/master/install/alpha)
 * this is only for upgrade, please use [this upgrade script](https://github.com/autopower/thermeq3/tree/master/install/alpha/upgrade.sh)
