@@ -22,10 +22,11 @@ cd $DIR
 cd www/cgi-bin
 
 echo "#!/bin/sh
-/usr/bin/env python /mnt/sda1/www/cgi-bin/dashboard.py" > dash
+/usr/bin/env python $DIR/www/cgi-bin/dashboard.py" > dash
 chmod +x dash
 
 if ! grep -q "0.0.0.0:8180" /etc/config/uhttpd; then
 	echo "Wrong uhttpd configuration..."
 	exit 1
+fi
 echo "Dashboard succesfully installed. Before browsing to http://arduino.ip:8180/cgi-bin/dash please edit credentials in dashboard.py file"
