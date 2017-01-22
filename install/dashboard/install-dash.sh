@@ -1,5 +1,4 @@
 #!/bin/ash
-echo Downloading dashboard...
 if [ -d /mnt/sda1 ]; then
 	DIR=/mnt/sda1
 else
@@ -11,15 +10,28 @@ else
 	fi
 fi
 echo "Using $DIR/www/cgi-bin as cgi-bin path."
+cd $DIR
+cd www/cgi-bin
 
+echo "Downloading bootstrap"
+wget --no-check-certificate --quiet --output-document $DIR/www/bootstrap.zip https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-dist.zip
+echo "Unzipping bootstrap"
+unzip $DIR/www/bootstrap.zip -d $DIR/www/
+if [ $? -ne 0 ]; then
+	echo "Error during unzipping thermeq3 app: $?"
+	exit $?
+fi
+echo "Moving bootstrap..."
+cp -R $DIR/www/bootstrap-3.3.7-dist/* $DIR/www/
+rm -rf $DIR/www/bootstrap-3.3.7-dist/
+rm -rf $DIR/www/bootstrap.zip
+
+echo "Downloading dashboard..."
 wget --no-check-certificate --quiet --output-document $DIR/www/cgi-bin/dashboard.py https://github.com/autopower/thermeq3/raw/master/install/dashboard/dashboard.py
 if [ $? -ne 0 ]; then
 	echo "Error during downloading dahsboard: $?"
 	exit $?
 fi
-
-cd $DIR
-cd www/cgi-bin
 
 echo "#!/bin/sh
 /usr/bin/env python $DIR/www/cgi-bin/dashboard.py" > dash
