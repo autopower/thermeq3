@@ -1,4 +1,4 @@
-#thermeq3
+# thermeq3
 Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.eq-3.de/max-heizungssteuerung-produktdetail-kopie/items/bc-lgw-o-tw.html). Monitors radiators with MAX! eTRVs, so that the boiler will fire up when any radiator calls for heat. You will need a boiler with switched heat via wire, ie. an external thermostat. This will replace that. Designed to run on Arduino Yún.
 
 thermeq3 features:
@@ -24,13 +24,13 @@ thermeq3 features:
 * credentials for mail server with TLS (or modify code)
 * storage space on microSD or USB
  
-##Setup
+## Setup
 Please follow these steps:
 * setup and install hardware
 * install application
 * modify config
 
-###Setup and install hardware
+### Setup and install hardware
 1. Verify your ELV/EQ-3 MAX! Cube is up and running, and get its IP address.
 1. On Arduino Yún or other Linux board with Arduino's Python Bridge library installed
   1. Wire 3 status LEDs and boiler relay as per `sketch` directory (circuit diagram or Fritzing sketch)
@@ -46,7 +46,7 @@ Please follow these steps:
     * if you are using DHT sensor, please use `yun-sketch/thermeq3_dht/thermeq3_dht.ino` by @bilbolodz
     * For v150, use `yun-sketch/thermeq3/thermeq3.ino` (this is obsolete version)
 
-###Install application
+### Install application
 Access yún via ssh (e.g. Windows users can use putty)
 * Update `opkg`: `opkg update`
 
@@ -61,10 +61,10 @@ device name
 * **Edit required values in the config file: `/root/config.py`** 
 * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
 
-###Upgrading from V2xx to V231+
+### Upgrading from V2xx to V231+
 **If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
 
-###Modify config.py file
+### Modify config.py file
 If you are using V231+ please use current config file in JSON format with name `thermeq.json`
 You scan edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
 * `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
@@ -81,7 +81,7 @@ You scan edit `config.py` file with default editor `vi`. If you are no familiar 
 For V200+ `stp.` is replaced with `self.setup.` or `self.`
 Version 231+ automatically read old config.py file format (plain python code) and converts it to JSON format.
 
-###Some variables in bridge
+### Some variables in bridge
 You can access variables by using standard yún bridge: `http://arduino.local/data/get/<variable_name>`
 * `devname` = device name
 * `error` = errors since last status reports
@@ -104,12 +104,12 @@ You can access variables by using standard yún bridge: `http://arduino.local/da
   * `led` turns on or off heating LED (according to current heat status)
   * `upgrade` checks for upgrade, and if new version is available, upgrades thermeq3
 
-##How to change value?
+## How to change value?
 If you want change some values when nsm.py is running, just browse to `http://arduino.ip/data/put/interval/<your value>` 
 to change 'interval' setting. E.g. if your browse to `http://arduino.ip/data/put/valve_pos/<your value>` 
 you can change valve_pos value (e.g. how many % must be valve opened).
 
-##How to ignore some valves "forever"
+## How to ignore some valves "forever"
 It's really simple. After succesfull start of thermeq3, check log file for heater thermostat IDs (HT).
 Then find out bridge file and run editor (vi for example).
 Look for "ignored" word (with quotes), if it's empty (looks like `"ignored":{}`) and update. Let be HT1=06ABCD and HT2=06ABCE, then ignored will look like this:
@@ -125,15 +125,15 @@ And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/203
 ## Troubleshooting
 See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/install/diag/README.md)
  
-##What's new?
+## What's new?
 ###2017-Jan-14
 * file del_dev.py in support directory for deleting devices from cube. In case that you have corrupted condfiguration and many Wrong address errors in log file.
 
-###2016-Dec-30
+### 2016-Dec-30
 * for the bravest there is an [alpha channel](https://github.com/autopower/thermeq3/tree/master/install/alpha)
 * this is only for upgrade, please use [this upgrade script](https://github.com/autopower/thermeq3/tree/master/install/alpha/upgrade.sh)
 
-###2016-Dec-25
+### 2016-Dec-25
 * bridge file moved to sd card, if found in `/root` then moved do sd card
 * some new shell scripts below
   * [upgrade](https://github.com/autopower/thermeq3/tree/master/install/upgrade.sh) thermeq3
@@ -141,101 +141,101 @@ See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/in
   * [create nsm file](https://github.com/autopower/thermeq3/tree/master/install/create_nsm.sh) in `/root`, just for compatibility issues 
 * wall thermostat temperature fixed
 
-###2016-Nov-13
+### 2016-Nov-13
 * RPi preparedness. Please follow instruction in code. Unfortunatelly I don't have RPi to test it, please report if you need any changes.
 
-###2016-Nov-01
+### 2016-Nov-01
 * Lot of fixes. 
 
-###2016-Apr-08
+### 2016-Apr-08
 * to use "current" temperature for loggging find out this text `# comment line below to use current temp` in nsm.py (for V1xx) or in thermeq3.py (for V2xx) and follow 
 instructions. Please keep in mind, that current temperature on heater thermostat can be 0.0 (zero) because of limitations of HT! 
 
-###2016-Mar-12
+### 2016-Mar-12
 * despite fact that V1xx is obsolete, here is the new version, V152, fixing some bugs, thanks to TonyV from UK :0
 
-###2015-Dec-18
+### 2015-Dec-18
 * lib version updated
 
-###2015-Dec-13
+### 2015-Dec-13
 * directory structure reorganised
 * new install script for all version (old one in one file (nsm.py), new one with libraries)
 
-###2015-Dec-11
+### 2015-Dec-11
 * some cleanup on github
 
-###2015-Dec-10
+### 2015-Dec-10
 * new librarysed version in betabeat
 * new install script for lib version in scripts
 * some code overhaul :)
 
-###2015-Dec-04
+### 2015-Dec-04
 * betabeat: new RPi version 
 
-###2015-Nov-28
+### 2015-Nov-28
 * betabeat: bridge routine rewrited, some support for literal processing
 * betabeat: ignore intervals corrected
 * betabeat: you can ignore valve forever, just edit bridgefile and to ign codeword add valveserial and time since epoch=1924991999, its 31/Dec/2030 :), e.g. {"06ABCD": 1924991999}
 * betabeat: new boiler controlling variable, svpnmw (Single Valve Position, No Matter What) in %, if any of valves opened more than svpnmw then heating is on, to turn off just set to 101% 
 
-###2015-Nov-27
+### 2015-Nov-27
 * betabeat: new weather API used, yahoo YQL and OWM, API key for OWM is from OWM example page, please change it
 * just for sure, use "new" bridge python library from https://codeload.github.com/arduino/YunBridge/zip/master
 
-###2015-Nov-26
+### 2015-Nov-26
 * new codeword, mode, can be auto or manual, added after request, in auto mode thermeq3 sends H/S commands to arduino part, in manual mode do nothing :)
 
-###2015-Nov-02
+### 2015-Nov-02
 * betabeat: some javascript code (based on jquery ui) to control device, ugly, not fully functional, first steps with JS and CSS ;)
 * betabeat: code cleanup
 
-###2015-Nov-01
+### 2015-Nov-01
 * betabeat: new arduino command A, clears LED
 * betabeat: some cleanup, codeword dump removed
 
-###2015-Oct-31
+### 2015-Oct-31
 * minor fixes
 * new status messages
 * JSON formated string in current status
 
-###2015-Oct-21
+### 2015-Oct-21
 * some fix in RPi version, please check commented code and uncomment (setblocking)
 * if anyone need room names in CSV, uncomment code in exportCSV()
 * minor updates 
 
-###2015-Oct-10
+### 2015-Oct-10
 * minor updates, betabeat and production are the same version
 * alpha RPi version, only change is the abstraction code replacing bridgeclient (but as reported from users, it works! :)) 
 
-###2015-Mar-23
+### 2015-Mar-23
 * minor updates
 
-###2015-Mar-15
+### 2015-Mar-15
 * updating valve ignore interval according to outer temperature
 
-###2015-Jan-18
+### 2015-Jan-18
 * more pythonic code, classes etc.
 
-###2015-Jan-07
+### 2015-Jan-07
 * betabeat: yahoo weather and oww interval sampling working
 * betabeat: in secondary web folder `nice.html` file is generated, contains nice formated status (hm, if pre means nice)
 
-###2015-Jan-06
+### 2015-Jan-06
 * support for yahoo weather, stay tuned for open window interval auto update by actual weather situation (temperature, humidity), better ventilation 'support'
 * resample function
 * support directory in betabeat, check code for sampling function, modify to your needs
 
-###2015-Jan-03
+### 2015-Jan-03
 * betabeat: if webserver directory not exist, is created
 * betabeat: correct response on secondary web server, eg: http://arduino.ip:second_port/cgi-bin/status returns app/json from status.xml file
 
-###2014-Dec-28
+### 2014-Dec-28
 * betabeat: open window list and current status separated into secondary web server as xml files, accessible w/o any credentials
 
-###2014-Dec-27
+### 2014-Dec-27
 * Simple install script: update opkg, installs openssl for python, create some scripts for nsm.py controlling.
 
-###2014-Dec-26
+### 2014-Dec-26
 * Ignoring valve after closing window
 * Redesigned rooms/valves listing in log file
 * Support for tasker, new bridge values: openwinlist and current_status, please take a look at `tasker` directory, there's simple example how to list open windows. Usefull especially when leaving house :)
@@ -245,12 +245,12 @@ instructions. Please keep in mind, that current temperature on heater thermostat
 
 
 
-##Code
+## Code
 There are two parts of thermeq3:
 * python code, upload into /root/ files nsm.py and config.py and then please edit config.py
 * arduino code, upload with IDE
 
-##How it works?
+## How it works?
 Please take a look at this flowchart. This flowchart is simple representation of decision process. Green color denotes variables.
 ![flow1](https://raw.githubusercontent.com/autopower/thermeq3/master/flowchart/flowchart_1.png)
 
@@ -266,8 +266,8 @@ If you need only simple total value, set `stp.preference="total"` and setup `tot
 On start LEDs blink 4 times, then remains lit until arduino yun bridge component is initialized. 
 Then blinks 4 times again.
 
-##What I can change?
-###In arduino sketch
+## What I can change?
+### In arduino sketch
 * `#define DEBUG_PRG` if you wanna print debug values via serial connection
 * `#define RELAY_PIN 10` where is the relay pin?
 * `#define RELAY_POWER 8` where is the power for relay? undef if relay is connected to 5V directly
@@ -280,7 +280,7 @@ Then blinks 4 times again.
 * `unsigned long interval = 10*1000;` loop interval in seconds, arduino'll check for messages every 10 seconds, change 10 to anything you want
 * `unsigned long app_interval = 10*60000;` check for running app interval in minutes, change 10 to anything you want
 
-##Messages for arduino
+## Messages for arduino
 * `H` heat!
 * `S` stop heating!
 * `E` error, error LED is lit
@@ -290,7 +290,7 @@ Then blinks 4 times again.
 * `D` dead! status LED breathing
 * `R` restart app, eg. after upgrade
 
-##How to debug?
+## How to debug?
 Python code produce these files:
 * `/mnt/sd<x1>/csv/<device_name>.csv`, simple comma separated value file with valve positions and temperature readings
 * `/mnt/sd<x1>/<device_name>.log`, log file, really huge on `log_debug`
@@ -300,4 +300,4 @@ Python code produce these files:
 
 Please note, that x1 stands for a1 or b1, so full path will be `/mnt/sda1` or `/mnt/sdb1`.
 
-###Thats all folks. Stay tuned :)
+### Thats all folks. Stay tuned :)
