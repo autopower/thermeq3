@@ -49,23 +49,26 @@ Please follow these steps:
 ### Install application
 Access yún via ssh (e.g. Windows users can use putty)
 * Update `opkg`: `opkg update`
-
 * Update `wget`: `opkg upgrade wget`
-
-* Install `thermeq3` (V200+ is current version, V1xx is obsolete, sorry for 
-such mess, fix in progress) * For v200+, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/install.sh` 
-* For v150, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/obsolete/install.sh` 
-* Make the installer executable: `chmod +x /root/install.sh`
-* Run the installer script: `/root/install.sh <your installation name>` (if you are upgrading from V231-, run `/root/upgrade.sh`), for example `/root/install.sh <boilerstarter>`, this `boilerstarter` name will be used as 
+* Install `thermeq3`, please look below for help  
+* Run the installer script: `/root/install.sh <your installation name>` (if you are upgrading from V231-, run `/root/upgrade.sh`), for example `/root/install.sh boilerstarter`, this `boilerstarter` name will be used as 
 device name
-* **Edit required values in the config file: `/root/config.py`** 
+* **Edit required values in the config file** Please take a look below how to modify config file. 
 * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
+
+### I want to install latest working alpha version
+Just use `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/alpha/upgrade.sh;chmod +x /root/upgrade.sh`
+ 
+### I want to install version below 231
+For v200+, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/install.sh;chmod +x /root/upgrade.sh`
+
+### I want to install v150
+Versions below 200 are obsolete! For v150, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/obsolete/install.sh;chmod +x /root/upgrade.sh`
 
 ### Upgrading from V2xx to V231+
 **If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
 
 ### Modify config.py file
-If you are using V231+ please use current config file in JSON format with name `thermeq.json`
 You scan edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
 * `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
 * `stp.fromaddr = "devices@foo.local"` from, user name
@@ -78,8 +81,9 @@ You scan edit `config.py` file with default editor `vi`. If you are no familiar 
 * `stp.extport = 29080` external port, this is the port (typically) on firewall where NAT is defined (so you can mute thermeq3 from internet), please setup your firewall/router to such scenario
 * `stp.owm_api_key = "your owm api key"` this is API key for OWM service
 
-For V200+ `stp.` is replaced with `self.setup.` or `self.`
-Version 231+ automatically read old config.py file format (plain python code) and converts it to JSON format.
+For V200+ `stp.` is replaced with `self.setup.` or `self.` so `stp.max_ip` becomes `self.setup.max_ip` 
+**Version 231+ automatically reads old config.py file format (plain python code) and converts it to JSON format.**
+If you are using V231+ please use current config file in JSON format with name `thermeq.json`
 
 ### Some variables in bridge
 You can access variables by using standard yún bridge: `http://arduino.local/data/get/<variable_name>`
@@ -126,7 +130,7 @@ And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/203
 See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/install/diag/README.md)
  
 ## What's new?
-###2017-Jan-14
+### 2017-Jan-14
 * file del_dev.py in support directory for deleting devices from cube. In case that you have corrupted condfiguration and many Wrong address errors in log file.
 
 ### 2016-Dec-30
