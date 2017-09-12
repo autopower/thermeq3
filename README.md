@@ -33,7 +33,7 @@ Please follow these steps:
 ### Setup and install hardware
 1. Verify your ELV/EQ-3 MAX! Cube is up and running, and get its IP address.
 1. On Arduino Yún or other Linux board with Arduino's Python Bridge library installed
-  1. Wire 3 status LEDs and boiler relay as per `sketch` directory (circuit diagram or Fritzing sketch)
+1. Wire 3 status LEDs and boiler relay as per `sketch` directory (circuit diagram or Fritzing sketch)
     * 220ohm resitor to pin13, then to code_run LED (in my setup green LED, lit when arduino script is reading messages from python part, this is sign of activity)
     * 220ohm resitor to pin8, then to error LED (in my setup red LED, lit when any error)
     * 220ohm resitor to pin9, then to status LED (in my setup blue LED, lit when heating is on)
@@ -41,7 +41,7 @@ Please follow these steps:
     * relay GND to GND
     * LED diodes to GND
     * your DHW/Boiler to COM and NO (or NC) pins of relay (check your boiler documentation)
-  1. Upload Arduino sketch `thermeq3.ino` to Yún using Arduino IDE on your computer
+1. Upload Arduino sketch `thermeq3.ino` to Yún using Arduino IDE on your computer
     * For v200+, use `yun-sketch/thermeq3_V200/thermeq3_V200.ino`
     * if you are using DHT sensor, please use `yun-sketch/thermeq3_dht/thermeq3_dht.ino` by @bilbolodz
     * For v150, use `yun-sketch/thermeq3/thermeq3.ino` (this is obsolete version)
@@ -69,7 +69,7 @@ Versions below 200 are obsolete! For v150, use `wget --no-check-certificate --qu
 **If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
 
 ### Modify config.py file
-You scan edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
+You can edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
 * `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
 * `stp.fromaddr = "devices@foo.local"` from, user name
 * `stp.toaddr = "user@foo.local"` to email 
@@ -81,8 +81,10 @@ You scan edit `config.py` file with default editor `vi`. If you are no familiar 
 * `stp.extport = 29080` external port, this is the port (typically) on firewall where NAT is defined (so you can mute thermeq3 from internet), please setup your firewall/router to such scenario
 * `stp.owm_api_key = "your owm api key"` this is API key for OWM service
 
-For V200+ `stp.` is replaced with `self.setup.` or `self.` so `stp.max_ip` becomes `self.setup.max_ip` 
+For V200+ `stp.` is replaced with `self.setup.` or `self.` so `stp.max_ip` becomes `self.setup.max_ip`.
+
 **Version 231+ automatically reads old config.py file format (plain python code) and converts it to JSON format.**
+
 If you are using V231+ please use current config file in JSON format with name `thermeq.json`
 
 ### Some variables in bridge
