@@ -1,4 +1,4 @@
-#Diagnostics
+# Diagnostics
 If something goes wrong, please do some diagnostics and paste results to the issues.
 Or run:
 ```
@@ -7,18 +7,18 @@ wget --no-check-certificate --quiet --output-document /root/diag.sh https://raw.
 If everything goes ok, run `./diag.sh <max!cube ip address>`, e.g. `./diag.sh 192.168.0.222`. And send me `/root/diag.txt`.
 
 
-##Yun
+## Yun
 Always [upgrade to latest yun firmware](https://www.arduino.cc/en/Tutorial/YunSysupgrade).
 Perhaps update [bridge library](https://github.com/arduino/YunBridge/tree/master/bridge)
 Check storage mount points `cd /mnt|ls -al`, is there any storage mounted (USB or SD card?). Is your card/USB key readable in your PC/Mac? Is FAT32/exfat formatted? 
 
-##Network issues
+## Network issues
 From shell on yun please check if you have connection to MAX!Cube:
 * ping your MAX!Cube: `ping <maxcube_ip_address> -c 4`
 * telnet to MAX!Cube: `telnet <maxcube_ip_address> 62910`, 62910 is default port 
 * save results from `ifconfig > /root/ifconfig.txt`
 
-##Version
+## Version
 Please check log file for version you are using. Find line like this:
 ```
 thermeq3 - INFO - --> V139 started with PID=1851 <--
@@ -30,13 +30,13 @@ You can always check latest version for:
 
 First 3 chars denote version. 
 
-##config.py file
+## config.py file
 Did you edit `config.py` file correctly? Check for common mistakes such:
 * all values must be string, 
 * no API key for openweather
 * wrong woeid
 
-##Log file, error log
+## Log file, error log
 Please check your error log (located in `/mnt/sda1` or `/mnt/sdb1` or `/root` directory, depends on version and file).
 If you see information like this:
 ```
@@ -65,12 +65,12 @@ thermeq3 - ERROR - Traceback: Traceback (most recent call last):
 ```
 Probably you din't edit config.py file with correct mail server information/credentials.
 
-##Everything installed correctly, but nothing happens
+## Everything installed correctly, but nothing happens
 * did you upload sketch file (.ino)?
 * if arduino starts blink 4x, then LED is on, blinks 4x again?
 * if you login to linux part, `/root/psg` reports fully functional bridge (`python -d bridge`)?
 * did you insert SD crad or USB key?
 * is this storage correctly formated (fat32, extfs2/3/4)?
 
-##Any problem or question
+## Any problem or question
 Keep asking! If you have any problem or issue, just ask on [facebook](https://www.facebook.com/autopow) or via [email](mailto:autopowerdevice@gmail.com).
