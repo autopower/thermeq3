@@ -18,4 +18,13 @@ if [ $? -ne 0 ]; then
 	echo "Error during downloading config app: $?"
 	exit $?
 fi
+echo "Downloading dashboard install script"
+wget --no-check-certificate --quiet --output-document /root/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/install-dash.sh;chmod +x /root/install-dash.sh
+if [ $? -ne 0 ]; then
+	echo "Error during downloading dashboard install script: $?"
+	exit $?
+fi
+echo "Dashboard install..."
+/root/install-dash.sh
+echo "Interactive config..."
 /root/config_me.py
