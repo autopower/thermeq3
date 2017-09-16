@@ -14,10 +14,13 @@ def read_lines():
             break
     return lines_buffer
 
+
+print("thermeq3 delete device from MAX!Cube\n")
 # please edit max cube address
 max_ip = "192.168.0.200"
 # please edit device for deletion
 dev_id = "DEAD01"
+print("Deleting device id: " + dev_id + "from MAX!Cube with IP: " + max_ip)
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.settimeout(2)
@@ -30,5 +33,6 @@ message = "t:01,1," + base64.b64encode(dev_id_plain) + "\r\n"
 client_socket.sendall(message)
 
 # result must be "A:"
+print("Command issued. Please read result. Result must begin with A:\n----------")
 print read_lines()
 client_socket.close()
