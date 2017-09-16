@@ -68,7 +68,13 @@ Versions below 200 are obsolete! For v150, use `wget --no-check-certificate --qu
 ### Upgrading from V2xx to V231+
 **If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
 
-### Modify config.py file
+### Modifying config file
+If you are using V250+ please use config script:
+`wget --no-check-certificate --quiet --output-document /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py`
+It's very simple config script, with some input checking. This script generate config file in JSON format.
+** It's recomended to run `config_me.py` after upgrading to V250+ **
+
+#### V199-
 You can edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
 * `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
 * `stp.fromaddr = "devices@foo.local"` from, user name
@@ -81,11 +87,13 @@ You can edit `config.py` file with default editor `vi`. If you are no familiar w
 * `stp.extport = 29080` external port, this is the port (typically) on firewall where NAT is defined (so you can mute thermeq3 from internet), please setup your firewall/router to such scenario
 * `stp.owm_api_key = "your owm api key"` this is API key for OWM service
 
+#### V200 to V230
 For V200+ `stp.` is replaced with `self.setup.` or `self.` so `stp.max_ip` becomes `self.setup.max_ip`.
 
+#### V231 to V249
 **Version 231+ automatically reads old config.py file format (plain python code) and converts it to JSON format.**
-
 If you are using V231+ please use current config file in JSON format with name `thermeq.json`
+
 
 ### Some variables in bridge
 You can access variables by using standard yún bridge: `http://arduino.local/data/get/<variable_name>`
