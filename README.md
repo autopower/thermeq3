@@ -71,7 +71,7 @@ Versions below 200 are obsolete! For v150, use `wget --no-check-certificate --qu
 ### Modifying config file
 If you are using V250+ please use config script:
 `wget --no-check-certificate --quiet --output-document /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py`
-It's very simple config script, with some input checking. This script generate config file in JSON format. **It's recomended to run `config_me.py` after upgrading to V250+**
+It's very simple config script, with some input checking. This script generate config file in JSON format. **It's recommended to run `config_me.py` after upgrading to V250+**
 
 #### V199-
 You can edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
