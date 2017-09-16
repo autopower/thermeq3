@@ -65,13 +65,13 @@ def check_for_locations(woeid, owm_api_key):
                                 # end check
                         else:
                             print("Error during parsing result.")
-                        print("Yahoo result:\n\tCurrent temperature in " + str(city) + " is " + str(temp) +
+                        print("\tYahoo result: Current temperature in " + str(city) + " is " + str(temp) +
                               ", humidity " + str(humidity) + "%")
-                        print("OWM result:\n\tCurrent temperature in " + str(city) + " is " + str(owm_temp) +
+                        print("\tOWM result: Current temperature in " + str(city) + " is " + str(owm_temp) +
                               ", humidity " + str(owm_humidity) + "%")
 
-    print("Yahoo woeid: " + str(woeid))
-    print("OWM city ID:" + str(owm_id))
+    print("\tYahoo woeid: " + str(woeid))
+    print("\tOWM city ID: " + str(owm_id))
     return str(owm_id)
 
 
@@ -226,8 +226,16 @@ def get_config():
     cfg = config_str
 
 
+def do_config(file_name):
+    get_config(file_name)
+    save(file_name)
+    print("Config file saved into " + file_name)
+
+
 if __name__ == '__main__':
+    print("thermeq3 interactive config\n")
     guess_platform()
+    print("Platform is " + str(run_target))
     if run_target == "win":
         old = "t:/root/config.py"
         new = "t:/root/thermeq3.json"
@@ -235,8 +243,9 @@ if __name__ == '__main__':
         old = "/root/config.py"
         new = "/root/thermeq3.json"
     # just for testing
+    print("Using " + old + " as old and " + new + " as new config file")
     if os.path.exists(new) and "test" in new:
-        print("Deleting file " + new)
+        print("It looks like you testing config. Deleting file " + new)
         os.remove(new)
     # testing end
 
@@ -251,13 +260,34 @@ if __name__ == '__main__':
     elif os.path.exists(new) is False:
         # if nothing exist in old config file and there is no new config file, get config
         print("There is no new config file!")
-        get_config(new)
-        save(new)
-        print("Config file saved into " + new)
+        do_config(new)
+    else:
+        print("New config file " + new + " found.")
+        value = raw_input("Replace config file [N/y]:").upper()
+        if value == "" or value == "N":
+            print("You choose keep current config file.")
+        elif value == "Y":
+            print("Backuping old config file...")
+            if run_target == "win":
+                cmd = "ren " + old + " thermeq3.bak"
+                os.system(cmd.replace("/", "\\"))
+            else:
+                os.system("mv " + new + " /root/thermeq3.jsonbackup")
+            do_config(new)
+
+    # check weather location
     print("Loading config file to check weather:")
     cfg = load(new)
-    ret_value = check_for_locations(cfg["yahoo_location"], cfg["owm_api_key"])
+    if "yahoo_location" in cfg:
+        ret_value = check_for_locations(cfg["yahoo_location"], cfg["owm_api_key"])
+    else:
+        ret_value = check_for_locations(cfg["location"], cfg["owm_api_key"])
+
+    # and update owm location
+    if "owm_location" in cfg:
+        print("OWM location updated in config.")
+    else:
+        print("OWM location added to config.")
     cfg.update({"owm_location": ret_value})
-    print("OWM location added to config.")
     save(new)
     print("Config file saved into " + new)
