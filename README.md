@@ -139,6 +139,11 @@ And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/203
 See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/install/diag/README.md)
  
 ## What's new?
+### 2017-Sep-16
+* V250 in alpha
+* weather fixes
+* new config file support
+
 ### 2017-Jan-14
 * file del_dev.py in support directory for deleting devices from cube. In case that you have corrupted condfiguration and many Wrong address errors in log file.
 
