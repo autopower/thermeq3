@@ -9,5 +9,9 @@ Just for test issues.
 * send mail issues resolved
 * code clean up
 * win nt & rpi support
+* lifetime valve ignore
+* weather fixes
+
 ## How to get upgrade script
 `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/alpha/upgrade.sh;chmod +x /root/upgrade.sh`
+After download please run `/root/upgrade.sh`, it download new version and interactive config.
