@@ -210,12 +210,17 @@ def get_config():
             txt = " "
             if len(k) > 2:
                 txt += k[1] + " (default: " + str(k[2]) + ")"
+            elif k[0] in cfg:
+                txt += k[1] + " (default: " + str(cfg[k[0]]) + ")"
             else:
                 txt += k[1]
             value = raw_input("Please enter" + txt + ": ")
-            if value == "" and len(k) > 2:
-                print("\tUsing defaults (" + str(k[2]) + ").")
-                value = k[2]
+            if value == "" and len(k) > 2 or k[0] in cfg:
+                if len(k) > 2:
+                    value = k[2]
+                elif k[0] in cfg:
+                    value = cfg[k[0]]
+                print("\tUsing defaults (" + str(value) + ").")
             if k[0] == "max_ip":
                 if ping(str(value)) is False:
                     print("Cannot ping host " + str(value) + "!")
@@ -227,7 +232,7 @@ def get_config():
 
 
 def do_config(file_name):
-    get_config(file_name)
+    get_config()
     save(file_name)
     print("Config file saved into " + file_name)
 
@@ -263,13 +268,14 @@ if __name__ == '__main__':
         do_config(new)
     else:
         print("New config file " + new + " found.")
-        value = raw_input("Replace config file [N/y]:").upper()
-        if value == "" or value == "N":
+        ret_value = raw_input("Replace config file [N/y]:").upper()
+        if ret_value == "" or ret_value == "N":
             print("You choose keep current config file.")
-        elif value == "Y":
+        elif ret_value == "Y":
+            cfg = load(new)
             print("Backuping old config file...")
             if run_target == "win":
-                cmd = "ren " + old + " thermeq3.bak"
+                cmd = "ren " + new + " thermeq3.bak"
                 os.system(cmd.replace("/", "\\"))
             else:
                 os.system("mv " + new + " /root/thermeq3.jsonbackup")
