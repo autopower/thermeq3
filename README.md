@@ -143,6 +143,7 @@ See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/in
 * V250 in alpha
 * weather fixes
 * new config file support
+* lifetime valve ignore from config file, there is no need to add valve manual via bridge! 
 
 ### 2017-Jan-14
 * file del_dev.py in support directory for deleting devices from cube. In case that you have corrupted condfiguration and many Wrong address errors in log file.

@@ -14,5 +14,13 @@ And after that (you can change thermeq3 name to your own):
 cd /root
 ./install.sh thermeq3
 ```
-**Don't forget to edit config.py file!** Scroll down below [here](https://github.com/autopower/thermeq3/blob/master/README.md) for "In config.py file" chapter.
+
+Get config file support:
+`wget --no-check-certificate --quiet --output-document /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py`
+and run it:
+```
+cd /root
+./config_me.py
+```
+Please answer questions and check final config file in JSON format.
 
