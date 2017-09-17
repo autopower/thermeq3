@@ -205,7 +205,7 @@ def get_config():
                     pass
                 else:
                     ignored.update({str(value): 1924991999})
-            value = str(ignored)
+            value = json.dumps(ignored)
         else:
             txt = " "
             if len(k) > 2:
