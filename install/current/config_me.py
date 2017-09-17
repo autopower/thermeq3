@@ -192,7 +192,7 @@ def get_config():
                     ["owm_api_key", "open weather API key"],
                     ["yahoo_location", "Yahoo location ID", 823123],
                     ["csv_values", ":\n1 if only set temp\n2 if only actual temp\n3 both temp\nis written into csv", 1],
-                    ["hard_coded", "valve ID to ignore forever (q to quit)"]]
+                    ["hard_ignored", "valve ID to ignore forever (q to quit)"]]
 
     config_str = {}
     ignored = {}
