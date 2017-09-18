@@ -177,7 +177,7 @@ def load_old(old_config_file, new_config_file):
                 json.dump(ncf, f)
                 f.close()
 
-
+                
 def get_config():
     global cfg
 
@@ -197,7 +197,7 @@ def get_config():
     config_str = {}
     ignored = {}
     for k in input_string:
-        if k[0] == "hard_coded":
+        if k[0] == "hard_ignored":
             value = ""
             while not value == "q":
                 value = raw_input("Please enter " + k[1] + ": ")
