@@ -178,7 +178,7 @@ def load_old(old_config_file, new_config_file):
                 json.dump(ncf, f)
                 f.close()
 
-
+                
 def get_config():
     global cfg
 
