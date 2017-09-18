@@ -53,6 +53,7 @@ def check_for_locations(woeid, owm_api_key):
                     except Exception, error:
                         print("OWM communication error: " + str(error))
                         print("Traceback: " + str(traceback.format_exc()))
+                        owm_id = -1
                     else:
                         if "main" in result and "id" in result:
                             owm_id = result["id"]
@@ -197,7 +198,7 @@ def get_config():
     config_str = {}
     ignored = {}
     for k in input_string:
-        if k[0] == "hard_coded":
+        if k[0] == "hard_ignored":
             value = ""
             while not value == "q":
                 value = raw_input("Please enter " + k[1] + ": ")
@@ -266,6 +267,7 @@ if __name__ == '__main__':
         # if nothing exist in old config file and there is no new config file, get config
         print("There is no new config file!")
         do_config(new)
+        save(new)
     else:
         print("New config file " + new + " found.")
         ret_value = raw_input("Replace config file [N/y]:").upper()
@@ -280,6 +282,7 @@ if __name__ == '__main__':
             else:
                 os.system("mv " + new + " /root/thermeq3.jsonbackup")
             do_config(new)
+            save(new)
 
     # check weather location
     print("Loading config file to check weather:")
