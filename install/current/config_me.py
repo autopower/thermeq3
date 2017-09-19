@@ -178,8 +178,8 @@ def load_old(old_config_file, new_config_file):
                 json.dump(ncf, f)
                 f.close()
 
-                
-def get_config():
+
+def get_config(rew):
     global cfg
 
     input_string = [["max_ip", "IP address of Max! Cube"],
@@ -209,7 +209,7 @@ def get_config():
             value = json.dumps(ignored)
         else:
             txt = " "
-            if len(k) > 2:
+            if len(k) > 2 and rew is False:
                 txt += k[1] + " (default: " + str(k[2]) + ")"
             elif k[0] in cfg:
                 txt += k[1] + " (default: " + str(cfg[k[0]]) + ")"
@@ -232,8 +232,8 @@ def get_config():
     cfg = config_str
 
 
-def do_config(file_name):
-    get_config()
+def do_config(file_name, rewrite):
+    get_config(rewrite)
     save(file_name)
     print("Config file saved into " + file_name)
 
@@ -266,7 +266,7 @@ if __name__ == '__main__':
     elif os.path.exists(new) is False:
         # if nothing exist in old config file and there is no new config file, get config
         print("There is no new config file!")
-        do_config(new)
+        do_config(new, True)
         save(new)
     else:
         print("New config file " + new + " found.")
@@ -281,7 +281,7 @@ if __name__ == '__main__':
                 os.system(cmd.replace("/", "\\"))
             else:
                 os.system("mv " + new + " /root/thermeq3.jsonbackup")
-            do_config(new)
+            do_config(new, False)
             save(new)
 
     # check weather location
