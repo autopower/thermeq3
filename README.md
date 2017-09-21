@@ -48,51 +48,24 @@ Please follow these steps:
 
 ### Install application
 Access yún via ssh (e.g. Windows users can use putty)
-* Update `opkg`: `opkg update`
-* Update `wget`: `opkg upgrade wget`
-* Install `thermeq3`, please look below for help  
-* Run the installer script: `/root/install.sh <your installation name>` (if you are upgrading from V231-, run `/root/upgrade.sh`), for example `/root/install.sh boilerstarter`, this `boilerstarter` name will be used as 
-device name
-* **Edit required values in the config file** Please take a look below how to modify config file. 
+* Install `thermeq3` typing `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/install.sh;chmod +x /root/install.sh`  
+* Run the installer script: `/root/install.sh <your installation name>`, for example `/root/install.sh boilerstarter`, this `boilerstarter` name will be used as device name 
 * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
+ 
+### Upgrade application
+Access yún via ssh (e.g. Windows users can use putty)
+* `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`
+* Run upgrade script: `/root/upgrade.sh`
 
 ### I want to install latest working alpha version
 Just use `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/alpha/upgrade.sh;chmod +x /root/upgrade.sh`
  
-### I want to install version below 231
-For v200+, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/install.sh;chmod +x /root/upgrade.sh`
-
-### I want to install v150
-Versions below 200 are obsolete! For v150, use `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/obsolete/install.sh;chmod +x /root/upgrade.sh`
-
-### Upgrading from V2xx to V231+
-**If you are upgrading from version below V231** and you have working installation, please use [this script](https://github.com/autopower/thermeq3/tree/master/install/current/upgrade.sh) or `wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/upgrade.sh;chmod +x /root/upgrade.sh`.
-
 ### Modifying config file
 If you are using V250+ please use config script:
-`wget --no-check-certificate --quiet --output-document /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py`
+* if not present on the system: `wget --no-check-certificate --quiet --output-document /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py`
+* run config script `./config_me.py`
+* if you are upgrading from older version, please run config script to recreate config file
 It's very simple config script, with some input checking. This script generate config file in JSON format. **It's recommended to run `config_me.py` after upgrading to V250+**
-
-#### V199-
-You can edit `config.py` file with default editor `vi`. If you are no familiar with `vi` (try [this man](https://www.freebsd.org/cgi/man.cgi?vi)), you can use your favourite editor on your platform and transfer file via ftp/scp. For example if you are using windows, you can use [pspad](http://www.pspad.com/en/) and transfer file via [winscp](https://winscp.net/eng/index.php).
-* `stp.max_ip = "192.168.0.10"` IP address of MAX! cube
-* `stp.fromaddr = "devices@foo.local"` from, user name
-* `stp.toaddr = "user@foo.local"` to email 
-* `stp.mailserver = "mail.foo.local"` via this server
-* `stp.mailport = 25` on this port
-* `stp.frompwd = "this.is.password"` login with this password
-* `stp.devname = "hellmostat"` device name
-* `stp.timeout = 10` timeout in secods, used in communicating with MAX! Cube and as a sleep time for flushing msg queue, set to similar value as `unsigned long interval` in arduino sketch
-* `stp.extport = 29080` external port, this is the port (typically) on firewall where NAT is defined (so you can mute thermeq3 from internet), please setup your firewall/router to such scenario
-* `stp.owm_api_key = "your owm api key"` this is API key for OWM service
-
-#### V200 to V230
-For V200+ `stp.` is replaced with `self.setup.` or `self.` so `stp.max_ip` becomes `self.setup.max_ip`.
-
-#### V231 to V249
-**Version 231+ automatically reads old config.py file format (plain python code) and converts it to JSON format.**
-If you are using V231+ please use current config file in JSON format with name `thermeq.json`
-
 
 ### Some variables in bridge
 You can access variables by using standard yún bridge: `http://arduino.local/data/get/<variable_name>`
@@ -123,16 +96,16 @@ to change 'interval' setting. E.g. if your browse to `http://arduino.ip/data/put
 you can change valve_pos value (e.g. how many % must be valve opened).
 
 ## How to ignore some valves "forever"
-It's really simple. After succesfull start of thermeq3, check log file for heater thermostat IDs (HT).
-Then find out bridge file and run editor (vi for example).
-Look for "ignored" word (with quotes), if it's empty (looks like `"ignored":{}`) and update. Let be HT1=06ABCD and HT2=06ABCE, then ignored will look like this:
+Starting V250 you can add these valves to config file via `config_me.py` script. Or manually by editing bridge file:
+* after succesfull start of thermeq3, check log file for heater thermostat IDs (HT)
+* then find out bridge file and run editor (vi for example)
+* Look for "ignored" word (with quotes), if it's empty (looks like `"ignored":{}`) and update. Let be HT1=06ABCD and HT2=06ABCE, then ignored will look like this:
 ```
 ...
 "ignored":{"06ABCD": 1924991999, "06ABCE": 1924991999}
 ...
 ```
-Save file and wait. If you aren't sporting `vi` just use browser and set ignored with URL:
-`http://<arduino.local>/data/put/ignored/{"06ABCD": 1924991999, "06ABCE": 1924991999}`
+* Save file and wait. If you aren't sporting `vi` just use browser and set ignored with URL: `http://<arduino.local>/data/put/ignored/{"06ABCD": 1924991999, "06ABCE": 1924991999}`
 And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/2030. 
 
 ## Troubleshooting

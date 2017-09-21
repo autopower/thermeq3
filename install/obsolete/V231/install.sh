@@ -34,6 +34,13 @@ if [ $? -ne 0 ]; then
 	exit $?
 fi 
 
+echo Downloading thermeq3 config file
+wget --no-check-certificate --quiet --output-document /root/config.py https://github.com/autopower/thermeq3/raw/master/install/current/config.py
+if [ $? -ne 0 ]; then
+	echo "Error during downloading thermeq3 config file: $?"
+	exit $?
+fi
+
 echo "Installing libraries"
 opkg install python-openssl --verbosity=0
 if [ $? -ne 0 ]; then
@@ -103,6 +110,7 @@ chmod +x nice
 echo "Creating nsm.py compatibility file"
 echo "#!/usr/bin/env python
 import sys
+
 sys.path.insert(0, \"/root/thermeq3/\")
 execfile(\"/root/thermeq3/nsm.py\")
 " > /root/nsm.py
@@ -114,20 +122,4 @@ echo "ps|grep python" > /root/psg
 chmod +x /root/ct
 chmod +x /root/err
 chmod +x /root/psg
-
-echo "Downloading interactive config"
-wget --no-check-certificate --quiet --output-document /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py
-if [ $? -ne 0 ]; then
-	echo "Error during downloading config app: $?"
-	exit $?
-fi
-echo "Downloading dashboard install script"
-wget --no-check-certificate --quiet --output-document /root/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/install-dash.sh;chmod +x /root/install-dash.sh
-if [ $? -ne 0 ]; then
-	echo "Error during downloading dashboard install script: $?"
-	exit $?
-fi
-echo "Dashboard install..."
-/root/install-dash.sh
-echo "Interactive config..."
-/root/config_me.py
+ 
