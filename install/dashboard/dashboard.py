@@ -13,7 +13,7 @@ def page_body_weather(woeid):
     :param woeid: integer, yahoo weather ID
     """
     if woeid is None:
-        city, temp, humidity = "WOEID None", -1.0, -1.0
+        city, temp, humidity, text = "WOEID None", -1.0, -1.0, "Error"
     else:
         # please change u='c' to u='f' for fahrenheit below
         base_url = "https://query.yahooapis.com/v1/public/yql?"
@@ -31,13 +31,14 @@ def page_body_weather(woeid):
                     city = data["query"]["results"]["channel"]["location"]["city"]
                     temp = int(data["query"]["results"]["channel"]["item"]["condition"]["temp"])
                     humidity = int(data["query"]["results"]["channel"]["atmosphere"]["humidity"])
+                    text = data["query"]["results"]["channel"]["item"]["condition"]["text"]
                 except Exception:
                     city, temp, humidity = "Error city", 0.0, 0.0
         finally:
             print """
     <div class="row">
         <div class="col-md-12">"""
-            print "\t\t\t<p>Weather in " + str(city) + ", temperature: " + str(temp) + ", humidity: " + str(humidity) + "</p>"
+            print "\t\t\t<p>Weather in " + str(city) + ", " + str(text) + ", temperature: " + str(temp) + ", humidity: " + str(humidity) + "</p>"
             print """\t\t</div>
     </div>
             """
@@ -235,7 +236,7 @@ def page_end():
 
 
 def read_page_url(url):
-    request = urllib2.Request("http://10.60.0.11:8180/" + str(url))
+    request = urllib2.Request("http://localhost:8180/" + str(url))
     try:
         result = urllib2.urlopen(request)
         ret_value = result.read()
