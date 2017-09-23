@@ -1,11 +1,47 @@
 #!/usr/bin/env python
 import urllib2
 import json
-import base64
 import datetime
-import time
+import urllib
 
 a = {}
+
+
+def page_body_weather(woeid):
+    """
+    Returns weather from yahoo weather from given WOEID
+    :param woeid: integer, yahoo weather ID
+    """
+    if woeid is None:
+        city, temp, humidity = "WOEID None", -1.0, -1.0
+    else:
+        # please change u='c' to u='f' for fahrenheit below
+        base_url = "https://query.yahooapis.com/v1/public/yql?"
+        yql_query = "select * from weather.forecast where woeid=" + str(woeid) + " and u='c'"
+        yql_url = base_url + urllib.urlencode({'q': yql_query}) + "&format=json"
+
+        try:
+            result = urllib2.urlopen(yql_url).read()
+            data = json.loads(result)
+        except Exception, error:
+            city, temp, humidity = "Error city", 0.0, 0.0
+        else:
+            if data is not None:
+                try:
+                    city = data["query"]["results"]["channel"]["location"]["city"]
+                    temp = int(data["query"]["results"]["channel"]["item"]["condition"]["temp"])
+                    humidity = int(data["query"]["results"]["channel"]["atmosphere"]["humidity"])
+                except Exception:
+                    city, temp, humidity = "Error city", 0.0, 0.0
+        finally:
+            print """
+    <div class="row">
+        <div class="col-md-12">"""
+            print "\t\t\t<p>Weather in " + str(city) + ", temperature: " + str(temp) + ", humidity: " + str(humidity) + "</p>"
+            print """\t\t</div>
+    </div>
+            """
+            pass
 
 
 def page_start():
@@ -198,23 +234,34 @@ def page_end():
     print "</body>\n</html>"
 
 
-url = "http://10.60.0.11/data/get"
-base64string = base64.encodestring('%s:%s' % ("root", "arduino")).replace('\n', '')
-request = urllib2.Request(url)
-request.add_header("Authorization", "Basic %s" % base64string)
-result = urllib2.urlopen(request)
-data = result.read()
+def read_page_url(url):
+    request = urllib2.Request("http://10.60.0.11:8180/" + str(url))
+    try:
+        result = urllib2.urlopen(request)
+        ret_value = result.read()
+    except:
+        ret_value = "{}"
+    return ret_value
 
+
+data = read_page_url("bridge.json")
+a = json.loads(data)
+data = read_page_url("location.json")
 d = json.loads(data)
-a = d["value"]
+try:
+    location = d["location"]
+except:
+    location = "823123"
 
-b = ["touch", "status", "autoupdate", "preference", "valve_pos", "total_switch", "valves", "svpnmw", "interval", "profile"]
+b = ["touch", "status", "autoupdate", "preference", "valve_pos", "total_switch", "valves", "svpnmw", "interval",
+     "profile", "yahoo_location"]
 for i in b:
     if i not in a:
         a.update({i: ""})
 
 page_start()
 page_body_menu()
+page_body_weather(location)
 page_body_status()
 page_body_rooms()
 page_footer()
