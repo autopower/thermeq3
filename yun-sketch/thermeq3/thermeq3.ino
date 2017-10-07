@@ -16,8 +16,8 @@ Process p;
 char bridgeBuffer[16];
 boolean sysStatus = false;
 unsigned long waitUntil = 0;
-unsigned long interval = 10*1000;               // interval in seconds, change 10 to anything you want
-unsigned long app_interval = 10*60000;          // interval in minutes, change 10 to anything you want
+unsigned long interval = 10*1000;              // interval in seconds, change 10 to anything you want
+unsigned long app_interval = 5*60000;          // interval in minutes, change 5 to anything you want
 unsigned long waitForApp = 0;
 
 void blinkLED() {
@@ -102,10 +102,18 @@ void showError(boolean onoff) {
 
 void runApp() {
   turnIt(false);
-  // yes, I know, I can user p.begin("/root/nsm.py") but I edit python files on \r\n EOL system, so this will be available with first public beta
+  // start python app
   p.begin("python"); 
   p.addParameter("/root/nsm.py"); 
   p.runAsynchronously();
+}
+
+void signalReadNotOK() {
+  turnIt(false);
+  // turn on all LEDs, to show that linux part is started
+  digitalWrite(LOOP_LED, HIGH);
+  digitalWrite(STATUS_LED, HIGH);
+  digitalWrite(ERROR_LED, HIGH);
 }
 
 void setup() {
@@ -154,6 +162,7 @@ unsigned long mls = millis();
         turnIt(false);
         break;
       case 'E':
+        // in case that cube is not available, e.g. timeout
         #ifdef IWANNABESAFE
           turnIt(false);
         #endif
@@ -169,6 +178,10 @@ unsigned long mls = millis();
         turnIt(false);
         showDead();
         break;
+      case 'M':
+        // in case that read from max cube malformed
+        signalReadNotOK();
+        break; 
       case 'R':
         #ifdef IWANNABESAFE
           turnIt(false);

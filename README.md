@@ -14,6 +14,22 @@ thermeq3 features:
 * daily summary
 * simple html status on user selectable port (via uhttpd)
 
+## How it works?
+Please take a look at this flowchart. This flowchart is simple representation of decision process. Green color denotes variables.
+![flow1](https://raw.githubusercontent.com/autopower/thermeq3/master/flowchart/flowchart_1.png)
+
+Arduino sketch runs python script `nsm.py` located in /root. And then check if it's running.
+If not, runs it again from beginning. This script reads status from MAX! Cube and if any of radiator 
+thermostat's valve is opened above `valve_pos` value, the relay is switched on, thus boiler/DHW is switched on.
+This is done by saving char into the 'msg' bridge value, which is readable at Arduino (32u4) side.
+Heating also can be started if sum of radiator valves positions are geater than `num_of_valves * stp.per_switch`, 
+where `stp.per_switch` is value in %. So if you have 10 valves in house and `stp.per_switch=8`, and sum of these
+valves positions are 80+, relay is switched on. You can turn on this feature by `stp.preference="per"` in python code.
+If you need only simple total value, set `stp.preference="total"` and setup `total_switch` variable.
+
+On start LEDs blink 4 times, then remains lit until arduino yun bridge component is initialized. 
+Then blinks 4 times again.
+
 ## Equipment
 * Arduino Yún
 * 5V relay
@@ -67,7 +83,18 @@ If you are using V250+ please use config script:
 * if you are upgrading from older version, please run config script to recreate config file
 It's very simple config script, with some input checking. This script generate config file in JSON format. **It's recommended to run `config_me.py` after upgrading to V250+**
 
-### Some variables in bridge
+## How to debug?
+Python code produce these files:
+* `/mnt/sd<x1>/csv/<device_name>.csv`, simple comma separated value file with valve positions and temperature readings
+* `/mnt/sd<x1>/<device_name>.log`, log file, huge on `log_debug`
+* `/mnt/sd<x1>/<device_name>_error.log`, python stderr redirected, use in case of crash, or send me this file.
+* `/mnt/sd<x1>/<device_name>.bridge` saved bridge client values
+* `/mnt/sd<x1>/<device_name>.bridge.json` bridge values for dashboard
+
+Please note, that x1 stands for a1 or b1, so full path will be `/mnt/sda1` or `/mnt/sdb1`.
+
+## Modyfing thermeq3
+### Variables in bridge
 You can access variables by using standard yún bridge: `http://arduino.local/data/get/<variable_name>`
 * `devname` = device name
 * `error` = errors since last status reports
@@ -77,26 +104,45 @@ You can access variables by using standard yún bridge: `http://arduino.local/da
 * `total_switch` = sum of valve positions, no matter how many valves are in house
 * `interval` = see above
 * `heattime` = total heat time from start, in seconds
-* `command` = can be:
-  * `quit` quits application
-  * `mail` sends status report via mail
-  * `init` reinits python app
-  * `uptime` updates uptime value
-  * `log_debug` turns on logging on debug level
-  * `log_info` turns on loggin on info level (default)
-  * `mute` mutes warning for defined interval
-  * `rebridge` reloads bridge file
-  * `updatetime` updates uptime and heat time
-  * `led` turns on or off heating LED (according to current heat status)
-  * `upgrade` checks for upgrade, and if new version is available, upgrades thermeq3
-
-## How to change value?
+* `command` = please take a look below
+* `ignored` = hard ignored valves, which are ignored until 31/Dec/2030
 If you want change some values when nsm.py is running, just browse to `http://arduino.ip/data/put/interval/<your value>` 
-to change 'interval' setting. E.g. if your browse to `http://arduino.ip/data/put/valve_pos/<your value>` 
+to change 'interval' setting. E.g. if your browse to `http://arduino.ip/data/put/valve_pos/<your value>`  
 you can change valve_pos value (e.g. how many % must be valve opened).
 
-## How to ignore some valves "forever"
-Starting V250 you can add these valves to config file via `config_me.py` script. Or manually by editing bridge file:
+### Commands
+You can send command for thermeq by using standard yún bridge: `http://arduino.local/data/put/cmd/<command>`.  
+#### Quit thermeq3
+`quit` quits application
+
+#### Reinit thermeq3 or bridge
+`init` reinits python app
+`rebridge` reloads bridge file
+
+#### Control logging verbosity
+`log_debug` turns on logging on debug level
+`log_info` turns on loggin on info level (default)
+
+#### Mute warning for specific device
+`mute:<device_id>` mutes warning for defined interval, please add device ID, e.g. `mute:FF00FF`
+
+#### Remove valve from ignored/adjusted valvec
+`adjust:<device_id>` mutes warning for defined interval, please add device ID, e.g. `adjust:FF00FF` 
+
+#### Send mail report
+`mail` sends status report via predefined mail.
+
+#### Control values or status
+`uptime` updates uptime value.
+`updatetime` updates uptime and heat time
+`led` turns on or off heating LED (according to current heat status)
+
+#### Chceck for upgrade
+`upgrade` checks for upgrade, and if new version is available, automatically upgrades thermeq3.
+
+## Tips and tricks
+### How to ignore some valves "forever"
+Starting V250 you can add these valves to config file via config file. Or manually by editing bridge file:
 * after succesfull start of thermeq3, check log file for heater thermostat IDs (HT)
 * then find out bridge file and run editor (vi for example)
 * Look for "ignored" word (with quotes), if it's empty (looks like `"ignored":{}`) and update. Let be HT1=06ABCD and HT2=06ABCE, then ignored will look like this:
@@ -112,6 +158,11 @@ And why 1924991999? It's simple, this is time since epoch, 1924991999=31/Dec/203
 See the [diagnostic readme](https://github.com/autopower/thermeq3/tree/master/install/diag/README.md)
  
 ## What's new?
+### 2017-Oct-07
+* readme update
+* yun sketch update addressing wrong response from cube (typically wrong M response)
+* watchdog script preparedness
+
 ### 2017-Sep-16
 * V250 in alpha
 * weather fixes
@@ -235,61 +286,4 @@ instructions. Please keep in mind, that current temperature on heater thermostat
 * Redesigned bridge functions (load/save), little bit failsafe (nothing extraordinary)
 * Implemented support for day table, just enable beta functionality (thermeq3.ip/data/put/beta/yes) and edit table in nsm.py. You can control boiler in different way during day.
 
-
-
-## Code
-There are two parts of thermeq3:
-* python code, upload into /root/ files nsm.py and config.py and then please edit config.py
-* arduino code, upload with IDE
-
-## How it works?
-Please take a look at this flowchart. This flowchart is simple representation of decision process. Green color denotes variables.
-![flow1](https://raw.githubusercontent.com/autopower/thermeq3/master/flowchart/flowchart_1.png)
-
-Arduino sketch runs python script `nsm.py` located in /root. And then check if it's running.
-If not, runs it again from beginning. This script reads status from MAX! Cube and if any of radiator 
-thermostat's valve is opened above `valve_pos` value, the relay is switched on, thus boiler/DHW is switched on.
-This is done by saving char into the 'msg' bridge value, which is readable at Arduino (32u4) side.
-Heating also can be started if sum of radiator valves positions are geater than `num_of_valves * stp.per_switch`, 
-where `stp.per_switch` is value in %. So if you have 10 valves in house and `stp.per_switch=8`, and sum of these
-valves positions are 80+, relay is switched on. You can turn on this feature by `stp.preference="per"` in python code.
-If you need only simple total value, set `stp.preference="total"` and setup `total_switch` variable.
-
-On start LEDs blink 4 times, then remains lit until arduino yun bridge component is initialized. 
-Then blinks 4 times again.
-
-## What I can change?
-### In arduino sketch
-* `#define DEBUG_PRG` if you wanna print debug values via serial connection
-* `#define RELAY_PIN 10` where is the relay pin?
-* `#define RELAY_POWER 8` where is the power for relay? undef if relay is connected to 5V directly
-* `#define STATUS_LED 9` status LED pin
-* `#define ERROR_LED 8` error LED pin
-* `#define LOOP_LED 13` activity/loop LED pin
-* `#define BLINK_INTERVAL 150` blink interval in miliseconds
-* `#define WAIT_UPDATE_SYNC 10000` how many millis wait to rerun upgraded python code
-* `#define IWANNABESAFE` in case of any trouble, shutdown relay, undef for stay in last selected mode
-* `unsigned long interval = 10*1000;` loop interval in seconds, arduino'll check for messages every 10 seconds, change 10 to anything you want
-* `unsigned long app_interval = 10*60000;` check for running app interval in minutes, change 10 to anything you want
-
-## Messages for arduino
-* `H` heat!
-* `S` stop heating!
-* `E` error, error LED is lit
-* `C` clear error LED
-* `A` clear all LEDs
-* `Q` fatal error, lit some disco effects on LEDs
-* `D` dead! status LED breathing
-* `R` restart app, eg. after upgrade
-
-## How to debug?
-Python code produce these files:
-* `/mnt/sd<x1>/csv/<device_name>.csv`, simple comma separated value file with valve positions and temperature readings
-* `/mnt/sd<x1>/<device_name>.log`, log file, really huge on `log_debug`
-* `/mnt/sd<x1>/<device_name>_error.log`, python stderr redirected, use in case of crash, or send me this file.
-* `/root/<device_name>.bridge` saved bridge client values
-* `/root/nsm.error` low level errors, which cant be written do .log file (e.g. due to lack of mounted storage media). This file is also mailed to recipient on start. Then is truncated to zero size.
-
-Please note, that x1 stands for a1 or b1, so full path will be `/mnt/sda1` or `/mnt/sdb1`.
-
-### Thats all folks. Stay tuned :)
+# Thats all folks. Stay tuned :)
