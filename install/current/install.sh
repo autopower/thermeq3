@@ -84,22 +84,6 @@ cd $DIR/www
 mkdir -p cgi-bin
 cd cgi-bin
 
-echo "#!/bin/sh
-	echo \"Content-type: application/json\"
-	echo \"\"
-	cat $DIR/www/status.xml" > status
-echo "#!/bin/sh
-	echo \"Content-type: application/json\"
-	echo \"\"
-	cat $DIR/www/owl.xml" > owl
-echo "#!/bin/sh
-	echo \"Content-type: text/html\"
-	echo \"\"
-	cat $DIR/www/nice.html" > nice
-chmod +x status
-chmod +x owl
-chmod +x nice
-
 echo "Creating nsm.py compatibility file"
 echo "#!/usr/bin/env python
 import sys
@@ -133,3 +117,8 @@ echo "Dashboard install..."
 /root/install-dash.sh
 echo "Interactive config..."
 /root/config_me.py
+if [ -d /root/location.json]; then
+	mv /root/location.json $DIR/www/location.json
+else
+	echo "Can't find file. Please make location.json file for dashboard!"
+fi
