@@ -117,3 +117,8 @@ echo "Dashboard install..."
 /root/install-dash.sh
 echo "Interactive config..."
 /root/config_me.py
+if [ -d /root/location.json]; then
+	mv /root/location.json $DIR/www/location.json
+else
+	echo "Can't find file. Please make location.json file for dashboard!"
+fi
