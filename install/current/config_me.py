@@ -304,5 +304,5 @@ if __name__ == '__main__':
     except IOError:
         print("IOError during open file for writing!")
     else:
-        json.dump({"yahoo_location": ret_value}, f)
+        json.dump({"yahoo_location": cfg["yahoo_location"]}, f)
         f.close()

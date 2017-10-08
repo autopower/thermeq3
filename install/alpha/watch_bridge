@@ -1,0 +1,4 @@
+#!/bin/ash
+if [ $(( (`date +%s` - `date -r /mnt/sda1/peklotest.bridge +%s`) > (5 * 60) )) -eq 1 ]; then
+  ps -ef | grep nsm.py | grep -v grep | awk '{print }' | xargs kill -9
+fi 
