@@ -66,16 +66,13 @@ def start(log_filename):
     :return:
     """
     global logger
-    if log_filename is "" or log_filename is None:
-        # set default log filename
-        log_filename = "/mnt/sda1/thermeq3.log"
-
     logger = logging.getLogger("thermeq3")
     logger.setLevel(logging.DEBUG)
 
     try:
         fh = logging.handlers.TimedRotatingFileHandler(log_filename, when="W0", interval=4, backupCount=12)
     except Exception:
+        print log_filename
         raise
     fh.setLevel(logging.DEBUG)
 

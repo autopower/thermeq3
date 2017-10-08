@@ -6,9 +6,10 @@ from math import exp
 import json
 
 
-def weather_for_woeid(woeid, owm_api_key):
+def weather_for_woeid(woeid, owm_id, owm_api_key):
     """
     Returns weather from yahoo weather from given WOEID
+    :param owm_id:
     :param owm_api_key:
     :param woeid: integer, yahoo weather ID
     :return: dictionary, {"current_temp": temp, "city": city, "humidity": humidity}
@@ -17,7 +18,7 @@ def weather_for_woeid(woeid, owm_api_key):
     temp = None
     humidity = None
 
-    if woeid == None:
+    if woeid is None or owm_id is None:
         logmsg.update("Wrong WOEID! Please set WOEID in config.py.", 'E')
     elif owm_api_key is None:
         logmsg.update("OWM API key not set!", 'E')
@@ -43,7 +44,8 @@ def weather_for_woeid(woeid, owm_api_key):
                     pass
                 else:
                     # and check if yahoo is correct
-                    url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + "&appid=" + owm_api_key
+                    url = "http://api.openweathermap.org/data/2.5/weather?id=" + str(owm_id) + "&appid=" + \
+                          owm_api_key + "&units=metric"
                     try:
                         result = json.load(urllib2.urlopen(url))
                     except Exception, error:
@@ -51,7 +53,7 @@ def weather_for_woeid(woeid, owm_api_key):
                         logmsg.update("Traceback: " + str(traceback.format_exc()), 'E')
                     else:
                         if "main" in result:
-                            owm_temp = round(result["main"]["temp"] / 100)
+                            owm_temp = round(result["main"]["temp"])
                             yho_temp = round(temp)
                             if abs(yho_temp - owm_temp) > 1.5:
                                 logmsg.update("Difference between Yahoo and OWM temperatures. Yahoo=" + str(yho_temp) +
@@ -99,3 +101,4 @@ def interval_scale(temp, t, r, w, test):
     b = int(_scale(exp(a), (exp(r[0]), exp(r[1])), w))
 
     return b
+

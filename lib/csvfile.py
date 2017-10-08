@@ -80,7 +80,7 @@ csv = CsvObject()
 
 def is_init():
     """
-    Is CSV initalized
+    Is CSV initalized?
     :return: boolean
     """
     global csv

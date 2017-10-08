@@ -54,24 +54,24 @@ def download_file(get_file, put_file):
     return True
 
 
-def check_update(version, beta):
+def check_update(version):
     github = "https://github.com/autopower/thermeq3/raw/master/install/current/"
     home_dir = "/root/thermeq3"
-    errstr = "Unable to get latest version info - "
+    err_str = "Unable to get latest version info - "
 
     try:
         request = urllib2.urlopen(github + "autoupdate.data")
         response = request.read().rstrip("\r\n")
     except urllib2.HTTPError, e:
-        errstr += "HTTPError = " + str(e.reason)
+        err_str += "HTTPError = " + str(e.reason)
     except urllib2.URLError, e:
-        errstr += "URLError = " + str(e.reason)
-    except httplib.HTTPException, e:
-        errstr += "HTTPException"
+        err_str += "URLError = " + str(e.reason)
+    except httplib.HTTPException:
+        err_str += "HTTPException"
     except Exception:
-        errstr += "Exception = " + str(traceback.format_exc())
+        err_str += "Exception = " + str(traceback.format_exc())
     else:
-        errstr = ""
+        err_str = ""
         t = response.split(":")
 
         new_hash = get_hash(home_dir + "-install/" + str(t[1])).hexdigest()
@@ -95,27 +95,26 @@ def check_update(version, beta):
             else:
                 return [1, ""]
 
-    if not errstr == "":
-        logmsg.update(errstr)
+    if not err_str == "":
+        logmsg.update(err_str)
     return [0, ""]
 
 
-def do(version, beta):
+def do(version):
     """
     Perform update
     :param version: string
-    :param beta: boolean
     :return: boolean, True if something updated
     """
     home_dir = "/root/thermeq3"
-    chk, filename = check_update(version, beta)
+    chk, filename = check_update(version)
     result = False
     if chk == 2:
         # unzip files
         with zipfile.ZipFile(home_dir + "-install/" + filename, "r") as z:
             try:
                 z.extractall(home_dir + "/")
-            except:
+            except Exception:
                 logmsg.update("Error during archive extraction", 'E')
             else:
                 logmsg.update("Archive successfully extracted.", 'I')

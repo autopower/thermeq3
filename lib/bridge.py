@@ -2,24 +2,30 @@ import sys
 import os
 import logmsg
 import json
+import support
+import time
 
-_os = os.name
+
 fake_bridge = True
 
-if _os == "posix":
+support.guess_platform()
+if support.is_yun():
+    sys.path.insert(0, "/usr/lib/python2.7/bridge/")
     try:
-        sys.path.insert(0, "/usr/lib/python2.7/bridge/")
         from bridgeclient import BridgeClient
+    except ImportError:
+        raise ImportError("Error importing from BridgeClient library.")
+    else:
         fake_bridge = False
-    except:
-        pass
 
-if fake_bridge:
+
+if fake_bridge and not support.is_yun():
     # if exception = no yun, abstraction to bridge, simplified code inspired by arduino yun
     # abstract bridge client
     class BridgeClient:
         def __init__(self):
             self.bridge_var = {}
+            self.fake = True
 
         def get(self, key):
             if key in self.bridge_var:
@@ -63,7 +69,7 @@ cw = {
     # beta features on (yes) or off (no)
     "beta": ["beta", "no", True, "var.beta"],
     # profile type, time or temp, temp profile type means that external temperature (yahoo weather) is used
-    "profile": ["profile", "time", False, ""],
+    "profile": ["profile", "normal", False, ""],
     # list of ignored devices
     "ign": ["ignored", {}, True, "eq3.ignored_valves"],
     # no open window warning, if True then no window warning via email
@@ -79,7 +85,8 @@ cw = {
     "uptime": ["uptime", "", False, ""],
     "appuptime": ["app_uptime", 0, False, ""],
     "status": ["status", "defaults", False, ""],
-    "sys": ["system_status", {}, False, ""]
+    "sys": ["system_status", {}, False, ""],
+    "owl": ["open_window_list", {}, False, ""]
     }
 
 
@@ -90,6 +97,7 @@ def get_pcw():
         # key : [default, literal]
         lcw.update({v[0]: [v[1], v[2], v[3]]})
     return lcw
+
 
 pcw = get_pcw()
 
@@ -103,17 +111,17 @@ def save(bridge_file):
     global bridge_client
     try:
         tmp = bridge_client.getall()
-    except Exception:
+    except ValueError:
         logmsg.update("Error reading bridge!", 'E')
     else:
         try:
             f = open(bridge_file, "w")
-        except Exception:
+        except IOError:
             logmsg.update("Error writing to bridge file!", 'E')
         else:
             f.write(json.dumps(tmp, sort_keys=True))
             f.close()
-            logmsg.update("Bridge file saved.", 'D')
+            logmsg.update("Bridge file (" + str(bridge_file) + ") saved.", 'D')
             return True
     return False
 
@@ -129,14 +137,16 @@ def load(bridge_file):
         with open(bridge_file, "r") as f:
             try:
                 data = json.load(f)
-            except:
-                pass
+            except ValueError:
+                logmsg.update("Bridge value error during loading bridge!", 'E')
             finally:
                 f.close()
         logmsg.update("Bridge file loaded.", 'D')
     else:
-        logmsg.update("Error loading bridge file!", 'E')
-        data = None
+        logmsg.update("Error loading bridge file, file not exist!", 'E')
+        # load empty dict, not None
+        # data = None
+        data = {}
     return data
 
 
@@ -178,7 +188,7 @@ def try_read(lcw, _save=True):
     temp_cw, default = get_cw_default(lcw)
     tmp_str = bridge_client.get(temp_cw)
 
-    if tmp_str == "None" or tmp_str == "" or tmp_str is None:
+    if support.is_empty(tmp_str):
         tmp = default
         if _save:
             bridge_client.put(temp_cw, str(tmp))
@@ -186,7 +196,7 @@ def try_read(lcw, _save=True):
         if type(default) is int:
             try:
                 tmp = int(tmp_str)
-            except Exception:
+            except ValueError:
                 tmp = default
         else:
             tmp = tmp_str
@@ -201,6 +211,8 @@ def put(key, value):
     :return: nothing
     """
     global bridge_client
+    # update touch
+    bridge_client.put("touch", str(time.time()))
     bridge_client.put(get_cw(key), str(value))
 
 

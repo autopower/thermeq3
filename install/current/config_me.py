@@ -209,15 +209,15 @@ def get_config(rew):
             value = json.dumps(ignored)
         else:
             txt = " "
-            if len(k) > 2 and rew is False:
+            if len(k) > 2 and rew is True:
                 txt += k[1] + " (default: " + str(k[2]) + ")"
             elif k[0] in cfg:
                 txt += k[1] + " (default: " + str(cfg[k[0]]) + ")"
             else:
                 txt += k[1]
             value = raw_input("Please enter" + txt + ": ")
-            if value == "" and len(k) > 2 or k[0] in cfg:
-                if len(k) > 2:
+            if value == "" and (len(k) > 2 or k[0] in cfg):
+                if len(k) > 2 and rew is True:
                     value = k[2]
                 elif k[0] in cfg:
                     value = cfg[k[0]]
@@ -289,14 +289,20 @@ if __name__ == '__main__':
     cfg = load(new)
     if "yahoo_location" in cfg:
         ret_value = check_for_locations(cfg["yahoo_location"], cfg["owm_api_key"])
-    else:
-        ret_value = check_for_locations(cfg["location"], cfg["owm_api_key"])
-
-    # and update owm location
-    if "owm_location" in cfg:
-        print("OWM location updated in config.")
-    else:
-        print("OWM location added to config.")
-    cfg.update({"owm_location": ret_value})
-    save(new)
+        # and update owm location
+        if "owm_location" in cfg:
+            print("OWM location updated in config.")
+        else:
+            print("OWM location added to config.")
+        cfg.update({"owm_location": ret_value})
+        save(new)
     print("Config file saved into " + new)
+
+    # prepare location.json file
+    try:
+        f = open("/root/location.json", "w")
+    except IOError:
+        print("IOError during open file for writing!")
+    else:
+        json.dump({"yahoo_location": ret_value}, f)
+        f.close()

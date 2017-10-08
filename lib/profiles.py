@@ -116,7 +116,7 @@ def do(sel_mode, act_idx, sit):
     table.selected_mode = sel_mode
     table.act_mode_idx = act_idx
     table.sit = sit
-    tmp_prof = bridge.try_read("profile", False).upper()
+    tmp_prof = bridge.try_read("profile", True).upper()
     kv = []
     if tmp_prof != table.selected_mode:
         table.selected_mode = tmp_prof

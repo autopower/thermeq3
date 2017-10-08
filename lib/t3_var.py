@@ -1,10 +1,11 @@
 import time
 import sys
 import profiles
-import traceback
 import os
 import errno
 import bridge
+import support
+import config
 
 
 class Thermeq3Status(object):
@@ -38,23 +39,17 @@ class Thermeq3Status(object):
 class Thermeq3Setup(object):
     def __init__(self):
         # thermeq3 configuration variables, override in /root/config.py
-        self.version = 231
-        # please change to rpi for Raspberry Pi
-        self.target = "yun"
+        self.version = 253
         # window ignore time, in minutes
         self.window_ignore_time = 15
         # my IP address
         self.my_ip = "127.0.0.1"
         # sd card or usb key mount point, default is /mnt/sda1/
         self.place = ""
-        # where is stderr log located, def setup.place+setup.devname+"_error.log"
+        # where is stderr log located, default setup.place + setup.device_name + "_error.log"
         self.stderr_log = ""
         # difference from last known valve value, in %
         self.percentage = 3
-        # github location for auto update
-        self.github = "https://raw.github.com/autopower/thermeq3/master/"
-        # home directory is /root
-        self.homedir = "/root/"
         # abnormal count of warning is
         self.abnormalCount = 30
         # how many windows must be open to recognize that we are ventilating
@@ -79,65 +74,97 @@ class Thermeq3Setup(object):
         self.intervals = {}
         self.temp = []
         self.day = []
+        # hard coded ignored valves
+        self.hard_ignored = {}
+        # which values will be written into csv file (1 = actual temp, 2 = set temp, 3 = both)
+        self.csv_values = 1
 
         # Required per-install variables, configured in /root/config.py
         # Reported name of this thermeq3 installation ie. "thermeq3"
-        self.devname = None
+        self.device_name = "thermeq3"
         # MAX Cube
         # ie. "192.168.0.10"
         self.max_ip = None
         # e-mail
         # ie. "devices@foo.local"
-        self.fromaddr = None
+        self.from_addr = None
         # ie. "user@foo.local", or a list: ["user1@foo.local", user@bar.local]
-        self.toaddr = None
+        self.to_addr = None
         # SMTP host ie. "mail.foo.local"
-        self.mailserver = None
+        self.mail_server = None
         # SMTP port ie. 25
-        self.mailport = None
-        # SMTP authentication username, ie. "user@foo.local"
-        self.mailuser = None
+        self.mail_port = None
         # SMTP authentication password, ie. "password"
-        self.mailpassword = None
+        self.from_pwd = None
         # Weather info
         # open weather map API key, ie "123456789"
         self.owm_api_key = None
         # geographic location, as per Yahoo WOEID. ie. "12345"
-        self.location = None
+        self.yahoo_location = None
+        self.owm_location = None
 
+        self.err_str = ""
+
+        support.guess_platform()
         # import /root/config.py, overriding per-install variables above
-        try:
-            execfile("/root/config.py")
-        except IOError:
-            self.err_str = "Can't find config file or config file IO error!"
-            sys.exit(self.err_str)
-        except SyntaxError:
-            self.err_str = "Syntax error in config file!"
-            sys.exit(self.err_str)
-        except NameError as err:
-            detail = err.args[0]
-            self.err_str = "Name error in config file!\n" + \
-                           "Detail: " + str(detail) + "\n"
-            sys.exit(self.err_str)
-        except Exception as err:
-            error_class = err.__class__.__name__
-            detail = err.args[0]
-            cl, exc, tb = sys.exc_info()
-            line_number = traceback.extract_tb(tb)[-1][1]
-            self.err_str = "Can't find config file or config file error!\n" + \
-                           "Detail: " + str(error_class) + "\n" + str(detail) + "\n" + \
-                           str(cl) + "\n" + str(exc) + "\n" + str(tb) + "\n" + \
-                           str(line_number) + "\n"
-            sys.exit(self.err_str)
+        if support.is_win():
+            # execfile("t:/root/config.py")
+            old = "t:/root/config.py"
+            new = "t:/root/thermeq3.json"
+        else:
+            # execfile("/root/config.py")
+            old = "/root/config.py"
+            new = "/root/thermeq3.json"
 
+        result = config.load_old(old, new)
+        if result == 1:
+            self.err_str = "Info: can't find old config file.\n"
+        elif result == 2:
+            self.err_str = "Info: error processing old config file.\n"
+        elif result == 3:
+            self.err_str = "Info: you can't see something like this.\n"
+        elif result == 4:
+            self.err_str = "Info: error processing new config file.\n"
+        elif result == 0:
+            if support.is_win():
+                cmd = "ren " + old + " config.old"
+                os.system(cmd.replace("/", "\\"))
+            else:
+                os.system("mv " + old + " /root/config.old")
+
+        # seems everything is OK, so load config
+        result = config.load(new)
+        if result == {}:
+            self.err_str += "Error: can't find or load config file!\nPlease run config_me.py"
+            sys.exit(self.err_str)
+        else:
+            try:
+                obj = eval("self")
+            except SyntaxError:
+                self.err_str += "Error while evaluating object!"
+                sys.exit(self.err_str)
+            else:
+                for k, v in result.iteritems():
+                    try:
+                        if str(v).isdigit():
+                            vs = int(v)
+                        else:
+                            vs = str(v)
+                        setattr(obj, str(k), vs)
+                    except NameError:
+                        pass
+
+        # check if SD or USB is mounted, if not raise error
         if not self.init_paths():
             self.err_str = "Error: can't find mounted storage device!\n" + \
-                           "Please mount SD card or USB key and run program again."
+                           "Please mount SD card or USB key and run program again.\n"
 
+        # create www directory, if now www directory exist raise error
         try:
             os.makedirs(self.place + "www")
         except OSError as exception:
             if exception.errno != errno.EEXIST:
+                self.err_str = "Error: can't create www directory!\nPlease check mounted storage device."
                 raise
 
     def __repr__(self):
@@ -147,7 +174,7 @@ class Thermeq3Setup(object):
         return str(self.__class__) + ": " + str(self.__dict__)
 
     def init_paths(self):
-        if os.name == "nt":
+        if support.is_win():
             if os.path.exists("t:/mnt/sda1"):
                 self.place = "t:/mnt/sda1/"
             elif os.path.exists("t:/mnt/sdb1"):
@@ -155,40 +182,39 @@ class Thermeq3Setup(object):
             else:
                 return False
             # init path variables
-            self.log_filename = self.place + self.devname + ".log"
-            self.csv_log = self.place + "csv/" + self.devname + ".csv"
-            self.bridge_file = self.place + self.devname + ".bridge"
-            self.stderr_log = self.place + self.devname + "_error.log"
+            self.log_filename = self.place + self.device_name + ".log"
+            self.csv_log = self.place + "csv/" + self.device_name + ".csv"
+            self.bridge_file = self.place + self.device_name + ".bridge"
+            self.stderr_log = self.place + self.device_name + "_error.log"
             return True
-        else:
-            if self.target == "yun":
-                if os.path.exists("/mnt/sda1"):
-                    self.place = "/mnt/sda1/"
-                elif os.path.exists("/mnt/sdb1"):
-                    self.place = "/mnt/sdb1/"
-                else:
-                    return False
-                # init path variables
-                self.log_filename = self.place + self.devname + ".log"
-                self.csv_log = self.place + "csv/" + self.devname + ".csv"
-                self.bridge_file = self.place + self.devname + ".bridge"
-                self.stderr_log = self.place + self.devname + "_error.log"
-                return True
-            elif self.target == "rpi":
-                # TBI RPI
-                # please update path according to RPi environment
-                if os.path.exists("/mnt/sda1"):
-                    self.place = "/mnt/sda1/"
-                elif os.path.exists("/mnt/sdb1"):
-                    self.place = "/mnt/sdb1/"
-                else:
-                    return False
-                # init path variables
-                self.log_filename = self.place + self.devname + ".log"
-                self.csv_log = self.place + "csv/" + self.devname + ".csv"
-                self.bridge_file = self.place + self.devname + ".bridge"
-                self.stderr_log = self.place + self.devname + "_error.log"
-                return True
+        elif support.is_yun():
+            if os.path.ismount("/mnt/sda1"):
+                self.place = "/mnt/sda1/"
+            elif os.path.ismount("/mnt/sdb1"):
+                self.place = "/mnt/sdb1/"
+            else:
+                return False
+            # init path variables
+            self.log_filename = self.place + self.device_name + ".log"
+            self.csv_log = self.place + "csv/" + self.device_name + ".csv"
+            self.bridge_file = self.place + self.device_name + ".bridge"
+            self.stderr_log = self.place + self.device_name + "_error.log"
+            return True
+        elif support.is_rpi():
+            # TBI RPI
+            # please update path according to RPi environment
+            if os.path.ismount("/mnt/sda1"):
+                self.place = "/mnt/sda1/"
+            elif os.path.ismount("/mnt/sdb1"):
+                self.place = "/mnt/sdb1/"
+            else:
+                return False
+            # init path variables
+            self.log_filename = self.place + self.device_name + ".log"
+            self.csv_log = self.place + "csv/" + self.device_name + ".csv"
+            self.bridge_file = self.place + self.device_name + ".bridge"
+            self.stderr_log = self.place + self.device_name + "_error.log"
+            return True
 
     def init_intervals(self):
         # threshold in seconds, so 10 minutes are 10*60 seconds

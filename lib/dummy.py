@@ -12,9 +12,9 @@ def add_dummy(status):
     # devices = {addr: [type, serial, name, room, OW, OW_time, status, info, temp offset]}
     thermeq3.t3.eq3.rooms.update({"99": ["Dummy room", "DeadBeefValve", False, 22.0, 22]})
     thermeq3.t3.eq3.devices.update({"DeadBeefWindow": [4, "IHADBW", "Dummy window", 99, 0,
-                                                datetime.datetime(2016, 01, 01, 12, 00, 00), 18, 16, 7]})
+                                                       datetime.datetime(2016, 01, 01, 12, 00, 00), 18, 16, 7]})
     thermeq3.t3.eq3.devices.update({"DeadBeefValve": [1, "IHADBV", "Dummy valve", 99, 0,
-                                               datetime.datetime(2016, 01, 01, 12, 00, 00), 18, 56, 7]})
+                                                      datetime.datetime(2016, 01, 01, 12, 00, 00), 18, 56, 7]})
     thermeq3.t3.eq3.valves.update({"DeadBeefValve": [20, 22.0, 22.0, "Dummy valve"]})
     # TBI open/closed window
     if status:

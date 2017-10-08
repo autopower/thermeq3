@@ -4,7 +4,6 @@ EQ-3/ELV MAX! communication
 # imports
 import socket
 import time
-import traceback
 import base64
 import datetime
 import json
@@ -60,6 +59,8 @@ class EQ3Data:
         self.client_socket = None
         # set zero temp from HT or not
         self.set_zero = True
+        # which values will be written into csv file
+        self.csv_values = 1
 
     def __repr__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
@@ -92,6 +93,17 @@ class EQ3Data:
         rn = self.rooms[str(self.devices[k][3])][0]
         return [rn, dn, v]
 
+    def get_full_name_tilda(self, k):
+        """
+        Return complete names for valve, room
+        :param k: key
+        :return: list [room name, device name, valve list]
+        """
+        v = self.valves[k]
+        dn = self.devices[k][2]
+        rn = self.rooms[str(self.devices[k][3])][0] + "~" + self.rooms[str(self.devices[k][3])][1]
+        return [rn, dn, v]
+
     def get_key_full_name(self, k):
         """
         Return complete names for valve, room as dictionary
@@ -119,7 +131,8 @@ class EQ3Data:
         rn = self.rooms[str(self.devices[k][3])][0]
         return rn
 
-    def is_valid(self, valve_info):
+    @staticmethod
+    def is_valid(valve_info):
         """
         :param valve_info: valve status info
         :return: boolean, true if valid
@@ -176,7 +189,8 @@ class EQ3Data:
                 return False
         return True
 
-    def _hexify(self, addr):
+    @staticmethod
+    def _hexify(addr):
         """
         Returns hexified address
         :param addr: string, device address
@@ -191,15 +205,15 @@ class EQ3Data:
         """
         self.comm_error += 1
 
-    def _readlines(self, sock, recv_buffer=4096, delim="\r\n"):
-        buffer = ""
+    def _read_lines(self, recv_buffer=4096, delimiter="\r\n"):
+        lines_buffer = ""
         data = True
         while data:
             try:
-                data = sock.recv(recv_buffer)
-                buffer += data
-                while buffer.find(delim) != -1:
-                    line, buffer = buffer.split("\n", 1)
+                data = self.client_socket.recv(recv_buffer)
+                lines_buffer += data
+                while lines_buffer.find(delimiter) != -1:
+                    line, lines_buffer = lines_buffer.split("\n", 1)
                     yield line
             except socket.timeout:
                 return
@@ -232,7 +246,8 @@ class EQ3Data:
                 _i += 1
                 # wait predefined time
                 time.sleep(int(self.timeout / self.max_iteration))
-                self.return_error.append([Exception, e, str(traceback.format_exc())])
+                # self.return_error.append([Exception, e, str(traceback.format_exc())])
+                self.return_error.append("Timeout. Operation in progress.\n")
             else:
                 _i = self.max_iteration
                 _result = True
@@ -267,7 +282,7 @@ class EQ3Data:
         for k, v in tmp_room.iteritems():
             try:
                 result = v[0] / v[1]
-            except:
+            except ZeroDivisionError:
                 result = 0
             finally:
                 r_id = self.get_room_id_by_name(k)
@@ -301,7 +316,7 @@ class EQ3Data:
         :return: nothing
         """
         self.client_socket.settimeout(int(self.timeout / 3))
-        for line in self._readlines(self.client_socket):
+        for line in self._read_lines():
             data = line
             sd = data[2:].split(",")
             if data[0] == 'H':
@@ -312,6 +327,27 @@ class EQ3Data:
                 self.cmd_c(sd)
             elif data[0] == 'L':
                 self.cmd_l(sd)
+
+    def delete(self, dev_id):
+        """
+        Delete device from cube
+        :param dev_id: device id
+        :return: boolean
+        """
+        result = None
+        if self.open():
+            self._read_lines()
+            dev_id_plain = bytearray.fromhex(dev_id).decode()
+            message = "t:01,1," + base64.b64encode(dev_id_plain) + "\r\n"
+            try:
+                self.client_socket.sendall(message)
+            except socket.error:
+                result = False
+            else:
+                result = True
+            finally:
+                self.close()
+        return result
 
     def cmd_h(self, line):
         """
@@ -330,39 +366,42 @@ class EQ3Data:
         :param refresh: boolean
         :return:
         """
-        es = base64.b64decode(line[2])
-        room_num = ord(es[2])
-        es_pos = 3
-        this_now = datetime.datetime.now()
-        for _ in range(0, room_num):
-            room_id = str(ord(es[es_pos]))
-            room_len = ord(es[es_pos + 1])
-            es_pos += 2
-            room_name = es[es_pos:es_pos + room_len]
-            es_pos += room_len
-            room_adr = es[es_pos:es_pos + 3]
-            es_pos += 3
-            if room_id not in self.rooms or refresh:
-                # id  :	0room_name, 1room_address,   2is_win_open, 3curr_temp
-                self.rooms.update({room_id: [room_name, self._hexify(room_adr), False, 99.99, 0]})
-        dev_num = ord(es[es_pos])
-        es_pos += 1
-        for _ in range(0, dev_num):
-            dev_type = ord(es[es_pos])
+        if len(line) < 2:
+            self.return_error.append("Error reading M response. Probably cube without setup!")
+        else:
+            es = base64.b64decode(line[2])
+            room_num = ord(es[2])
+            es_pos = 3
+            this_now = datetime.datetime.now()
+            for _ in range(0, room_num):
+                room_id = str(ord(es[es_pos]))
+                room_len = ord(es[es_pos + 1])
+                es_pos += 2
+                room_name = es[es_pos:es_pos + room_len]
+                es_pos += room_len
+                room_adr = es[es_pos:es_pos + 3]
+                es_pos += 3
+                if room_id not in self.rooms or refresh:
+                    # id  :	0room_name, 1room_address,   2is_win_open, 3curr_temp
+                    self.rooms.update({room_id: [room_name, self._hexify(room_adr), False, 99.99, 0]})
+            dev_num = ord(es[es_pos])
             es_pos += 1
-            dev_adr = self._hexify(es[es_pos:es_pos + 3])
-            es_pos += 3
-            dev_sn = es[es_pos:es_pos + 10]
-            es_pos += 10
-            dev_len = ord(es[es_pos])
-            es_pos += 1
-            dev_name = es[es_pos:es_pos + dev_len]
-            es_pos += dev_len
-            dev_room = ord(es[es_pos])
-            es_pos += 1
-            if dev_adr not in self.devices or refresh:
-                # 0type     1serial 2name     3room    4OW,5OW_time, 6status, 7info, 8temp offset
-                self.devices.update({dev_adr: [dev_type, dev_sn, dev_name, dev_room, 0, this_now, 0, 0, 7]})
+            for _ in range(0, dev_num):
+                dev_type = ord(es[es_pos])
+                es_pos += 1
+                dev_adr = self._hexify(es[es_pos:es_pos + 3])
+                es_pos += 3
+                dev_sn = es[es_pos:es_pos + 10]
+                es_pos += 10
+                dev_len = ord(es[es_pos])
+                es_pos += 1
+                dev_name = es[es_pos:es_pos + dev_len]
+                es_pos += dev_len
+                dev_room = ord(es[es_pos])
+                es_pos += 1
+                if dev_adr not in self.devices or refresh:
+                    # 0type     1serial 2name     3room    4OW,5OW_time, 6status, 7info, 8temp offset
+                    self.devices.update({dev_adr: [dev_type, dev_sn, dev_name, dev_room, 0, this_now, 0, 0, 7]})
 
     def cmd_c(self, line):
         """
@@ -386,58 +425,55 @@ class EQ3Data:
         while es_pos < len(es):
             dev_len = ord(es[es_pos])
             valve_adr = self._hexify(es[es_pos + 1:es_pos + 4])
-            valve_status = ord(es[es_pos + 0x05])
-            valve_info = ord(es[es_pos + 0x06])
-            valve_temp = 0xFF
-            valve_curr_temp = 0xFF
-            # WallMountedThermostat (dev_type 3)
-            if dev_len == 12:
-                if self.is_valid(valve_info):
-                    # lsb = ord(es[es_pos + 0x08]) & 0b01111111
-                    # msb = (ord(es[es_pos + 0x08]) & 0b00000001) * 256
-                    lsb = ord(es[es_pos + 0x08]) & 0b01111111
-                    msb = (ord(es[es_pos + 0x08]) & 0b1000000 >> 7) * 256
-                    # get set temp
-                    valve_temp = float(lsb) / 2
-                    # get measured temp
-                    lsb = ord(es[es_pos + 0x0C])
-                    valve_curr_temp = float(msb + lsb) / 10
-                    # extract room name from this WallMountedThermostat
-                    wall_room_id = str(self.devices[valve_adr][3])
-                    # and update its value to current temperature as read from WallMountedthermostat
-                    self.rooms[wall_room_id][3] = valve_curr_temp
-            # HeatingThermostat (dev_type 1 or 2)
-            elif dev_len == 11:
-                valve_pos = ord(es[es_pos + 0x07])
-                if self.is_valid(valve_info):
-                    # lsb = ord(es[es_pos + 0x08]) & 0b01111111
-                    # msb = ((ord(es[es_pos + 0x08]) & 0b10000000) >> 7) * 256
-                    lsb = ord(es[es_pos + 0x08]) & 0b01111111
-                    msb = (ord(es[es_pos + 0x08]) & 0b00000001) * 256
-                    # get set temp
-                    valve_temp = float(lsb) / 2
-                    # extract room name from this HeatingThermostat
-                    valve_room_id = str(self.devices[valve_adr][3])
-                    # if room temp not set i.e. still returning default 99.99
-                    if self.rooms[valve_room_id][3] == 99.99:
-                        # get room temp from this valve
-                        lsb = ord(es[es_pos + 0x09])
+            if valve_adr in self.devices:
+                valve_status = ord(es[es_pos + 0x06])
+                valve_info = ord(es[es_pos + 0x05])
+                valve_temp = 0xFF
+                valve_curr_temp = 0xFF
+                # WallMountedThermostat (dev_type 3)
+                if dev_len == 12:
+                    if self.is_valid(valve_info):
+                        # lsb = ord(es[es_pos + 0x08]) & 0b01111111
+                        tmp = ord(es[es_pos + 0x08]) & 0b10000000
+                        msb = (tmp >> 7) * 256
+                        # get set temp, on wall thermostat no reason for set temp
+                        # valve_temp = float(lsb) / 2
+                        # get measured temp
+                        lsb = ord(es[es_pos + 0x0C])
                         valve_curr_temp = float(msb + lsb) / 10
-                        # and update room temp too
-                        self.rooms[valve_room_id][3] = valve_curr_temp
-                    else:
-                        # read room temp which was earlier set by wall thermostat
-                        valve_curr_temp = self.rooms[valve_room_id][3]
-                # check if current temperature is 0.0 and if set_zero is disabled, then get "obsolete actual" temp,
-                # just to have no 0.0 in log or CSV
-                if valve_curr_temp == 0.0 and not self.set_zero:
-                    valve_curr_temp = self.valves[valve_adr][2]
-                self.valves.update({valve_adr: [valve_pos, valve_temp, valve_curr_temp]})
-            # WindowContact
-            elif dev_len == 6:
-                tmp_open = ord(es[es_pos + 0x06]) & 2
-                # check if some this key is not remain of old installation, typically unpaired contact
-                if valve_adr in self.devices:
+                        # extract room name from this WallMountedThermostat
+                        wall_room_id = str(self.devices[valve_adr][3])
+                        # and update its value to current temperature as read from wall mounted thermostat
+                        self.rooms[wall_room_id][3] = valve_curr_temp
+                # HeatingThermostat (dev_type 1 or 2)
+                elif dev_len == 11:
+                    valve_pos = ord(es[es_pos + 0x07])
+                    if self.is_valid(valve_info):
+                        lsb = ord(es[es_pos + 0x08]) & 0b01111111
+                        tmp = ord(es[es_pos + 0x08]) & 0b10000000
+                        msb = (tmp >> 7) * 256
+                        # get set temp
+                        valve_temp = float(lsb) / 2
+                        # extract room name from this HeatingThermostat
+                        valve_room_id = str(self.devices[valve_adr][3])
+                        # if room temp not set i.e. still returning default 99.99
+                        if self.rooms[valve_room_id][3] == 99.99:
+                            # get room temp from this valve
+                            lsb = ord(es[es_pos + 0x09])
+                            valve_curr_temp = float(msb + lsb) / 10
+                            # and update room temp too
+                            self.rooms[valve_room_id][3] = valve_curr_temp
+                        else:
+                            # read room temp which was earlier set by wall thermostat
+                            valve_curr_temp = self.rooms[valve_room_id][3]
+                    # check if current temperature is 0.0 and if set_zero is disabled, then get "obsolete actual" temp,
+                    # just to have no 0.0 in log or CSV
+                    if valve_curr_temp == 0.0 and not self.set_zero:
+                        valve_curr_temp = self.valves[valve_adr][2]
+                    self.valves.update({valve_adr: [valve_pos, valve_temp, valve_curr_temp]})
+                # WindowContact
+                elif dev_len == 6:
+                    tmp_open = ord(es[es_pos + 0x06]) & 2
                     # if state changed
                     if tmp_open != self.devices[valve_adr][4]:
                         # get room id
@@ -455,34 +491,49 @@ class EQ3Data:
                             self.rooms[r_id][2] = True
                         self.devices[valve_adr][4] = tmp_open
                         self.devices[valve_adr][5] = datetime.datetime.now()
-                else:
-                    # some error logging
-                    self.return_error.append(["Wrong address: " + str(valve_adr)])
-            # save status and info
-            if valve_adr in self.devices:
+                # save status and info
                 self.devices[valve_adr][6] = valve_status
                 self.devices[valve_adr][7] = valve_info
+
+                es_pos += (dev_len + 1)
             else:
-                self.return_error.append(["Wrong address: " + str(valve_adr)])
-            es_pos += (dev_len + 1)
+                # some error logging
+                # if this is annoying please comment lines below
+                if len(self.return_error) > 0:
+                    self.return_error.append(str(valve_adr))
+                else:
+                    self.return_error.append("Address error. Please use del_dev command. Key(s): ")
+                    self.return_error.append(str(valve_adr))
+                # and uncomment line below
+                # pass
 
     def csv(self):
         """ format csv string, the second part, just valves """
         tmp = ""
         for k, v in self.valves.iteritems():
-            tmp += str(v[0]) + "," + str(v[1]) + "," + str(v[2]) + ","
+            # thanks to Wojciech from Polska this is configurable
+            if self.csv_values == 3:
+                # this uses both temps
+                tmp += str(v[0]) + "," + str(v[1]) + "," + str(v[2]) + ","
+            elif self.csv_values == 2:
+                # this is current temp
+                tmp += str(v[0]) + "," + str(v[2]) + ","
+            else:
+                # this line uses valve set temp
+                tmp += str(v[0]) + "," + str(v[1]) + ","
         return tmp
 
     def plain(self):
         rooms = {}
+        # id  :	0room_name, 1room_address,   2is_win_open, 3curr_temp
         for k, v in self.rooms.iteritems():
-            rooms.update({str(v[0]): ["", v[2]]})
+            rooms.update({str(v[0] + "~" + str(v[1])): ["", v[2], v[4]]})
 
         for k, v in self.valves.iteritems():
             # update rooms string
-            room_id = str(self.get_full_name(k)[0])
+            room_id = str(self.get_full_name_tilda(k)[0])
             room_str = rooms[room_id][0]
-            room_str += "\r\n\t[" + str(k) + "] " + '{:<20}'.format(str(self.devices[k][2])) + "@" + \
+            room_str += "\n\t[" + str(k) + "] " + '{:<20}'.format(str(self.devices[k][2])) + "@" + \
                         '{:>3}'.format(str(v[0])) + "% @ " + \
                         '{:>4}'.format(str(v[1])) + "'C # " + '{:>4}'.format(str(v[2])) + "'C "
             cv = self.count_valve(k)
@@ -493,14 +544,15 @@ class EQ3Data:
 
             rooms[room_id][0] = room_str
 
-        logstr = "Actual positions:"
+        log_str = "Actual positions:"
         for k, v in rooms.iteritems():
-            logstr += "\r\nRoom: " + str(k)
+            log_str += "\nRoom: " + str(k).split('~')[0]
             if v[1]:
-                logstr += ", open window"
-            logstr += str(v[0])
-
-        return logstr
+                log_str += ", open window"
+            if v[0].count("\n\t") > 1:
+                log_str += ", average: " + str(v[2]) + "%"
+            log_str += str(v[0])
+        return log_str
 
     def json_status(self):
         """
@@ -522,11 +574,12 @@ class EQ3Data:
             room_id = self.get_room_name(k)
             cv = self.count_valve(k)
             if not cv:
-                till = time.localtime(self.ignored_valves[k])
+                till = time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(self.ignored_valves[k]))
             else:
                 till = 0
             current[room_id].update({str(k): [str(self.devices[k][2]), str(v[0]),
-                                              str(v[1]), str(v[2]), str(1 if cv else 0), str(till)]})
+                                              str(v[1]), str(v[2]), str(1 if cv else 0),
+                                              str(till), str(self.devices[k][6])]})
 
         return json.dumps(current)
 
@@ -563,7 +616,18 @@ class EQ3Data:
                 name = self.rooms[room_id][0] + "-" + self.devices[k][2]
             else:
                 name = self.devices[k][2]
-            tmp += name + "," + name + ","
+            # choose headers according to what is written into csv file
+            # first position is always valve position in %
+            tmp += name + " (position),"
+            if self.csv_values == 3:
+                # both temperatures
+                tmp += name + " (set temp)," + name + " (actual temp),"
+            elif self.csv_values == 2:
+                # actual temp
+                tmp += name + " (actual temp),"
+            else:
+                # set temp
+                tmp += name + " (set temp),"
 
         return tmp[:-1]
 
