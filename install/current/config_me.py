@@ -17,9 +17,10 @@ def check_for_locations(woeid, owm_api_key):
     :param owm_api_key:
     :param woeid: integer, yahoo weather ID
     """
-    city = "Error city"
-    temp = None
-    humidity = None
+    # city = "Error city"
+    # temp = None
+    # humidity = None
+    owm_id = None
 
     if woeid is None:
         print("Wrong WOEID!")
@@ -47,7 +48,8 @@ def check_for_locations(woeid, owm_api_key):
                     pass
                 else:
                     # and check if yahoo is correct
-                    url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + "&appid=" + owm_api_key + "&units=metric"
+                    url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + "&appid=" + owm_api_key + \
+                          "&units=metric"
                     try:
                         result = json.load(urllib2.urlopen(url))
                     except Exception, error:
@@ -64,12 +66,12 @@ def check_for_locations(woeid, owm_api_key):
                                 print("Difference between Yahoo and OWM temperatures. Yahoo=" + str(yho_temp) +
                                       " OWM=" + str(owm_temp))
                                 # end check
+                            print("\tYahoo result: Current temperature in " + str(city) + " is " + str(temp) +
+                                  ", humidity " + str(humidity) + "%")
+                            print("\tOWM result: Current temperature in " + str(city) + " is " + str(owm_temp) +
+                                  ", humidity " + str(owm_humidity) + "%")
                         else:
                             print("Error during parsing result.")
-                        print("\tYahoo result: Current temperature in " + str(city) + " is " + str(temp) +
-                              ", humidity " + str(humidity) + "%")
-                        print("\tOWM result: Current temperature in " + str(city) + " is " + str(owm_temp) +
-                              ", humidity " + str(owm_humidity) + "%")
 
     print("\tYahoo woeid: " + str(woeid))
     print("\tOWM city ID: " + str(owm_id))
@@ -124,12 +126,18 @@ def load(config_file):
 
 def save(config_file):
     global cfg
+
+    write_to_file(config_file, cfg)
+
+
+def write_to_file(file_name, file_payload):
     try:
-        f = open(config_file, "w")
+        f = open(file_name, "w")
     except IOError:
-        print("IOError during open file for writing!")
-    json.dump(cfg, f)
-    f.close()
+        print("Error during writing file: " + file_name)
+    else:
+        json.dump(file_payload, f)
+        f.close()
 
 
 def load_old(old_config_file, new_config_file):
@@ -170,13 +178,7 @@ def load_old(old_config_file, new_config_file):
                 # everything is ok
                 print("New config file created, now saving...")
             f.close()
-            try:
-                f = open(new_config_file, "w")
-            except IOError:
-                print("Error during writing new config file: " + new_config_file)
-            else:
-                json.dump(ncf, f)
-                f.close()
+            write_to_file(new_config_file, ncf)
 
 
 def get_config(rew):
@@ -187,6 +189,7 @@ def get_config(rew):
                     ["to_addr", "recipient address [To]"],
                     ["mail_server", "mail server address"],
                     ["mail_port", "mail server port", 25],
+                    ["from_user", "mail server user"],
                     ["from_pwd", "mail server password"],
                     ["device_name", "device name", "thermeq3"],
                     ["ext_port", "external port", 29080],
@@ -299,10 +302,4 @@ if __name__ == '__main__':
     print("Config file saved into " + new)
 
     # prepare location.json file
-    try:
-        f = open("/root/location.json", "w")
-    except IOError:
-        print("IOError during open file for writing!")
-    else:
-        json.dump({"yahoo_location": cfg["yahoo_location"]}, f)
-        f.close()
+    write_to_file("/root/location.json", {"yahoo_location": cfg["yahoo_location"]})
