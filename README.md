@@ -3,6 +3,10 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2017-Oct-10
+* minor fixes in nsm and dashboard
+* separated mail user for login and from address variable
+
 ### 2017-Oct-07
 * readme update
 * yun sketch update addressing wrong response from cube (typically wrong M response)
