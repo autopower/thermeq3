@@ -250,7 +250,7 @@ a = json.loads(data)
 data = read_page_url("location.json")
 d = json.loads(data)
 try:
-    location = d["location"]
+    location = d["yahoo_location"]
 except:
     location = "823123"
 
