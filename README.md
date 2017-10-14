@@ -3,6 +3,11 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2017-Oct-14
+* possibility to get temperature and humidity from local source, bridge values: local_temp, local_humidity and weather_reference
+* fixed persistence of values after reboot
+* complete system dump in bridge, key "dump"
+
 ### 2017-Oct-10
 * minor fixes in nsm and dashboard
 * separated mail user for login and from address variable
