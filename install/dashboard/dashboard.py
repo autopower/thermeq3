@@ -6,6 +6,8 @@ import urllib
 
 a = {}
 
+# Dashboard 0.12
+
 
 def page_body_weather(woeid):
     """
@@ -21,9 +23,8 @@ def page_body_weather(woeid):
         yql_url = base_url + urllib.urlencode({'q': yql_query}) + "&format=json"
 
         try:
-            result = urllib2.urlopen(yql_url).read()
-            data = json.loads(result)
-        except Exception, error:
+            data = json.loads(urllib2.urlopen(yql_url).read())
+        except Exception:
             city, temp, humidity = "Error city", 0.0, 0.0
         else:
             if data is not None:
@@ -142,7 +143,14 @@ def page_body_rooms():
     last_room = ""
     for k, v in r.iteritems():
         for x, y in v.iteritems():
-            print "\t\t\t\t\t<tr>"
+            if y[2] == "4.5" and int(y[6]) & 0b00000011 == 1:
+                valve_is_off = True
+            else:
+                valve_is_off = False
+            if valve_is_off:
+                print "\t\t\t\t\t<tr style=\"background-color: #D0D0D0;\">"
+            else:
+                print "\t\t\t\t\t<tr>"
             # Room
             if k == last_room:
                 ret_str = "&nbsp;"
@@ -162,9 +170,17 @@ def page_body_rooms():
             ret_str += "</td>"
             print ret_str
             # Position
-            print "\t\t\t\t\t\t<td style=\"text-align: center;\">", y[1], "</td>"
+            if valve_is_off:
+                ret_str = "Off"
+            else:
+                ret_str = y[1]
+            print "\t\t\t\t\t\t<td style=\"text-align: center;\">", ret_str, "</td>"
             # Temperature set
-            print "\t\t\t\t\t\t<td style=\"text-align: center;\">", y[2], "</td>"
+            if valve_is_off:
+                ret_str = "Off"
+            else:
+                ret_str = y[2]
+            print "\t\t\t\t\t\t<td style=\"text-align: center;\">", ret_str, "</td>"
             # Temperature actual
             print "\t\t\t\t\t\t<td style=\"text-align: center;\">", y[3], "</td>"
             # Windows
@@ -186,6 +202,8 @@ def page_body_rooms():
                 ret_str = "Vacation"
             elif mask == 3:
                 ret_str = "Boost"
+            if valve_is_off:
+                ret_str = "Off"
             print "\t\t\t\t\t\t<td style=\"text-align: center;\">", ret_str, "</td>"
 
             # Status
