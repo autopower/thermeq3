@@ -24,6 +24,11 @@ def update(message, log='D'):
 
 
 def debug(*args):
+    """
+    Converts arguments to strings, concat them and update log
+    :param args: argument list
+    :return: nothing
+    """
     ln = len(args)
     if ln > 0:
         tmp_str = "## " + str(inspect.stack()[1][3]) + " ## "
@@ -35,7 +40,7 @@ def debug(*args):
 def flush():
     """
     Flush log messages
-    :return:
+    :return: nothing
     """
     global log_messages, logger
     # if list is not empty
@@ -64,7 +69,11 @@ def start(log_filename):
     logger = logging.getLogger("thermeq3")
     logger.setLevel(logging.DEBUG)
 
-    fh = logging.handlers.TimedRotatingFileHandler(log_filename, when="W0", interval=4, backupCount=12)
+    try:
+        fh = logging.handlers.TimedRotatingFileHandler(log_filename, when="W0", interval=4, backupCount=12)
+    except Exception:
+        print log_filename
+        raise
     fh.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y/%m/%d %H:%M:%S")
@@ -93,4 +102,4 @@ def stop():
     :return: nothing
     """
     global logger
-    # logger.close()
+    logger.close()

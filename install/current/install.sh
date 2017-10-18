@@ -21,7 +21,7 @@ fi
 
 mkdir /root/thermeq3-install
 echo Downloading thermeq3 app
-wget --no-check-certificate --quiet --output-document /root/thermeq3-install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/beta/thermeq3.zip
+wget --no-check-certificate --quiet --output-document /root/thermeq3-install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/current/thermeq3.zip
 if [ $? -ne 0 ]; then
 	echo "Error during downloading thermeq3 app: $?"
 	exit $?
@@ -33,13 +33,6 @@ if [ $? -ne 0 ]; then
 	echo "Error during unzipping thermeq3 app: $?"
 	exit $?
 fi 
-
-echo Downloading thermeq3 config file
-wget --no-check-certificate --quiet --output-document /root/config.py https://github.com/autopower/thermeq3/raw/master/install/beta/config.py
-if [ $? -ne 0 ]; then
-	echo "Error during downloading thermeq3 config file: $?"
-	exit $?
-fi
 
 echo "Installing libraries"
 opkg install python-openssl --verbosity=0
@@ -91,26 +84,9 @@ cd $DIR/www
 mkdir -p cgi-bin
 cd cgi-bin
 
-echo "#!/bin/sh
-	echo \"Content-type: application/json\"
-	echo \"\"
-	cat $DIR/www/status.xml" > status
-echo "#!/bin/sh
-	echo \"Content-type: application/json\"
-	echo \"\"
-	cat $DIR/www/owl.xml" > owl
-echo "#!/bin/sh
-	echo \"Content-type: text/html\"
-	echo \"\"
-	cat $DIR/www/nice.html" > nice
-chmod +x status
-chmod +x owl
-chmod +x nice
-
 echo "Creating nsm.py compatibility file"
 echo "#!/usr/bin/env python
 import sys
-
 sys.path.insert(0, \"/root/thermeq3/\")
 execfile(\"/root/thermeq3/nsm.py\")
 " > /root/nsm.py
@@ -119,7 +95,30 @@ echo "Installing scripts with $1 as device name and $DIR as target directory"
 echo "tail -n 50 $DIR/$1.log" > /root/ct
 echo "cat $DIR/$1_error.log" > /root/err
 echo "ps|grep python" > /root/psg
+echo "ps -ef | grep nsm.py | grep -v grep | awk '{print $1}' | xargs kill -9" > /root/killnsm
 chmod +x /root/ct
 chmod +x /root/err
 chmod +x /root/psg
- 
+chmod +x /root/killnsm
+
+echo "Downloading interactive config"
+wget --no-check-certificate --quiet --output-document /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py
+if [ $? -ne 0 ]; then
+	echo "Error during downloading config app: $?"
+	exit $?
+fi
+echo "Downloading dashboard install script"
+wget --no-check-certificate --quiet --output-document /root/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/install-dash.sh;chmod +x /root/install-dash.sh
+if [ $? -ne 0 ]; then
+	echo "Error during downloading dashboard install script: $?"
+	exit $?
+fi
+echo "Dashboard install..."
+/root/install-dash.sh
+echo "Interactive config..."
+/root/config_me.py
+if [ -d /root/location.json]; then
+	mv /root/location.json $DIR/www/location.json
+else
+	echo "Can't find file. Please make location.json file for dashboard!"
+fi
