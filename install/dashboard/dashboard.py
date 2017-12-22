@@ -6,7 +6,7 @@ import urllib
 
 a = {}
 
-# Dashboard 0.12
+# Dashboard 0.13
 
 
 def page_body_weather(woeid):
@@ -118,8 +118,8 @@ def page_body_status():
 def page_body_rooms():
     global a
     b = a["system_status"]
-    r = json.loads(b.replace("'", "\""))
-    owl = json.loads(a["open_window_list"].replace("'", "\""))
+    r = json.loads(b.replace("'", "\""), "UTF-8")
+    owl = json.loads(a["open_window_list"].replace("'", "\""), "UTF-8")
     print """	<div class="row">
         <div class="col-md-12">
             <table class="table">
@@ -265,15 +265,16 @@ def read_page_url(url):
 
 data = read_page_url("bridge.json")
 a = json.loads(data)
-data = read_page_url("location.json")
-d = json.loads(data)
-try:
-    location = d["yahoo_location"]
-except:
-    location = "823123"
+if not a["weather_reference"].upper() == "LOCAL":
+    data = read_page_url("location.json")
+    d = json.loads(data)
+    try:
+        location = d["yahoo_location"]
+    except:
+        location = "823123"
 
 b = ["touch", "status", "autoupdate", "preference", "valve_pos", "total_switch", "valves", "svpnmw", "interval",
-     "profile", "yahoo_location"]
+     "profile", "yahoo_location", "weather_reference"]
 for i in b:
     if i not in a:
         a.update({i: ""})
