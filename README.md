@@ -4,7 +4,7 @@ Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for det
  
 ## What's new?
 ### 2018-Jul-06
-* someone calls for manual heating override, please take a look at new dashboard for those who sports simple URL, please use `http://ardu.ip/data/put/msg/S` to stop or
+* someone calls for manual heating override, please take a look at new dashboard. For those who sports simple URL, please use `http://ardu.ip/data/put/msg/S` to stop or
  `http://ardu.ip/data/put/msg/H` to start heating
  
 ### 2017-Oct-14
