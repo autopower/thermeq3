@@ -6,7 +6,7 @@ import urllib
 
 a = {}
 
-# Dashboard 0.13
+# Dashboard 0.15
 
 
 def page_body_weather(woeid):
@@ -14,6 +14,7 @@ def page_body_weather(woeid):
     Returns weather from yahoo weather from given WOEID
     :param woeid: integer, yahoo weather ID
     """
+    city, temp, humidity, text = "Error city", 0.0, 0.0, "init"
     if woeid is None:
         city, temp, humidity, text = "WOEID None", -1.0, -1.0, "Error"
     else:
@@ -23,23 +24,24 @@ def page_body_weather(woeid):
         yql_url = base_url + urllib.urlencode({'q': yql_query}) + "&format=json"
 
         try:
-            data = json.loads(urllib2.urlopen(yql_url).read())
+            ydata = json.loads(urllib2.urlopen(yql_url).read())
         except Exception:
-            city, temp, humidity = "Error city", 0.0, 0.0
+            pass
         else:
-            if data is not None:
+            if ydata is not None:
                 try:
-                    city = data["query"]["results"]["channel"]["location"]["city"]
-                    temp = int(data["query"]["results"]["channel"]["item"]["condition"]["temp"])
-                    humidity = int(data["query"]["results"]["channel"]["atmosphere"]["humidity"])
-                    text = data["query"]["results"]["channel"]["item"]["condition"]["text"]
+                    city = ydata["query"]["results"]["channel"]["location"]["city"]
+                    temp = int(ydata["query"]["results"]["channel"]["item"]["condition"]["temp"])
+                    humidity = int(ydata["query"]["results"]["channel"]["atmosphere"]["humidity"])
+                    text = ydata["query"]["results"]["channel"]["item"]["condition"]["text"]
                 except Exception:
                     city, temp, humidity = "Error city", 0.0, 0.0
         finally:
             print """
     <div class="row">
         <div class="col-md-12">"""
-            print "\t\t\t<p>Weather in " + str(city) + ", " + str(text) + ", temperature: " + str(temp) + ", humidity: " + str(humidity) + "</p>"
+            print "\t\t\t<p>Weather in " + str(city) + ", " + str(text) + ", temperature: " + str(temp) + \
+                  ", humidity: " + str(humidity) + "</p>"
             print """\t\t</div>
     </div>
             """
@@ -61,8 +63,21 @@ def page_start():
 <link href="../css/style.css" rel="stylesheet">
 
 </head>"""
+    print """<script type="text/javascript">
+function fill_in(ch) {
+    ip = location.host.split(':')[0];
+    document.write('<input type="button" class="btn btn-outline-');
+    if (ch == 'H') {
+        document.write('success" value="Heat"');
+    } else {
+        document.write('danger" value="Stop"');
+    }
+    document.write('onclick=\"location.href=&quot;http://' + ip + '/data/put/msg/' + ch + '&quot;;">');
+}
+</script>"""
 
 
+# <input type="button" class="btn btn-outline-success" value="Heat" onclick="location.href = 'http:\\www.google.com';">
 def page_body_menu():
     print """<body>
     <div class="container-fluid">
@@ -92,12 +107,13 @@ def page_body_status():
         datetime.datetime.fromtimestamp(float(a["touch"])), \
         "</td>\n\t\t\t\t</tr>"
     print "\t\t\t\t</tr>"
-    print "\t\t\t\t<tr>\n\t\t\t\t\t<td>Status</td>\n\t\t\t\t\t<td>", a["status"], "</td>"
+    print "\t\t\t\t<tr>\n\t\t\t\t\t<td>Status</td>\n\t\t\t\t\t<td>", a["status"], \
+        """<script>fill_in('H')</script>&nbsp;<script>fill_in('S')</script></td>"""
     print "\t\t\t\t\t<td>Autoupdate</td>\n\t\t\t\t\t<td>", a["autoupdate"], "</td>"
     print "\t\t\t\t</tr>"
     print "\t\t\t\t<tr>\n\t\t\t\t\t<td>Preference</td>\n\t\t\t\t\t<td>", a["preference"], "</td>"
     if a["preference"] == "per":
-        str2 = a["valve_pos"]
+        str2 = a["valve_switch"]
     else:
         str2 = a["total_switch"]
     print "\t\t\t\t\t<td>Turning on</td>\n\t\t\t\t\t<td>", str2, "%</td>"
@@ -258,31 +274,38 @@ def read_page_url(url):
     try:
         result = urllib2.urlopen(request)
         ret_value = result.read()
-    except:
+    except Exception:
         ret_value = "{}"
     return ret_value
 
 
-data = read_page_url("bridge.json")
-a = json.loads(data)
-if not a["weather_reference"].upper() == "LOCAL":
-    data = read_page_url("location.json")
-    d = json.loads(data)
+if __name__ == '__main__':
+    data = read_page_url("bridge.json")
+    a = json.loads(data)
     try:
-        location = d["yahoo_location"]
-    except:
-        location = "823123"
+        tmp = a["weather_reference"].upper()
+    except Exception:
+        tmp = ""
 
-b = ["touch", "status", "autoupdate", "preference", "valve_pos", "total_switch", "valves", "svpnmw", "interval",
-     "profile", "yahoo_location", "weather_reference"]
-for i in b:
-    if i not in a:
-        a.update({i: ""})
+    location = "823123"
+    if not tmp == "LOCAL":
+        data = read_page_url("location.json")
+        d = json.loads(data)
+        try:
+            location = d["yahoo_location"]
+        except Exception:
+            pass
 
-page_start()
-page_body_menu()
-page_body_weather(location)
-page_body_status()
-page_body_rooms()
-page_footer()
-page_end()
+    cws = ["touch", "status", "autoupdate", "preference", "valve_switch", "total_switch", "valves",
+           "svpnmw", "interval", "profile", "yahoo_location", "weather_reference"]
+    for cw in cws:
+        if cw not in a:
+            a.update({cw: ""})
+
+    page_start()
+    page_body_menu()
+    page_body_weather(location)
+    page_body_status()
+    page_body_rooms()
+    page_footer()
+    page_end()
