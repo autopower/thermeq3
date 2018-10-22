@@ -4,7 +4,7 @@ Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for det
  
 ## What's new?
 ### 2018-Oct-22
-* calling to arms Yún Rev2 users, I'll be pointed to some incompatibilities between Rev1 and Rev2. Rev2 users, please use 'https://github.com/autopower/thermeq3/tree/master/install/alpha_Yun_Rev2'
+* calling to arms Yún Rev2 users, I'll be pointed to some incompatibilities between Rev1 and Rev2. Rev2 users, please use `https://github.com/autopower/thermeq3/tree/master/install/alpha_Yun_Rev2`
  install script to check if install script/wget is working flawless 
 
 ### 2018-Jul-06
