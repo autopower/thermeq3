@@ -34,6 +34,13 @@ if [ $? -ne 0 ]; then
 	exit $?
 fi 
 
+echo "Installing libraries"
+opkg install python-openssl --verbosity=0
+if [ $? -ne 0 ]; then
+	echo "Error during installing openssl library. Error: $?"
+	exit $?
+fi
+
 if [ -d /mnt/sda1 ]; then
 	DIR=/mnt/sda1
 else
