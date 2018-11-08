@@ -3,6 +3,9 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2018-Nov-11
+* simple external device based on ESP8266 and eInk to display status with open windows list. Feel free to test and comment.
+
 ### 2018-Oct-22
 * calling to arms Yún Rev2 users, I'll be pointed to some incompatibilities between Rev1 and Rev2. Rev2 users, please use `https://github.com/autopower/thermeq3/tree/master/install/alpha_Yun_Rev2`
  install script to check if install script/wget is working flawless 
