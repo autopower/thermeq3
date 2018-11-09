@@ -13,7 +13,7 @@ Finally you must edit sketch values for WiFi:
 #define SSID_NAME "Your_SSID"
 #define SSID_PWD "Your_key"
 ```
-Code using deep sleep feature on ESP, so you must connect PIN16 and RST pin of ESP via 470ohm resitor, to correctly wake up.
+Code using deep sleep feature on ESP, so you must connect GPIO16 and RST pin of ESP via 10k resitor, to correctly wake up.
 And upload sketch to ESP via Arduino IDE.
 
 thmermeq3 version must be 250+ and second website with bridge support must be installed, please check `http://ardu.ip:8180/bridge.json` if working.
