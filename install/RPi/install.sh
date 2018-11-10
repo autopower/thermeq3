@@ -66,14 +66,14 @@ execfile(\"$BASE_DIR/code/nsm.py\")
 " > $BASE_DIR/nsm.py
 
 echo "Installing scripts with $1 as device name and $DIR as target directory"
-echo "tail -n 50 $DIR/$1.log" > /root/ct
-echo "cat $DIR/$1_error.log" > /root/err
-echo "ps|grep python" > /root/psg
-echo "ps -ef | grep nsm.py | grep -v grep | awk '{print $1}' | xargs kill -9" > /root/killnsm
-chmod +x /root/ct
-chmod +x /root/err
-chmod +x /root/psg
-chmod +x /root/killnsm
+echo "tail -n 50 $DIR/$1.log" > $BASE_DIR/ct
+echo "cat $DIR/$1_error.log" > $BASE_DIR/err
+echo "ps|grep python" > $BASE_DIR/psg
+echo "ps -ef | grep nsm.py | grep -v grep | awk '{print $1}' | xargs kill -9" > $BASE_DIR/killnsm
+chmod +x $BASE_DIR/ct
+chmod +x $BASE_DIR/err
+chmod +x $BASE_DIR/psg
+chmod +x $BASE_DIR/killnsm
 
 echo "Downloading interactive config"
 wget --no-check-certificate --quiet --output-document $BASE_DIR/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py
