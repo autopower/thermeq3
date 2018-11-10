@@ -39,14 +39,12 @@ echo "Using $DIR as storage path."
 sudo apt-get install apache2
 
 echo "Creating apache configuration..."
+sudo chown -R pi:www-data /var/www/html/
+sudo chmod -R 770 /var/www/html/
 
 echo "Creating directories and cgi scripts" 
-mkdir -p $DIR/www
+mkdir -p $BASE_DIR/csv
 cd $DIR/www
-mkdir -p $DIR/csv
-cd $DIR/www
-mkdir -p cgi-bin
-cd cgi-bin
 
 echo "Creating nsm.py compatibility file"
 echo "#!/usr/bin/env python
@@ -82,7 +80,7 @@ $BASE_DIR/install-dash.sh
 echo "Interactive config..."
 $BASE_DIR/config_me.py
 if [ -d $BASE_DIR/location.json]; then
-	mv $BASE_DIR/location.json $DIR/www/location.json
+	mv $BASE_DIR/location.json /var/www/html/location.json
 else
 	echo "Can't find file. Please make location.json file for dashboard!"
 fi
