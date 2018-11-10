@@ -5,9 +5,9 @@ if [ $# -lt 1 ]; then
 fi
 
 BASE_DIR=/home/pi/thermeq3
-mkdir $BASE_DIR
+mkdir -p $BASE_DIR
 
-mkdir $BASE_DIR/install
+mkdir -p $BASE_DIR/install
 echo Downloading thermeq3 app
 wget --no-check-certificate --quiet --output-document $BASE_DIR/install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/RPi/thermeq3.zip
 if [ $? -ne 0 ]; then
@@ -16,7 +16,7 @@ if [ $? -ne 0 ]; then
 fi
 mkdir $BASE_DIR/code
 echo "Unzipping app"
-unzip -q $BASE_DIR/install/thermeq3.zip -d $BASE_DIR/code
+unzip -q $BASE_DIR/install/thermeq3.zip -d $BASE_DIR/code -o
 if [ $? -ne 0 ]; then
 	echo "Error during unzipping thermeq3 app: $?"
 	exit $?
@@ -76,13 +76,13 @@ chmod +x $BASE_DIR/psg
 chmod +x $BASE_DIR/killnsm
 
 echo "Downloading interactive config"
-wget --no-check-certificate --quiet --output-document $BASE_DIR/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py
+wget --no-check-certificate --quiet --output-document $BASE_DIR/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x $BASE_DIR/config_me.py
 if [ $? -ne 0 ]; then
 	echo "Error during downloading config app: $?"
 	exit $?
 fi
 echo "Downloading dashboard install script"
-wget --no-check-certificate --quiet --output-document $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/install-dash.sh;chmod +x /root/install-dash.sh
+wget --no-check-certificate --quiet --output-document $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/install-dash.sh;chmod +x $BASE_DIR/install-dash.sh
 if [ $? -ne 0 ]; then
 	echo "Error during downloading dashboard install script: $?"
 	exit $?
