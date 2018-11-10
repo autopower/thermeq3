@@ -7,21 +7,6 @@ fi
 BASE_DIR=/home/pi/thermeq3
 mkdir $BASE_DIR
 
-echo "Preparing..."
-echo "opkg update"
-opkg update --verbosity=0
-if [ $? -ne 0 ]; then
-	echo "Error during opkg update: $?"
-	exit $?
-fi
-
-echo "Installing zip"
-opkg install unzip --verbosity=0
-if [ $? -ne 0 ]; then
-	echo "Error during installing unzip. Error: $?"
-	exit $?
-fi
-
 mkdir $BASE_DIR/install
 echo Downloading thermeq3 app
 wget --no-check-certificate --quiet --output-document $BASE_DIR/install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/RPi/thermeq3.zip
@@ -38,17 +23,11 @@ if [ $? -ne 0 ]; then
 fi 
 
 echo "Installing libraries"
-opkg install python-openssl --verbosity=0
+sudo apt-get install python-openssl --verbosity=0
 if [ $? -ne 0 ]; then
 	echo "Error during installing openssl library. Error: $?"
 	exit $?
 fi
-opkg install python-expat --verbosity=0 
-if [ $? -ne 0 ]; then
-	echo "Error during installing expat library. Error: $?"
-	exit $?
-fi
-
 
 DIR=$BASE_DIR/web
 echo "Using $DIR as storage path."
