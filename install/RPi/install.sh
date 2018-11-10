@@ -6,9 +6,13 @@ fi
 
 BASE_DIR=/home/pi/thermeq3
 mkdir -p $BASE_DIR
-
 mkdir -p $BASE_DIR/install
-echo Downloading thermeq3 app
+
+echo "Updating apt-get and upgrading packages"
+sudo apt-get update
+sudo apt-get upgrade
+
+echo "Downloading thermeq3 app"
 wget --no-check-certificate --quiet --output-document $BASE_DIR/install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/RPi/thermeq3.zip
 if [ $? -ne 0 ]; then
 	echo "Error during downloading thermeq3 app: $?"
@@ -16,7 +20,7 @@ if [ $? -ne 0 ]; then
 fi
 mkdir $BASE_DIR/code
 echo "Unzipping app"
-unzip -q $BASE_DIR/install/thermeq3.zip -d $BASE_DIR/code -o
+unzip -q -o $BASE_DIR/install/thermeq3.zip -d $BASE_DIR/code
 if [ $? -ne 0 ]; then
 	echo "Error during unzipping thermeq3 app: $?"
 	exit $?
@@ -32,23 +36,9 @@ fi
 DIR=$BASE_DIR/web
 echo "Using $DIR as storage path."
 
-if ! grep -q "0.0.0.0:8180" /etc/config/uhttpd; then
-	echo "Backing up uhttpd configuration..."
-	mkdir /root/backup
-	cp /etc/config/uhttpd /root/backup/uhttpd.old
-	echo "Modifying uhttpd configuration..."
-	echo "config uhttpd secondary
-	        list listen_http        0.0.0.0:8180
-	        option home             $DIR/www
-	        option cgi_prefix		/cgi-bin
-	        option max_requests     2
-	        option script_timeout   10
-	        option network_timeout  10
-	        option tcp_keepalive    1
-	" >> /etc/config/uhttpd
-	echo "Restarting uhttpd..."
-	/etc/init.d/uhttpd restart
-fi
+sudo apt-get install apache2
+
+echo "Creating apache configuration..."
 
 echo "Creating directories and cgi scripts" 
 mkdir -p $DIR/www
