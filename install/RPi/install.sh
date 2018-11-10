@@ -70,7 +70,7 @@ if [ $? -ne 0 ]; then
 	exit $?
 fi
 echo "Downloading dashboard install script"
-wget --no-check-certificate --quiet --output-document $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/install-dash.sh;chmod +x $BASE_DIR/install-dash.sh
+wget --no-check-certificate --quiet --output-document $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/rpi/install-dash.sh;chmod +x $BASE_DIR/install-dash.sh
 if [ $? -ne 0 ]; then
 	echo "Error during downloading dashboard install script: $?"
 	exit $?
