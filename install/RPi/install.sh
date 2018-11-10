@@ -23,7 +23,7 @@ if [ $? -ne 0 ]; then
 fi 
 
 echo "Installing libraries"
-sudo apt-get install python-openssl --verbosity=0
+sudo apt-get install python-openssl
 if [ $? -ne 0 ]; then
 	echo "Error during installing openssl library. Error: $?"
 	exit $?
