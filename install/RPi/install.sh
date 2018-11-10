@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/bash
 if [ $# -lt 1 ]; then
 	echo "Usage: install.sh <thermeq3 device name>"
 	exit 1
