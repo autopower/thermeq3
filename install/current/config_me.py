@@ -248,7 +248,7 @@ if __name__ == '__main__':
     if run_target == "win":
         old = "t:/root/config.py"
         new = "t:/root/thermeq3.json"
-	elif run_target == "rpi":
+    elif run_target == "rpi":
         old = "/home/pi/thermeq3/config.py"
         new = "/home/pi/thermeq3/thermeq3.json"	
     else:
