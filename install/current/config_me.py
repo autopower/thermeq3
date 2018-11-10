@@ -305,4 +305,9 @@ if __name__ == '__main__':
     print("Config file saved into " + new)
 
     # prepare location.json file
-    write_to_file("/root/location.json", {"yahoo_location": cfg["yahoo_location"]})
+    if run_target == "win":
+		write_to_file("t:/location.json", {"yahoo_location": cfg["yahoo_location"]})
+    elif run_target == "rpi":
+		write_to_file("/home/pi/thermeq3/location.json", {"yahoo_location": cfg["yahoo_location"]})
+    else:
+	    write_to_file("/root/location.json", {"yahoo_location": cfg["yahoo_location"]})
