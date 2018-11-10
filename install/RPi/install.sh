@@ -65,7 +65,7 @@ sys.path.insert(0, \"$BASE_DIR/code/\")
 execfile(\"$BASE_DIR/code/nsm.py\")
 " > $BASE_DIR/nsm.py
 
-echo "Installing scripts with $1 as device name and $DIR as target directory"
+echo "Installing scripts with $1 as device name and $BASE_DIR as target directory"
 echo "tail -n 50 $DIR/$1.log" > $BASE_DIR/ct
 echo "cat $DIR/$1_error.log" > $BASE_DIR/err
 echo "ps|grep python" > $BASE_DIR/psg
