@@ -2,7 +2,7 @@
 ## This is very early alpha :) be patient
 
 Access rpi via ssh or terminal
-* Install `thermeq3` typing `wget --no-check-certificate --quiet --output-document /root/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/RPi/install.sh;chmod +x /root/install.sh`  
+* Install `thermeq3` typing `wget --no-check-certificate --quiet --output-document /home/pi/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/RPi/install.sh;chmod +x /home/pi/install.sh`  
 * Run the installer script: `/root/install.sh <your installation name>`, for example `/root/install.sh boilerstarter`, this `boilerstarter` name will be used as device name 
 * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
 
