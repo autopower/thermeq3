@@ -1,4 +1,4 @@
-#Installation on RPi
+# Installation on RPi
 ## This is very early alpha :) be patient
 
 Access rpi via ssh or terminal
