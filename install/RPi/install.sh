@@ -79,7 +79,7 @@ echo "Dashboard install..."
 $BASE_DIR/install-dash.sh
 echo "Interactive config..."
 $BASE_DIR/config_me.py
-if [ -d $BASE_DIR/location.json]; then
+if [ -d $BASE_DIR/location.json ]; then
 	mv $BASE_DIR/location.json /var/www/html/location.json
 else
 	echo "Can't find file. Please make location.json file for dashboard!"
