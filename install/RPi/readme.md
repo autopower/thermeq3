@@ -1,6 +1,5 @@
 # Installation on RPi
-## This is very early alpha :) be patient
-
+## This is very early alpha, please be very patient
 Access rpi via ssh or terminal
 * Install `thermeq3` typing `wget --no-check-certificate --quiet --output-document /home/pi/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/RPi/install.sh;chmod +x /home/pi/install.sh`  
 * Run the installer script: `./install.sh <your installation name>`, for example `./install.sh boilerstarter`, this `boilerstarter` name will be used as device name 
