@@ -27,20 +27,20 @@ def do(action):
 
 
 def do_test():
-	print "Now turning relay ON for 5sec"
+    print "Now turning relay ON for 5sec"
     do(True)
     time.sleep(5)
-	print "And now turn OFF"
+    print "And now turn OFF"
     do(False)	
 
 
 if __name__ == '__main__':
-	print "Test relay for RPi"
-	print "Please connect your relay control pin to GPIO16"
+    print "Test relay for RPi"
+    print "Please connect your relay control pin to GPIO16"
     start()
-	print "Pin setup done."
-	do_test()
-	value = ""
+    print "Pin setup done."
+    do_test()
+    value = ""
     while not value == "y":
         value = raw_input("Please enter y if is this correct: ")
         if value == "y":
