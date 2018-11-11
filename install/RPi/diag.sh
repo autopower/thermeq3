@@ -5,6 +5,13 @@ if [ $# -lt 1 ]; then
 	exit 1
 fi
 
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' telnet|grep "install ok installed")
+echo Checking for telnet: $PKG_OK
+if [ "" == "$PKG_OK" ]; then
+  echo "No telnet. Installing telnet"
+  sudo apt-get --force-yes --yes install telnet
+fi
+
 if [ -f /home/pi/thermeq3/diag.txt ]; then
 	echo "Previous diag.txt exists! Appending to file."
 fi
