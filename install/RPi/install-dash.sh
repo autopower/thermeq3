@@ -18,13 +18,13 @@ rm -rf $DIR/bootstrap-3.3.7-dist/
 rm -rf $DIR/bootstrap.zip
 
 echo "Downloading dashboard..."
-wget --no-check-certificate --quiet --output-document $CGIDIR/dashboard.py https://github.com/autopower/thermeq3/raw/master/install/dashboard/dashboard.py
+sudo wget --no-check-certificate --quiet --output-document $CGIDIR/dashboard.py https://github.com/autopower/thermeq3/raw/master/install/dashboard/dashboard.py
 if [ $? -ne 0 ]; then
 	echo "Error during downloading dashboard: $?"
 	exit $?
 fi
 
-echo "#!/bin/sh
+sudo echo "#!/bin/sh
 /usr/bin/env python $CGIDIR/dashboard.py" > dash
 chmod +x $CGIDIR/dash
 
