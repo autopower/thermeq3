@@ -24,8 +24,9 @@ if [ $? -ne 0 ]; then
 	exit $?
 fi
 
+echo "Creating dash file"
 sudo echo "#!/bin/sh
-/usr/bin/env python $CGIDIR/dashboard.py" > dash
+/usr/bin/env python $CGIDIR/dashboard.py" > $CGIDIR/dash
 chmod +x $CGIDIR/dash
 
 echo "Dashboard succesfully installed. Before browsing to http://rpi.ip/cgi-bin/dash please edit credentials in dashboard.py file"
