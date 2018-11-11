@@ -8,10 +8,6 @@ BASE_DIR=/home/pi/thermeq3
 mkdir -p $BASE_DIR
 mkdir -p $BASE_DIR/install
 
-echo "Updating apt-get and upgrading packages"
-sudo apt-get update
-sudo apt-get upgrade
-
 echo "Downloading thermeq3 app"
 wget --no-check-certificate --quiet --output-document $BASE_DIR/install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/RPi/thermeq3.zip
 if [ $? -ne 0 ]; then
@@ -27,8 +23,15 @@ if [ $? -ne 0 ]; then
 fi 
 
 echo "Installing libraries"
-sudo apt-get install python-openssl
-if [ $? -ne 0 ]; then
+echo "Updating apt-get and upgrading packages"
+sudo apt-get update
+sudo apt-get upgrade
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' python-openssl|grep "install ok installed")
+echo Checking for python-openssl: $PKG_OK
+if [ "" == "$PKG_OK" ]; then
+  echo "No python-openssl. Installing python-openssl"
+  sudo apt-get --force-yes --yes install python-openssl
+  if [ $? -ne 0 ]; then
 	echo "Error during installing openssl library. Error: $?"
 	exit $?
 fi
@@ -69,14 +72,29 @@ if [ $? -ne 0 ]; then
 	echo "Error during downloading config app: $?"
 	exit $?
 fi
+
+read -p "Install dahsboard? [y/n]" yn
 echo "Downloading dashboard install script"
-wget --no-check-certificate --quiet --output-document $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/RPi/install-dash.sh;chmod +x $BASE_DIR/install-dash.sh
-if [ $? -ne 0 ]; then
-	echo "Error during downloading dashboard install script: $?"
-	exit $?
-fi
-echo "Dashboard install..."
-$BASE_DIR/install-dash.sh
+case $yn in
+	[Yy]*)
+    PKG_OK=$(dpkg-query -W --showformat='${Status}\n' apache2|grep "install ok installed")
+    echo Checking for apache2: $PKG_OK
+    if [ "" == "$PKG_OK" ]; then
+      echo "No apache2. Installing apache2"
+      sudo apt-get --force-yes --yes install apache2
+      if [ $? -ne 0 ]; then
+    	echo "Error during installing apache2 package. Error: $?"
+    	exit $?
+    fi
+    wget --no-check-certificate --quiet --output-document $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/RPi/install-dash.sh;chmod +x $BASE_DIR/install-dash.sh 
+    if [ $? -ne 0 ]; then
+    	echo "Error during downloading dashboard install script: $?"
+    	exit $?
+    fi
+    echo "Dashboard install..."
+    $BASE_DIR/install-dash.sh
+    ;; 
+esac
 echo "Interactive config..."
 $BASE_DIR/config_me.py
 if [ -d $BASE_DIR/location.json ]; then
