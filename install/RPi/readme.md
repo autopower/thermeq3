@@ -6,10 +6,13 @@ Access rpi via ssh or terminal
 * You'll need SMTP server details and [Open Weather Map API key](http://openweathermap.org/appid) (sign-up is free).
 
 ## Get config file support
-`wget --no-check-certificate --quiet --output-document /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /home/pi/thermeq3/config_me.py`
+`wget --no-check-certificate --quiet --output-document /home/pi/thermeq3/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /home/pi/thermeq3/config_me.py`
 and run it:
 ```
 cd /home/pi/thermeq3
 ./config_me.py
 ```
 Please answer questions and check final config file in JSON format vi `cat` or `vi`.
+
+## Diagnostics
+Download diag.sh `wget --no-check-certificate --quiet --output-document /home/pi/thermeq3/diag.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/RPi/diag.sh; chmod +x /home/pi/thermeq3/diag.sh`
