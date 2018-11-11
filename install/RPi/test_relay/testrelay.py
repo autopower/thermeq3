@@ -47,4 +47,5 @@ if __name__ == '__main__':
             pass
         else:
             relay_type = not relay_type
-    print "You succesfully setup relay. Please edit action.py, line relay_type = ", relay_type
+        do_test()
+    print "You successfully setup relay. Please edit action.py, line relay_type = ", relay_type
