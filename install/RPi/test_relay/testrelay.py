@@ -9,7 +9,7 @@ relay_type = False
 def start():
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(16, GPIO.OUT)
+    GPIO.setup(4, GPIO.OUT)
 
 
 def do(action):
@@ -21,7 +21,7 @@ def do(action):
     else:
         gpio_action = GPIO.LOW
     try:
-        GPIO.output(16, gpio_action)
+        GPIO.output(4, gpio_action)
     finally:
         pass
 
