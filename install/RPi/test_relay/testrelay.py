@@ -27,6 +27,8 @@ def do(action):
 
 
 def do_test():
+    global relay_type
+    print "Using relay_type:", relay_type
     print "Now turning relay ON for 5sec"
     do(True)
     time.sleep(5)
@@ -36,7 +38,7 @@ def do_test():
 
 if __name__ == '__main__':
     print "Test relay for RPi"
-    print "Please connect your relay control pin to GPIO16"
+    print "Please connect your relay control pin to PIN7 = GPIO4"
     start()
     print "Pin setup done."
     do_test()
