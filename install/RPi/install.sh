@@ -45,8 +45,8 @@ execfile(\"$BASE_DIR/code/nsm.py\")
 " > $BASE_DIR/nsm.py
 
 echo "Installing scripts with $1 as device name and $BASE_DIR as target directory"
-echo "tail -n 50 $DIR/$1.log" > $BASE_DIR/ct
-echo "cat $DIR/$1_error.log" > $BASE_DIR/err
+echo "tail -n 50 $BASE_DIR/$1.log" > $BASE_DIR/ct
+echo "cat $BASE_DIR/$1_error.log" > $BASE_DIR/err
 echo "ps|grep python" > $BASE_DIR/psg
 echo "ps -ef | grep nsm.py | grep -v grep | awk '{print $1}' | xargs kill -9" > $BASE_DIR/killnsm
 chmod +x $BASE_DIR/ct
