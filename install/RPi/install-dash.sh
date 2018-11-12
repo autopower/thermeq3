@@ -1,21 +1,22 @@
 #!/bin/bash
-DIR=/var/www/html
+WWWDIR=/var/www/html
 CGIDIR=/usr/lib/cgi-bin
-echo "Using $CGIDIR as cgi-bin path."
-cd $DIR
+echo "Using $WWWDIR as base for html files"
+echo "Using $CGIDIR as cgi-bin path"
+cd $WWWDIR
 
 echo "Downloading bootstrap"
-wget --no-check-certificate --quiet --output-document $DIR/bootstrap.zip https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-dist.zip
+wget --no-check-certificate --quiet --output-document $WWWDIR/bootstrap.zip https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-dist.zip
 echo "Unzipping bootstrap"
-unzip $DIR/bootstrap.zip -d $DIR/
+unzip $WWWDIR/bootstrap.zip -d $WWWDIR/
 if [ $? -ne 0 ]; then
 	echo "Error during unzipping thermeq3 app: $?"
 	exit $?
 fi
 echo "Moving bootstrap..."
-cp -R $DIR/bootstrap-3.3.7-dist/* $DIR/
-rm -rf $DIR/bootstrap-3.3.7-dist/
-rm -rf $DIR/bootstrap.zip
+cp -R $WWWDIR/bootstrap-3.3.7-dist/* $WWWDIR/
+rm -rf $WWWDIR/bootstrap-3.3.7-dist/
+rm -rf $WWWDIR/bootstrap.zip
 
 echo "Downloading dashboard..."
 sudo wget --no-check-certificate --quiet --output-document $CGIDIR/dashboard.py https://github.com/autopower/thermeq3/raw/master/install/dashboard/dashboard.py
