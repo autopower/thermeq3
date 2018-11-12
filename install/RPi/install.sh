@@ -83,8 +83,9 @@ case $yn in
       echo "No apache2. Installing apache2"
       sudo apt-get --force-yes --yes install apache2
       if [ $? -ne 0 ]; then
-    	echo "Error during installing apache2 package. Error: $?"
-    	exit $?
+    	 echo "Error during installing apache2 package. Error: $?"
+    	 exit $?
+      fi
     fi
     wget --no-check-certificate --quiet --output-document $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/RPi/install-dash.sh;chmod +x $BASE_DIR/install-dash.sh 
     if [ $? -ne 0 ]; then
@@ -92,8 +93,8 @@ case $yn in
     	exit $?
     fi
     echo "Dashboard install..."
-    $BASE_DIR/install-dash.sh
-    ;; 
+    $BASE_DIR/install-dash.sh 
+    ;;
 esac
 echo "Interactive config..."
 $BASE_DIR/config_me.py
