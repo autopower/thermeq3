@@ -65,9 +65,9 @@ if [ $? -ne 0 ]; then
 fi
 
 read -p "Install dahsboard? [y/n]" yn
-echo "Downloading dashboard install script"
 case $yn in
 	[Yy]*)
+    echo "Downloading dashboard install script"
     wget --no-check-certificate --quiet --output-document $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/RPi/install-dash.sh;chmod +x $BASE_DIR/install-dash.sh
     if [ $? -ne 0 ]; then
     	echo "Error during downloading dashboard install script: $?"
@@ -86,3 +86,12 @@ if [ -f $BASE_DIR/location.json ]; then
 else
 	echo "Can't find file. Please make location.json file for dashboard!"
 fi
+
+read -p "Delete install folder? [y/n]" yn
+case $yn in
+	[Yy]*)
+    echo "Removing install folder..."
+    rm -rf $BASE_DIR/install/*
+    rmdir $BASE_DIR/install
+    ;;
+esac
