@@ -32,7 +32,8 @@ if [ "" == "$PKG_OK" ]; then
   echo "No python-openssl. Installing python-openssl"
   sudo apt-get --force-yes --yes install python-openssl
   if [ $? -ne 0 ]; then
-	echo "Error during installing openssl library. Error: $?"
+	 echo "Error during installing openssl library. Error: $?"
+  fi
 	exit $?
 fi
 
