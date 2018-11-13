@@ -1,4 +1,7 @@
 # Installation on RPi
+
+## Hardware installation
+Please take a look at [wiki page](https://github.com/autopower/thermeq3/wiki/Setup-RPi-hardware).
 ## This is very early alpha, please be very patient
 Access rpi via ssh or terminal
 * Install `thermeq3` typing `wget --no-check-certificate --quiet --output-document /home/pi/install.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/RPi/install.sh;chmod +x /home/pi/install.sh`  
