@@ -3,6 +3,9 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2018-Nov-13
+* RPi port in alpha stage, testers still wanted
+
 ### 2018-Nov-11
 * RPi support added, testers wanted
 
