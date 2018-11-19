@@ -44,6 +44,22 @@ sys.path.insert(0, \"$BASE_DIR/code/\")
 execfile(\"$BASE_DIR/code/nsm.py\")
 " > $BASE_DIR/nsm.py
 
+echo "Creating systemd files"
+echo "[Unit]
+Description=thermeq3 Service
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python /home/pi/thermeq3/nsm.py
+
+[Install]
+WantedBy=multi-user.target" > /home/pi/thermeq3/tmp/thermeq3.service
+sudo mv /home/pi/thermeq3/tmp/thermeq3.service /lib/systemd/system/thermeq3.service
+sudo chmod 644 /lib/systemd/system/thermeq3.service
+sudo systemctl daemon-reload
+sudo systemctl enable thermeq3.service
+
 echo "Installing scripts with $1 as device name and $BASE_DIR as target directory"
 echo "tail -n 50 $BASE_DIR/$1.log" > $BASE_DIR/ct
 echo "cat $BASE_DIR/$1_error.log" > $BASE_DIR/err
