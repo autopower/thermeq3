@@ -5,13 +5,23 @@ if [ $# -lt 1 ]; then
   read -p "Install with default name thermeq3? [y/n]" yn
   case $yn in
     [Nn]* )
-      echo "Usage: uni_install.sh [thermeq3 device name]"
+      echo "Usage: uni_install.sh [thermeq3 device name] [alpha]"
       exit 1   
      ;; 
   esac
   DEV_NAME="thermeq3"
 else
   DEV_NAME=$1	
+fi
+
+GITHUB_BASE=https://github.com/autopower/thermeq3/raw/master/install/current/
+if [ $2 -eq "alpha" ]; then
+  read -p "Do you really want upgrade to latest (unstable) alpha? [y/n]" yn
+  case $yn in
+    [Yy]* )
+      GITHUB_BASE=https://github.com/autopower/thermeq3/raw/master/install/alpha/   
+     ;;
+  esac
 fi
 
 PLATFORM=$(uname -m)
@@ -92,7 +102,7 @@ esac
 echo ""
 echo "Installing thermeq3"
 echo " - downloading thermeq3 app"
-wget --no-check-certificate --quiet -O $INSTALL_DIR/install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/current/thermeq3.zip
+wget --no-check-certificate --quiet -O $INSTALL_DIR/install/thermeq3.zip $GITHUB_BASE/thermeq3.zip
 if [ $? -ne 0 ]; then
 	echo "Error during downloading thermeq3 app: $?"
 	exit $?
