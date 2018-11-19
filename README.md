@@ -5,7 +5,7 @@ Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for det
 ## What's new?
 ### 2018-Nov-19
 * RPi port update, minor fixes
-* new [universal installer](https://github.com/autopower/thermeq3/blob/master/install/current/uni_install.sh) for both platforms, feel free to test
+* new [universal installer](https://github.com/autopower/thermeq3/blob/master/install/uni_install.sh) for both platforms, feel free to test
 * redesigned dashboard installers 
 
 ### 2018-Nov-13
