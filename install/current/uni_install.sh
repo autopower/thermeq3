@@ -173,13 +173,20 @@ echo ""
 read -p "Install dashboard? [y/n]" yn
 case $yn in
 	[Yy]*)
-    echo "Downloading dashboard install script"
-    wget --no-check-certificate --quiet -O $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/RPi/install-dash.sh;chmod +x $BASE_DIR/install-dash.sh
+    echo " - downloading dashboard install script"
+    case "$PLATFORM" in
+      "rpi" )
+        wget --no-check-certificate --quiet -O $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/rpi-dash.sh;chmod +x $BASE_DIR/install-dash.sh
+        ;;
+       "yun" )           
+        wget --no-check-certificate --quiet -O $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/yun-dash.sh;chmod +x $BASE_DIR/install-dash.sh
+        ;;
+    esac
     if [ $? -ne 0 ]; then
     	echo "Error during downloading dashboard install script: $?"
 	   exit $?
-    fi
-    echo "Running dashboard install..."
+    fi    
+    echo " - running dashboard install script"
     $BASE_DIR/install-dash.sh 
     ;;
 esac
