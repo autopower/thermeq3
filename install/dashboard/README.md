@@ -15,3 +15,6 @@ To install thermeq3 *alpha* dashboard please type commands below, be sure that y
 If script is not working, please update dashboard.py line `request = urllib2.Request("http://localhost:8180/" + str(url))` according to your setup, e.g.:
 * RPi users to `request = urllib2.Request("http://localhost/" + str(url))`
 * Yún users replace default port 8180 to port according to your uhttpd configuration `request = urllib2.Request("http://localhost:YOUR_PORT/" + str(url))`
+
+### How to replace text in dashboard.py
+`sed -i -e 's/localhost:8180/localhost/g' /PATH_TO_FILE/dashboard.py`
