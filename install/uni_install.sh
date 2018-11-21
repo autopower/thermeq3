@@ -151,10 +151,13 @@ echo "tail -n 50 $INSTALL_DIR/$DEV_NAME.log" > $BASE_DIR/ct
 echo "cat $INSTALL_DIR/$1_error.log" > $BASE_DIR/err
 echo "ps|grep python" > $BASE_DIR/psg
 echo "ps -ef | grep nsm.py | grep -v grep | awk '{print $1}' | xargs kill -9" > $BASE_DIR/killnsm
+mkdir -p $BASE_DIR/support
+echo "cat $BASE_DIR/$DEV_NAME.log.* | grep summary | awk '{print $1 "," $8}' | sort > dailysummary.csv" > $BASEDIR/support/dailysum
 chmod +x $BASE_DIR/ct
 chmod +x $BASE_DIR/err
 chmod +x $BASE_DIR/psg
 chmod +x $BASE_DIR/killnsm
+chmod +x $BASE_DIR/support/dailysum
 
 echo " - creating folders:"
 case "$PLATFORM" in
@@ -168,7 +171,7 @@ case "$PLATFORM" in
     echo "   - for HTML files" 
     mkdir -p $INSTALL_DIR/www
     echo "   - for CGI-BIN files"
-    mkdir -p $INTSALL_DIR/www/cgi-bin  
+    mkdir -p $INSTALL_DIR/www/cgi-bin  
 esac
 
  
