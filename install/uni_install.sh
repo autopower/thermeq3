@@ -31,6 +31,7 @@ case "$PLATFORM" in
     PLATFORM="rpi"
     BASE_DIR=/home/pi/thermeq3
     INSTALL_DIR=/home/pi/thermeq3
+    WWW_DIR=/var/www/html
     ;;
   *"mips"*)
     echo "Yún installer will be used"
@@ -46,6 +47,7 @@ case "$PLATFORM" in
 		  exit 1
 	   fi
     fi
+    WWW_DIR=$INSTALL_DIR/www
     ;;
   *)
    echo "Unknown platform: $PLATFORM"
@@ -152,7 +154,10 @@ echo "cat $INSTALL_DIR/$1_error.log" > $BASE_DIR/err
 echo "ps|grep python" > $BASE_DIR/psg
 echo "ps -ef | grep nsm.py | grep -v grep | awk '{print $1}' | xargs kill -9" > $BASE_DIR/killnsm
 mkdir -p $BASE_DIR/support
-echo "cat $BASE_DIR/$DEV_NAME.log.* | grep summary | awk '{print $1 "," $8}' | sort > dailysummary.csv" > $BASEDIR/support/dailysum
+echo "cat $BASE_DIR/$DEV_NAME.log.* | grep summary | awk '{print $1 "," $8}' | sort > $WWW_DIR/temp.csv
+sort -u $WWW_DIR/temp.csv $WWW_DIR/dailysummary.csv > $WWW_DIR/result.csv
+rm $WWW_DIR/temp.csv $WWW_DIR/dailysummary.csv
+mv $WWW_DIR/result.csv $WWW_DIR/dailysummary.csv" > $BASEDIR/support/dailysum
 chmod +x $BASE_DIR/ct
 chmod +x $BASE_DIR/err
 chmod +x $BASE_DIR/psg
