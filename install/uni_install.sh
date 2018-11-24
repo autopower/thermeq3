@@ -1,5 +1,5 @@
 #!/bin/sh
-echo "thermeq3 install for Yún/RPi"
+echo "thermeq3 install for YÃºn/RPi"
 echo ""
 if [ $# -lt 1 ]; then
   read -p "Install with default name thermeq3? [y/n]" yn
@@ -34,7 +34,7 @@ case "$PLATFORM" in
     WWW_DIR=/var/www/html
     ;;
   *"mips"*)
-    echo "Yún installer will be used"
+    echo "YÃºn installer will be used"
     PLATFORM="yun"
     BASE_DIR=/root/thermeq3
     if [ -d /mnt/sda1 ]; then
@@ -60,6 +60,7 @@ echo " - using $INSTALL_DIR as install directory"
 
 mkdir -p $BASE_DIR
 mkdir -p $INSTALL_DIR/install
+mkdir -p $BASE_DIR/support
 
 echo ""
 echo "Installing support"
@@ -241,7 +242,7 @@ esac
 
 case "$PLATFORM" in
   "rpi" )
-    echo "Please check apache¾ configuration!"
+    echo "Please check apacheÂ¾ configuration!"
     ;;
   "yun" )
     echo "Please upload yun sketch via Arduino IDE!"
