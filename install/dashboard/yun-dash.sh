@@ -1,5 +1,5 @@
 #!/bin/sh
-echo "thermeq3 dashboard install for yún"
+echo "thermeq3 dashboard install for yÃºn"
 echo ""
 if [ -d /mnt/sda1 ]; then
 	INSTALL_DIR=/mnt/sda1
@@ -30,7 +30,7 @@ rm -rf $INSTALL_DIR/www/bootstrap.zip
 
 echo ""
 echo "Downloading dashboard..."
-wget --no-check-certificate --quiet --O $INSTALL_DIR/www/cgi-bin/dashboard.py https://github.com/autopower/thermeq3/raw/master/install/dashboard/dashboard.py
+wget --no-check-certificate --quiet -O $INSTALL_DIR/www/cgi-bin/dashboard.py https://github.com/autopower/thermeq3/raw/master/install/dashboard/dashboard.py
 if [ $? -ne 0 ]; then
 	echo "Error during downloading dahsboard: $?"
 	exit $?
