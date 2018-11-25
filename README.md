@@ -3,6 +3,10 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2018-Nov-25
+* minor fix
+* Python 3 compatible version in alpha
+
 ### 2018-Nov-19
 * RPi port update, minor fixes
 * new [universal installer](https://github.com/autopower/thermeq3/blob/master/install/uni_install.sh) for both platforms, feel free to test
