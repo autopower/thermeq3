@@ -3,6 +3,7 @@ Not so very well tested version.
 Just for test issues.
 
 ## Whats new?
+* new dahsboard, please edit dash file in cgi-bin, add `$QUERY_STRING` to the end of python line
 * RPi support
 * new config file format (json)
 * auto convert old config file and rename old one
