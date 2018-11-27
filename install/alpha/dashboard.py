@@ -7,9 +7,12 @@ import sys
 import os
 import subprocess
 
-# Dashboard 0.50
-a = {}
+# Dashboard 0.51
+# Please edit these two lines
 base_dir = "/home/pi/thermeq3"
+base_ip = "http://localhost/"
+#
+a = {}
 valid_dates = {}
 file_name = ""
 top_menu = [["Status", "status"],
@@ -19,7 +22,6 @@ top_menu = [["Status", "status"],
             ["About", "about"]]
 parameter = ""
 date_param = ""
-base_ip = "http://localhost/"
 shell_result = "NULL"
 '''
 -------------------------------------------------
@@ -56,6 +58,7 @@ def get_files(_base_dir):
     global date_param
     global parameter
 
+    # noinspection PyBroadException
     try:
         for f in os.listdir(_base_dir + "/csv"):
             if os.path.isfile(_base_dir + "/csv/" + f) and f.endswith(".csv"):
@@ -82,6 +85,8 @@ def print_error(_err_str):
 
 def run_command(_command):
     global shell_result
+
+    # noinspection PyBroadException
     try:
         shell_result = subprocess.check_output(_command, shell=True)
     except Exception:
@@ -91,11 +96,11 @@ def run_command(_command):
 
 def run_shell(_selector):
     if _selector == "generate":
-        run_command("support/dailysum")
+        run_command(base_dir + "/support/dailysum")
     elif _selector == "consolidate":
-        run_command("support/consolidate")
+        run_command(base_dir + "/support/consolidate")
     elif _selector == "zip":
-        run_command("ls -al")
+        run_command(base_dir + "/support/ziplog")
 
 
 '''
@@ -114,43 +119,47 @@ window.history.replaceState({}, document.title, clean_uri);
 
 def script_print_calendar():
     global valid_dates
+    global date_param
 
     if valid_dates == {}:
         get_files(base_dir)
     print """\t<script type="text/javascript">
     $(function () {
-        $('#datetimepicker').datetimepicker({
+        $('#datetimepicker1').datetimepicker({
             format:'DD/MM/YYYY',"""
-    print "\t\t\tdefaultDate: moment(),"
-    print """            
-            enabledDates: ["""
+    if date_param == "":
+        print "\t\t\tdefaultDate: moment(),"
+    else:
+        _d, _m, _y = return_dmy(date_param)
+        print "\t\t\tdefaultDate:" + "'" + _y + "/" + _m + "/" + _d + "', "
+    print """            enabledDates: ["""
+    _tmp = "\t\t\t\t"
     for k in valid_dates.iteritems():
         _d, _m, _y = return_dmy(k[0])
-        print "\t\t\t\t", "'" + _y + "/" + _m + "/" + _d + "',"
+        # print "\t\t\t\t", "'" + _y + "/" + _m + "/" + _d + "',"
+        _tmp += "'" + _y + "/" + _m + "/" + _d + "', "
+    print _tmp[:-2]
     print """\t\t\t]
-            }).on('dp.change', function (e) {
-        console.log(e.date.format());
-        window.location.href += "&date=" + e.date.format();
-        })
+            });
+        $("#datetimepicker1").on("change.datetimepicker", function (e) {
+            window.location.href += "&date=" + e.date.format();            
+        });
     });
     </script>"""
-    '''
-    print """<script>
-    $('.calpicker .datetimepicker').on('dp.change', function (e) {
-        console.log(e.date.format());
-        window.location.href += "&date=" + e.date.format();
-        location.reload();
-    });
-    </script>
-    """
-    '''
 
 
 def script_daily_detail(_file_name=""):
     global base_dir
+
     _full_name = base_dir + "/csv/" + _file_name
     if _file_name == "" or not os.path.isfile(_full_name):
-        print_error("Resource error!" + _full_name)
+        print """
+    <div class="row">
+        <div class="col-md-12">
+            <p>Please select date:</p>
+         </div>
+    </div>
+        """
         return
 
     print """
@@ -162,6 +171,7 @@ function drawBasicSummary()
 {
     var summary_data = google.visualization.arrayToDataTable(["""
     # get header from csv and print
+    # noinspection PyBroadException
     try:
         with open(_full_name) as f:
             content = f.read().splitlines()
@@ -284,16 +294,15 @@ def page_start():
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>thermeq3</title>
 </head>
-<script type="text/javascript" src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment-with-locales.min.js"></script>
+
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
-
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 
-<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment-with-locales.js"></script>
-<link href="//cdn.rawgit.com/Eonasdan/bootstrap-datetimepicker/e8bddc60e73c1ec2475f827be36e1957af72e2ea/build/css/bootstrap-datetimepicker.css" rel="stylesheet">
-<script src="//cdn.rawgit.com/Eonasdan/bootstrap-datetimepicker/e8bddc60e73c1ec2475f827be36e1957af72e2ea/src/js/bootstrap-datetimepicker.js"></script>
-
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/js/tempusdominus-bootstrap-4.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.0-alpha14/css/tempusdominus-bootstrap-4.min.css" />
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
 <script type="text/javascript">
@@ -369,13 +378,14 @@ def page_weather(woeid):
         base_url = "https://query.yahooapis.com/v1/public/yql?"
         yql_query = "select * from weather.forecast where woeid=" + str(woeid) + " and u='c'"
         yql_url = base_url + urllib.urlencode({'q': yql_query}) + "&format=json"
-
+        # noinspection PyBroadException
         try:
             ydata = json.loads(urllib2.urlopen(yql_url).read())
         except Exception:
             pass
         else:
             if ydata is not None:
+                # noinspection PyBroadException
                 try:
                     city = ydata["query"]["results"]["channel"]["location"]["city"]
                     temp = int(ydata["query"]["results"]["channel"]["item"]["condition"]["temp"])
@@ -427,7 +437,9 @@ def page_t3_status():
     </div>"""
 
 
-def print_glyph_mask(_mask, _circle, _color=False, _alt_glyph=[]):
+def print_glyph_mask(_mask, _circle, _color=False, _alt_glyph=None):
+    if _alt_glyph is None:
+        _alt_glyph = []
     if _mask == 0:
         _ret_str = get_glyph(True, _circle, _color, _alt_glyph)
     else:
@@ -439,7 +451,9 @@ def get_td(_text):
     return "<td style=\"text-align: center;\">" + str(_text) + "</td>"
 
 
-def get_glyph(_on, _circle=True, _color=False, _alt_glyph=[]):
+def get_glyph(_on, _circle=True, _color=False, _alt_glyph=None):
+    if _alt_glyph is None:
+        _alt_glyph = []
     if _color:
         if _on:
             _col_str = " color: GreenYellow;"
@@ -508,10 +522,10 @@ def page_status():
             else:
                 ret_str = k
             last_room = k
-            if y[4] == 0:
-                ret_str += """<a href="#" data-toggle="tooltip" title="Ignored until """ + \
+            if int(y[4]) == 0:
+                ret_str += """&nbsp;<a href="#" data-toggle="tooltip" title="Ignored until """ + \
                     str(y[5]) + \
-                    """"><span style="font-size: 1.5em; color: Red;"><i class="fas fa-info-circle"></i></span></a>"""
+                    """"><span style="font-size: 1em; color: Red;"><i class="fas fa-info-circle"></i></span></a>"""
             print "\t\t\t\t\t\t<td>", ret_str, "</td>"
 
             # Valve
@@ -596,17 +610,20 @@ def page_detail():
     global parameter
     script_print_calendar()
     script_daily_detail(parameter)
+
     print """
     <div class="row">
-        <div class="col-md-12">        
+        <div class="col-md-3">        
             <div class="form-group">
-                <div class='input-group date' id='datetimepicker'>
-                    <input type='text' class="form-control" id="calpicker" />
-                    <span class="input-group-addon">
-                        <span class="glyphicon glyphicon-calendar"></span>
-                    </span>
+                <div class="input-group date" id="datetimepicker1" data-target-input="nearest">
+                    <input type="text" class="form-control datetimepicker-input" data-target="#datetimepicker1" />
+                    <div class="input-group-append" data-target="#datetimepicker1" data-toggle="datetimepicker">
+                        <div class="input-group-text"><i class="fa fa-calendar"></i></div>
+                    </div>
                 </div>
             </div>
+        </div>
+        <div class="col-md-12">
             <div id="chart_summary_div"></div>            
         </div>
     </div>
@@ -669,7 +686,9 @@ def sys_argv():
 
 def read_page_url(url):
     global base_ip
+
     request = urllib2.Request(base_ip + str(url))
+    # noinspection PyBroadException
     try:
         result = urllib2.urlopen(request)
         ret_value = result.read()
@@ -711,6 +730,7 @@ if __name__ == '__main__':
 
     data = read_page_url("bridge.json")
     a = json.loads(data)
+    # noinspection PyBroadException
     try:
         tmp = a["weather_reference"].upper()
     except Exception:
@@ -720,6 +740,7 @@ if __name__ == '__main__':
     if not tmp == "LOCAL":
         data = read_page_url("location.json")
         d = json.loads(data)
+        # noinspection PyBroadException
         try:
             location = d["yahoo_location"]
         except Exception:
