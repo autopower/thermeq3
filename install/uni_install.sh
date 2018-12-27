@@ -138,8 +138,8 @@ case "$PLATFORM" in
     ExecStart=/usr/bin/python /home/pi/thermeq3/nsm.py
     
     [Install]
-    WantedBy=multi-user.target" > /home/pi/thermeq3/tmp/thermeq3.service
-    sudo mv /home/pi/thermeq3/tmp/thermeq3.service /lib/systemd/system/thermeq3.service
+    WantedBy=multi-user.target" > /home/pi/thermeq3/install/thermeq3.service
+    sudo mv /home/pi/thermeq3/install/thermeq3.service /lib/systemd/system/thermeq3.service
     sudo chmod 644 /lib/systemd/system/thermeq3.service
     sudo systemctl daemon-reload
     sudo systemctl enable thermeq3.service
