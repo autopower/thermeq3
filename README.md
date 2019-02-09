@@ -3,6 +3,9 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2019-Feb-01
+Yahoo weather API is [retired](https://developer.yahoo.com/weather/?guccounter=1). Please wait for fix.
+
 ### 2018-Nov-25
 * minor fix
 * Python 3 compatible version in alpha
