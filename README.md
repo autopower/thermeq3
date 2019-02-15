@@ -4,7 +4,7 @@ Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for det
  
 ## What's new?
 ### 2019-Feb-15
-Id you experiencing problems with retired yahoo weather code, please switch to OpenWeather. Simply update bridge value `weather_reference` with value `owm`, e.g. http://<ardu.ip>/data/put/weather_reference/owm
+If you experiencing problems with retired yahoo weather code, please switch to OpenWeather. Simply update bridge value `weather_reference` with value `owm`, e.g. http://<ardu.ip>/data/put/weather_reference/owm
 If you want still use yahoo weather, please get your AppID and keys on [this page](https://developer.yahoo.com/weather/). Support for new API will be available in few days.
 
 ### 2019-Feb-01
