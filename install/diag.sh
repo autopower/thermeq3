@@ -40,6 +40,8 @@ echo "--- Mount directory ---------" >> $DIAGFILE
 ls -al /mnt >> $DIAGFILE 
 echo "--- Mount point ---------" >> $DIAGFILE
 mount >> $DIAGFILE
+echo "--- Disk free ---------" >> $DIAGFILE
+df -h >> $DIAGFILE
 echo "--- i/f config ---------" >> $DIAGFILE
 ifconfig >> $DIAGFILE
 echo "--- Ping ---------" >> $DIAGFILE
