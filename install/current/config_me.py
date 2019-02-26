@@ -267,9 +267,9 @@ def get_config(rew):
                     print("Cannot ping host " + str(value) + "!")
         config_str.update({k[0]: str(value)})
 
-    tmp_yahoo = {"app_id": cfg["app_id"],
-                 "consumer_key": cfg["consumer_key"],
-                 "consumer_secret": cfg["consumer_secret"]}
+    tmp_yahoo = {"app_id": config_str["app_id"],
+                 "consumer_key": config_str["consumer_key"],
+                 "consumer_secret": config_str["consumer_secret"]}
     config_str.update({"yahoo": json.dumps(tmp_yahoo)})
     del config_str["app_id"]
     del config_str["consumer_key"]
