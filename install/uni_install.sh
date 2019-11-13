@@ -55,7 +55,7 @@ case "$PLATFORM" in
    ;;
 esac
 
-echo " - using $BASE_DIR as base directory"
+echo " - using $BASE_DIR as base directory and $WWW_DIR as folder for www scripts"
 echo " - using $INSTALL_DIR as install directory"
 
 mkdir -p $BASE_DIR
