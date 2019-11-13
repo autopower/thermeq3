@@ -55,8 +55,10 @@ case "$PLATFORM" in
    ;;
 esac
 
-echo " - using $BASE_DIR as base directory and $WWW_DIR as folder for www scripts"
-echo " - using $INSTALL_DIR as install directory"
+echo "Folders:"
+echo " - $BASE_DIR as base folder"
+echo " - $WWW_DIR as folder for www scripts"
+echo " - $INSTALL_DIR as folder for installation files"
 
 mkdir -p $BASE_DIR
 mkdir -p $INSTALL_DIR/install
@@ -167,15 +169,15 @@ chmod +x $BASE_DIR/support/dailysum
 echo " - creating folders:"
 case "$PLATFORM" in
   "rpi" )
-    echo "   - for CSV files" 
+    echo "   - for CSV files ($BASE_DIR/csv)" 
     mkdir -p $BASE_DIR/csv
     ;;
   "yun" )
-    echo "   - for CSV files"
+    echo "   - for CSV files ($INSTALL_DIR/csv)"
     mkdir -p $INSTALL_DIR/csv
-    echo "   - for HTML files" 
+    echo "   - for HTML files ($INSTALL_DIR/www)" 
     mkdir -p $INSTALL_DIR/www
-    echo "   - for CGI-BIN files"
+    echo "   - for CGI-BIN files ($INSTALL/www/cgi-bin)"
     mkdir -p $INSTALL_DIR/www/cgi-bin  
 esac
 
