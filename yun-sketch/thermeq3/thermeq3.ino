@@ -104,7 +104,7 @@ void runApp() {
   turnIt(false);
   // start python app
   p.begin("python"); 
-  p.addParameter("/root/nsm.py"); 
+  p.addParameter("/root/thermeq3/nsm.py"); 
   p.runAsynchronously();
 }
 
