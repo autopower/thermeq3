@@ -157,7 +157,7 @@ echo "ps -ef | grep nsm.py | grep -v grep | awk '{print $1}' | xargs kill -9" > 
 echo "cat $BASE_DIR/$DEV_NAME.log.* | grep summary | awk '{print $1 "," $8}' | sort > $WWW_DIR/temp.csv
 sort -u $WWW_DIR/temp.csv $WWW_DIR/dailysummary.csv > $WWW_DIR/result.csv
 rm $WWW_DIR/temp.csv $WWW_DIR/dailysummary.csv
-mv $WWW_DIR/result.csv $WWW_DIR/dailysummary.csv" > $BASEDIR/support/dailysum
+mv $WWW_DIR/result.csv $WWW_DIR/dailysummary.csv" > $BASE_DIR/support/dailysum
 chmod +x $BASE_DIR/ct
 chmod +x $BASE_DIR/err
 chmod +x $BASE_DIR/psg
