@@ -26,28 +26,6 @@ sudo a2enmod cgi
 sudo service apache2 restart
  
 echo ""
-echo "Installing bootstrap"
-echo " - downloading bootstrap"
-wget --no-check-certificate --quiet --output-document $WWWDIR/bootstrap.zip https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-dist.zip
-if [ $? -ne 0 ]; then
-	echo "Error during downloading dashboard: $?"
-	exit $?
-fi
-
-echo " - unzipping bootstrap"
-unzip -q $WWWDIR/bootstrap.zip -d $WWWDIR/
-if [ $? -ne 0 ]; then
-	echo "Error during unzipping dashboard: $?"
-	exit $?
-fi
-
-echo " - moving bootstrap..."
-cp -R $WWWDIR/bootstrap-3.3.7-dist/* $WWWDIR/
-echo " - removing zip file"
-rm -rf $WWWDIR/bootstrap-3.3.7-dist/
-rm -rf $WWWDIR/bootstrap.zip
-
-echo ""
 echo "Downloading dashboard..."
 sudo wget --no-check-certificate --quiet --output-document $CGIDIR/dashboard.py https://github.com/autopower/thermeq3/raw/master/install/dashboard/dashboard.py
 if [ $? -ne 0 ]; then

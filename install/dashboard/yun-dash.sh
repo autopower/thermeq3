@@ -12,22 +12,6 @@ else
 	fi
 fi
 echo "Using $INSTALL_DIR/www/cgi-bin as cgi-bin path."
-
-echo "Installing bootstrap"
-echo " - downloading bootstrap"
-wget --no-check-certificate --quiet -O $INSTALL_DIR/www/bootstrap.zip https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-dist.zip
-echo " - unzipping bootstrap"
-unzip $INSTALL_DIR/www/bootstrap.zip -d $INSTALL_DIR/www/
-if [ $? -ne 0 ]; then
-	echo "Error during unzipping bootstrap package: $?"
-	exit $?
-fi
-echo " - moving bootstrap"
-cp -R $INSTALL_DIR/www/bootstrap-3.3.7-dist/* $INSTALL_DIR/www/
-echo " - removing zip file"
-rm -rf $INSTALL_DIR/www/bootstrap-3.3.7-dist/
-rm -rf $INSTALL_DIR/www/bootstrap.zip
-
 echo ""
 echo "Downloading dashboard..."
 wget --no-check-certificate --quiet -O $INSTALL_DIR/www/cgi-bin/dashboard.py https://github.com/autopower/thermeq3/raw/master/install/dashboard/dashboard.py
