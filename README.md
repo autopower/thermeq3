@@ -3,6 +3,10 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2019-Nov-15
+* alpha V294 ready for standalone operation, e.g. no need for yun or RPi, can operate in any linux/windows distro
+* relay actions separated into extaction.py file, this must be implemented to suite your separate relay
+
 ### 2019-Feb-16
 * config_me script updated
 * dashboard updated
