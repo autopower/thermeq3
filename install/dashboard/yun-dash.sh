@@ -29,4 +29,5 @@ if ! grep -q "0.0.0.0:8180" /etc/config/uhttpd; then
 	echo "Wrong uhttpd configuration. Please check /etc/config/uhttpd!"
 	exit 1
 fi
-echo "Dashboard succesfully installed. Before browsing to http://arduino.ip:8180/cgi-bin/dash please edit credentials in dashboard.py file"
+
+echo "Dashboard succesfully installed. Before browsing to http://arduino.ip:8180/cgi-bin/dash please edit base_dir and base_ip variables in dashboard.py file"

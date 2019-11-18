@@ -200,6 +200,23 @@ case $yn in
         ;;
        "yun" )           
         wget --no-check-certificate --quiet -O $BASE_DIR/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/yun-dash.sh;chmod +x $BASE_DIR/install-dash.sh
+        if ! grep -q "0.0.0.0:8180" /etc/config/uhttpd; then
+        	echo "Backing up uhttpd configuration..."
+        	mkdir /root/backup
+        	cp /etc/config/uhttpd /root/backup/uhttpd.old
+        	echo "Modifying uhttpd configuration..."
+        	echo "config uhttpd secondary
+        	        list listen_http        0.0.0.0:8180
+        	        option home             $DIR/www
+        	        option cgi_prefix		/cgi-bin
+        	        option max_requests     2
+        	        option script_timeout   10
+        	        option network_timeout  10
+        	        option tcp_keepalive    1
+        	" >> /etc/config/uhttpd
+        	echo "Restarting uhttpd..."
+        	/etc/init.d/uhttpd restart
+        fi
         ;;
     esac
     if [ $? -ne 0 ]; then
