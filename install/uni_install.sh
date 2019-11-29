@@ -229,6 +229,16 @@ case $yn in
 esac
 
 echo ""
+read -p "Install script for proxy support? [y/n]" yn
+case $yn in
+	[Yy]*)
+    echo "#!/bin/sh
+	echo "Content-type: text/plain"
+	echo ""
+	cat /mnt/sda1/proxy.eq3" > $WWW_DIR/cgi-bin/proxy
+esac
+
+echo ""
 read -p "Run interactive config? [y/n]" yn
 case $yn in
 	[Yy]*)

@@ -22,7 +22,7 @@ fi
 
 echo "Creating dash file"
 echo "#!/bin/sh
-/usr/bin/env python $INSTALL_DIR/www/cgi-bin/dashboard.py" > $INSTALL_DIR/www/cgi-bin/dash
+/usr/bin/env python $INSTALL_DIR/www/cgi-bin/dashboard.py $QUERY_STRING" > $INSTALL_DIR/www/cgi-bin/dash
 chmod +x dash
 
 if ! grep -q "0.0.0.0:8180" /etc/config/uhttpd; then
