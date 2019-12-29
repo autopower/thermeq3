@@ -3,6 +3,12 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2019-Dec-29
+* alpha V297
+* multiple checks and error implemented, especially for wrong M response from MaxCube
+* manual mode implemented as fail safe, if any error experienced, thermeq3 switched to manual mode to retain heating
+* minor improvements
+
 ### 2019-Nov-17
 * multiple checks and error response added in alpha V295
 * support for proxying Max!Cube response to other devices, new file proxy.eq3 generated every cube read
