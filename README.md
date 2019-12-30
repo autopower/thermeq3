@@ -5,6 +5,7 @@ Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for det
 ## What's new?
 ### 2019-Dec-29
 * alpha V297
+* proxy fully implemented
 * multiple checks and error implemented, especially for wrong M response from MaxCube
 * manual mode implemented as fail safe, if any error experienced, thermeq3 switched to manual mode to retain heating
 * minor improvements
