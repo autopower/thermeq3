@@ -4,7 +4,7 @@ Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for det
  
 ## What's new?
 ### 2019-Dec-30
-* alpha V298, many V297 bug fixed :)
+* alpha V298, many V297 bugs fixed :)
 * known issue: open window adjustment can go wrong, debugging support for maxeq3 module added
 
 ### 2019-Dec-29
