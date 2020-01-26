@@ -15,7 +15,7 @@ else
 fi
 
 GITHUB_BASE=https://github.com/autopower/thermeq3/raw/master/install/current/
-if [ $2 -eq "alpha" ]; then
+if [ "$2" == "alpha" ]; then
   read -p "Do you really want upgrade to latest (unstable) alpha? [y/n]" yn
   case $yn in
     [Yy]* )
