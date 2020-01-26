@@ -21,7 +21,7 @@ fi
 
 mkdir /root/thermeq3-install
 echo Downloading thermeq3 app
-wget --no-check-certificate --quiet --output-document /root/thermeq3-install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/current/thermeq3.zip
+wget --no-check-certificate --quiet -O /root/thermeq3-install/thermeq3.zip https://github.com/autopower/thermeq3/raw/master/install/current/thermeq3.zip
 if [ $? -ne 0 ]; then
 	echo "Error during downloading thermeq3 app: $?"
 	exit $?
@@ -38,11 +38,6 @@ echo "Installing libraries"
 opkg install python-openssl --verbosity=0
 if [ $? -ne 0 ]; then
 	echo "Error during installing openssl library. Error: $?"
-	exit $?
-fi
-opkg install python-expat --verbosity=0 
-if [ $? -ne 0 ]; then
-	echo "Error during installing expat library. Error: $?"
 	exit $?
 fi
 
@@ -102,13 +97,13 @@ chmod +x /root/psg
 chmod +x /root/killnsm
 
 echo "Downloading interactive config"
-wget --no-check-certificate --quiet --output-document /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py
+wget --no-check-certificate --quiet -O /root/config_me.py https://raw.githubusercontent.com/autopower/thermeq3/master/install/current/config_me.py;chmod +x /root/config_me.py
 if [ $? -ne 0 ]; then
 	echo "Error during downloading config app: $?"
 	exit $?
 fi
 echo "Downloading dashboard install script"
-wget --no-check-certificate --quiet --output-document /root/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/install-dash.sh;chmod +x /root/install-dash.sh
+wget --no-check-certificate --quiet -O /root/install-dash.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/dashboard/install-dash.sh;chmod +x /root/install-dash.sh
 if [ $? -ne 0 ]; then
 	echo "Error during downloading dashboard install script: $?"
 	exit $?

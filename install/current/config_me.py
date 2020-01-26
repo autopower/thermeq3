@@ -6,75 +6,100 @@ import json
 import urllib
 import urllib2
 import traceback
+import uuid
+import hmac
+import hashlib
+import time
+from base64 import b64encode
+
 
 run_target = ""
 cfg = {}
 
 
-def check_for_locations(woeid, owm_api_key):
-    """
-    Returns weather from yahoo weather from given WOEID
-    :param owm_api_key:
-    :param woeid: integer, yahoo weather ID
-    """
-    # city = "Error city"
-    # temp = None
-    # humidity = None
+# noinspection PyBroadException
+def get_yahoo_data(woe_id, yahoo_data):
+    city = "Error"
+    if woe_id is None:
+        city = "WOEID None"
+    else:
+        # basic info
+        url = 'https://weather-ydn-yql.media.yahoo.com/forecastrss'
+        method = 'GET'
+        try:
+            data = json.loads(yahoo_data)
+        except Exception:
+            pass
+        else:
+            app_id = str(data["app_id"])
+            consumer_key = str(data["consumer_key"])
+            consumer_secret = str(data["consumer_secret"])
+            concat = '&'
+            query = {'woeid': str(woe_id), 'format': 'json', 'u': 'c'}
+            oauth = {
+                'oauth_consumer_key': consumer_key,
+                'oauth_nonce': uuid.uuid4().hex,
+                'oauth_signature_method': 'HMAC-SHA1',
+                'oauth_timestamp': str(int(time.time())),
+                'oauth_version': '1.0'
+            }
+
+            # Prepare signature string (merge all params and SORT them)
+            merged_params = query.copy()
+            merged_params.update(oauth)
+            sorted_params = [k + '=' + urllib.quote(merged_params[k], safe='') for k in sorted(merged_params.keys())]
+            signature_base_str = method + concat + urllib.quote(url, safe='') + concat + urllib.quote(
+                concat.join(sorted_params), safe='')
+
+            # Generate signature
+            composite_key = urllib.quote(consumer_secret, safe='') + concat
+            oauth_signature = b64encode(hmac.new(composite_key, signature_base_str, hashlib.sha1).digest())
+
+            # Prepare Authorization header
+            oauth['oauth_signature'] = oauth_signature
+            auth_header = 'OAuth ' + ', '.join(['{}="{}"'.format(k, v) for k, v in oauth.iteritems()])
+
+            # Send request
+            url = url + '?' + urllib.urlencode(query)
+            request = urllib2.Request(url)
+            request.add_header('Authorization', auth_header)
+            request.add_header('Yahoo-App-Id', app_id)
+            try:
+                data = urllib2.urlopen(request).read()
+            except Exception, error:
+                pass
+            else:
+                if data is not None:
+                    data = json.loads(data)
+                    try:
+                        city = data["location"]["city"]
+                    except Exception:
+                        pass
+
+    return city
+
+
+def get_owm_data(city, owm_api_key):
     owm_id = None
 
-    if woeid is None:
-        print("Wrong WOEID!")
-    elif owm_api_key is None:
+    if owm_api_key is None:
         print("OWM API key not set!")
     else:
-        # please change u='c' to u='f' for fahrenheit below
-        base_url = "https://query.yahooapis.com/v1/public/yql?"
-        yql_query = "select * from weather.forecast where woeid=" + str(woeid) + " and u='c'"
-        yql_url = base_url + urllib.urlencode({'q': yql_query}) + "&format=json"
-
+        # and check if yahoo is correct
+        url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + "&appid=" + owm_api_key + \
+              "&units=metric"
         try:
-            result = urllib2.urlopen(yql_url).read()
-            data = json.loads(result)
+            result = json.load(urllib2.urlopen(url))
         except Exception, error:
-            print("Yahoo communication error: " + str(error))
+            print("OWM communication error: " + str(error))
             print("Traceback: " + str(traceback.format_exc()))
+            owm_id = -1
         else:
-            if data is not None:
-                try:
-                    city = data["query"]["results"]["channel"]["location"]["city"]
-                    temp = int(data["query"]["results"]["channel"]["item"]["condition"]["temp"])
-                    humidity = int(data["query"]["results"]["channel"]["atmosphere"]["humidity"])
-                except Exception:
-                    pass
-                else:
-                    # and check if yahoo is correct
-                    url = "http://api.openweathermap.org/data/2.5/weather?q=" + str(city) + "&appid=" + owm_api_key + \
-                          "&units=metric"
-                    try:
-                        result = json.load(urllib2.urlopen(url))
-                    except Exception, error:
-                        print("OWM communication error: " + str(error))
-                        print("Traceback: " + str(traceback.format_exc()))
-                        owm_id = -1
-                    else:
-                        if "main" in result and "id" in result:
-                            owm_id = result["id"]
-                            owm_temp = result["main"]["temp"]
-                            yho_temp = temp
-                            owm_humidity = result["main"]["humidity"]
-                            if abs(yho_temp - owm_temp) > 1.5:
-                                print("Difference between Yahoo and OWM temperatures. Yahoo=" + str(yho_temp) +
-                                      " OWM=" + str(owm_temp))
-                                # end check
-                            print("\tYahoo result: Current temperature in " + str(city) + " is " + str(temp) +
-                                  ", humidity " + str(humidity) + "%")
-                            print("\tOWM result: Current temperature in " + str(city) + " is " + str(owm_temp) +
-                                  ", humidity " + str(owm_humidity) + "%")
-                        else:
-                            print("Error during parsing result.")
+            if "main" in result and "id" in result:
+                owm_id = result["id"]
+            else:
+                print("Error during parsing result.")
 
-    print("\tYahoo woeid: " + str(woeid))
-    print("\tOWM city ID: " + str(owm_id))
     return str(owm_id)
 
 
@@ -128,6 +153,15 @@ def save(config_file):
     global cfg
 
     write_to_file(config_file, cfg)
+
+
+def load_yahoo():
+    global cfg
+    if "yahoo" in cfg:
+        tmp = json.loads(cfg["yahoo"])
+        cfg.update({"app_id": tmp["app_id"]})
+        cfg.update({"consumer_key": tmp["consumer_key"]})
+        cfg.update({"consumer_secret": tmp["consumer_secret"]})
 
 
 def write_to_file(file_name, file_payload):
@@ -195,6 +229,9 @@ def get_config(rew):
                     ["ext_port", "external port", 29080],
                     ["owm_api_key", "open weather API key"],
                     ["yahoo_location", "Yahoo location ID", 823123],
+                    ["app_id", "Yahoo AppID"],
+                    ["consumer_key", "Yahoo consumer key"],
+                    ["consumer_secret", "Yahoo consumer secret"],
                     ["csv_values", ":\n1 if only set temp\n2 if only actual temp\n3 both temp\nis written into csv", 1],
                     ["hard_ignored", "valve ID to ignore forever (q to quit)"]]
 
@@ -230,8 +267,15 @@ def get_config(rew):
                     print("Cannot ping host " + str(value) + "!")
         config_str.update({k[0]: str(value)})
 
-    print("Final config string:\n" + json.dumps(config_str))
+    tmp_yahoo = {"app_id": config_str["app_id"],
+                 "consumer_key": config_str["consumer_key"],
+                 "consumer_secret": config_str["consumer_secret"]}
+    config_str.update({"yahoo": json.dumps(tmp_yahoo)})
+    del config_str["app_id"]
+    del config_str["consumer_key"]
+    del config_str["consumer_secret"]
 
+    print("Final config string:\n" + json.dumps(config_str))
     cfg = config_str
 
 
@@ -278,6 +322,7 @@ if __name__ == '__main__':
             print("You choose keep current config file.")
         elif ret_value == "Y":
             cfg = load(new)
+            load_yahoo()
             print("Backuping old config file...")
             if run_target == "win":
                 cmd = "ren " + new + " thermeq3.bak"
@@ -291,15 +336,20 @@ if __name__ == '__main__':
     print("Loading config file to check weather:")
     cfg = load(new)
     if "yahoo_location" in cfg:
-        ret_value = check_for_locations(cfg["yahoo_location"], cfg["owm_api_key"])
-        # and update owm location
-        if "owm_location" in cfg:
-            print("OWM location updated in config.")
-        else:
-            print("OWM location added to config.")
-        cfg.update({"owm_location": ret_value})
-        save(new)
+        # ret_value = check_for_locations(cfg["yahoo_location"], cfg["owm_api_key"])
+        ret_value = get_yahoo_data(cfg["yahoo_location"], cfg["yahoo"])
+        ret_value = get_owm_data(ret_value, cfg["owm_api_key"])
+        if ret_value is not None:
+            # and update owm location
+            if "owm_location" in cfg:
+                print("OWM location updated in config.")
+            else:
+                print("OWM location added to config.")
+            cfg.update({"owm_location": ret_value})
+            save(new)
     print("Config file saved into " + new)
 
     # prepare location.json file
-    write_to_file("/root/location.json", {"yahoo_location": cfg["yahoo_location"]})
+    tmp_location = {"yahoo_location": cfg["yahoo_location"], "yahoo": cfg["yahoo"]}
+    tmp_path = os.path.dirname(new) + "/location.json"
+    write_to_file(tmp_path, tmp_location)

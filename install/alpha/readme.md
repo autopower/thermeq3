@@ -1,9 +1,10 @@
 # Alpha version
-
 Not so very well tested version.
 Just for test issues.
 
 ## Whats new?
+* new dahsboard, please edit dash file in cgi-bin, add `$QUERY_STRING` to the end of python line
+* RPi support
 * new config file format (json)
 * auto convert old config file and rename old one
 * send mail issues resolved
@@ -12,6 +13,5 @@ Just for test issues.
 * lifetime valve ignore
 * weather fixes
 
-## How to get upgrade script
-`wget --no-check-certificate --quiet --output-document /root/upgrade.sh https://raw.githubusercontent.com/autopower/thermeq3/master/install/alpha/upgrade.sh;chmod +x /root/upgrade.sh`
-After download please run `/root/upgrade.sh`, script downloads new thermeq3 version and interactive config which will be run after succesfull download.
+## How to upgrade
+Please [follow link](https://github.com/autopower/thermeq3/wiki/install-application#i-want-to-install-latest-working-alpha-version).

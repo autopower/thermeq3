@@ -3,6 +3,67 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2020-Jan-07
+* alpha V299, manual mode fully implemented, thermeq3 is now completely fail safe from Max!Cube errors, such as lost configuration etc.
+* open windows adjusment fixed
+
+### 2019-Dec-31
+* alpha V298, many V297 bugs fixed :)
+* known issue: open window adjustment can go wrong, debugging support for maxeq3 module added
+
+### 2019-Dec-29
+* alpha V297
+* proxy fully implemented
+* multiple checks and error implemented, especially for wrong M response from MaxCube
+* manual mode implemented as fail safe, if any error experienced, thermeq3 switched to manual mode to retain heating
+* minor improvements
+
+### 2019-Nov-17
+* multiple checks and error response added in alpha V295
+* support for proxying Max!Cube response to other devices, new file proxy.eq3 generated every cube read
+
+### 2019-Nov-15
+* alpha V294 ready for standalone operation, e.g. no need for yun or RPi, can operate in any linux/windows distro
+* relay actions separated into extaction.py file, this must be implemented to suite your separate relay
+
+### 2019-Feb-16
+* config_me script updated
+* dashboard updated
+* alpha V287 with new yahoo weather support
+
+### 2019-Feb-15
+If you experiencing problems with retired yahoo weather code, please switch to OpenWeather. Simply update bridge value `weather_reference` with value `owm`, e.g. http://<ardu.ip>/data/put/weather_reference/owm
+If you want still use yahoo weather, please get your AppID and keys on [this page](https://developer.yahoo.com/weather/). Support for new API will be available in few days.
+
+### 2019-Feb-01
+Yahoo weather API is [retired](https://developer.yahoo.com/weather/?guccounter=1). Please wait for fix.
+
+### 2018-Nov-25
+* minor fix
+* Python 3 compatible version in alpha
+
+### 2018-Nov-19
+* RPi port update, minor fixes
+* new [universal installer](https://github.com/autopower/thermeq3/blob/master/install/uni_install.sh) for both platforms, feel free to test
+* redesigned dashboard installers 
+
+### 2018-Nov-13
+* RPi port in alpha stage, testers still wanted
+
+### 2018-Nov-11
+* RPi support added, testers wanted
+
+### 2018-Nov-09
+* simple external device based on ESP8266 and eInk to display status with open windows list. Feel free to test and comment.
+
+### 2018-Oct-22
+* calling to arms Yún Rev2 users, I'll be pointed to some incompatibilities between Rev1 and Rev2. Rev2 users, please use `https://github.com/autopower/thermeq3/tree/master/install/alpha_Yun_Rev2`
+ install script to check if install script/wget is working flawless 
+
+### 2018-Jul-06
+* someone calls for manual heating override, please take a look at new dashboard. For those who sports simple URL, please use `http://ardu.ip/data/put/msg/S` to stop or
+ `http://ardu.ip/data/put/msg/H` to start heating
+ 
 ### 2017-Oct-14
 * possibility to get temperature and humidity from local source, bridge values: local_temp, local_humidity and weather_reference
 * fixed persistence of values after reboot

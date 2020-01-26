@@ -104,16 +104,18 @@ void runApp() {
   turnIt(false);
   // start python app
   p.begin("python"); 
-  p.addParameter("/root/nsm.py"); 
+  p.addParameter("/root/thermeq3/nsm.py"); 
   p.runAsynchronously();
 }
 
 void signalReadNotOK() {
   turnIt(false);
-  // turn on all LEDs, to show that linux part is started
-  digitalWrite(LOOP_LED, HIGH);
-  digitalWrite(STATUS_LED, HIGH);
-  digitalWrite(ERROR_LED, HIGH);
+  for (byte i = 0; i < 4; i++) {
+    digitalWrite(ERROR_LED, HIGH);
+    delay(BLINK_INTERVAL);
+    digitalWrite(ERROR_LED, LOW);
+    delay(BLINK_INTERVAL);
+  }
 }
 
 void setup() {
