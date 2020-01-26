@@ -235,7 +235,7 @@ case $yn in
     echo "#!/bin/sh
 	echo "Content-type: text/plain"
 	echo ""
-	cat /mnt/sda1/proxy.eq3" > $WWW_DIR/cgi-bin/proxy
+	cat $WWW_DIR/proxy.eq3" > $WWW_DIR/cgi-bin/proxy
 esac
 
 echo ""
