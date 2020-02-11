@@ -15,7 +15,7 @@ else
 fi
 
 GITHUB_BASE=https://github.com/autopower/thermeq3/raw/master/install/current/
-if [ $2 -eq "alpha" ]; then
+if [ "$2" == "alpha" ]; then
   read -p "Do you really want upgrade to latest (unstable) alpha? [y/n]" yn
   case $yn in
     [Yy]* )
@@ -235,7 +235,7 @@ case $yn in
     echo "#!/bin/sh
 	echo "Content-type: text/plain"
 	echo ""
-	cat /mnt/sda1/proxy.eq3" > $WWW_DIR/cgi-bin/proxy
+	cat $WWW_DIR/proxy.eq3" > $WWW_DIR/cgi-bin/proxy
 esac
 
 echo ""
