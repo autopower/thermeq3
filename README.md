@@ -3,6 +3,9 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2020-Apr-04
+* alpha V302, with more diagnostics for temp/time profiles
+
 ### 2020-Jan-07
 * alpha V299, manual mode fully implemented, thermeq3 is now completely fail safe from Max!Cube errors, such as lost configuration etc.
 * open windows adjusment fixed
