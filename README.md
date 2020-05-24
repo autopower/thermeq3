@@ -3,6 +3,9 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2020-May-24
+* alpha V304, add fix for manual mode to check if temperature is over setup.summertime, and if its over, do not run heating, just quick fix to handle inconsistent MaxCube behaviour in summer
+
 ### 2020-Apr-04
 * alpha V302, with more diagnostics for temp/time profiles
 
