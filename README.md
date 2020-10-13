@@ -3,8 +3,11 @@ Boiler actor device for [ELV/EQ-3](http://www.eq-3.de/) [MAX! cube](http://www.e
 Please [take a look](https://github.com/autopower/thermeq3/wiki) at wiki for detailed information.
  
 ## What's new?
+### 2020-Oct-13
+* fixed malformed L response processing, max 128 devices can be processed (more that EQ3 allows)
+
 ### 2020-Oct-07
-* fixed wrong processing of eq3 cube, if cube is misconfigured, e.g. device is present in L response, but not in C response
+* fixed wrong processing of eq3 cube data, especially L response. If cube is somehow misconfigured, e.g. device is present in L response, but there is no device  in C response, loop never ends.
 
 ### 2020-Sep-29
 * alpha V307, added support for svpnmw in profiles
