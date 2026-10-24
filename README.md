@@ -11,7 +11,7 @@ the boiler on only when the rooms actually need heat. See the
 
 | Folder | Description |
 |---|---|
-| [`ccu3`](ccu3) | **New.** HomeMatic script for the CCU3 / RaspberryMatic that switches a boiler (via HmIP-WHS2) based on HomeMatic IP TRV valve positions. Features automatic TRV discovery, valve-count hysteresis, SVPNMW, a failsafe, and Home Assistant integration. Runs on the CCU itself; no extra hardware is needed. See [`ccu3/README.md`](ccu3/README.md). |
+| [`ccu3`](ccu3) | **New.** HomeMatic script for the CCU3 / RaspberryMatic that switches a boiler (via HmIP-WHS2) based on HomeMatic IP TRV valve positions. Features automatic TRV discovery, valve or room count hysteresis, SVPNMW, summer mode, ventilation detection, a settings check, a failsafe, and Home Assistant integration. Runs on the CCU itself; no extra hardware is needed. See [`ccu3/README.md`](ccu3/README.md). |
 | [`install`](install) | Installers and packages for the MAX! version (Arduino Yún, Raspberry Pi, dashboard) |
 | [`yun-sketch`](yun-sketch) | Arduino sketches for the Yún |
 | [`eInk Display`](eInk%20Display) | External ESP8266 status display with an e-ink screen |
@@ -26,6 +26,7 @@ the boiler on only when the rooms actually need heat. See the
   * Automatically discovers all HmIP radiator thermostats (eTRV); no editing is needed when you add or remove one.
   * Switches the boiler via an HmIP-WHS2 with ON/OFF valve thresholds and a minimum number of open valves.
   * Supports SVPNMW (Single Valve Position, No Matter What), known from the MAX! version.
+  * Ported from the MAX! version: summer mode (Off/On/Auto by outdoor temperature, with an adjustable delay), counting by rooms instead of valves, ventilation detection, and a settings check.
   * Ignores unreachable thermostats and switches the boiler off if none are reachable.
   * Selectable controller: CCU, ESP (OpenTherm thermostat, with automatic fallback to the CCU), or manual.
   * All settings are CCU system variables, editable from the WebUI or from Home Assistant.

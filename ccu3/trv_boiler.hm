@@ -1,14 +1,22 @@
 ! ==========================================================
-!  HmIP TRV -> HmIP-WHS2 (Boiler) with hysteresis + TRV list
+!  HmIP TRV -> HmIP-WHS2 (Boiler) with hysteresis
+!  + TRV list, rooms, ventilation, summer mode, config checks
 !  CCU3 program: If: Time control, all day, every 5 min -> Then: this script
 !
 !  Inputs:  TRV_Threshold_On, TRV_Threshold_Off, TRV_Min_Count (numbers)
 !           TRV_SVPNMW (%, 0 = disabled) - any single valve >= this -> ON
 !           TRV_Boiler_Control (value list CCU;ESP;Manual) - who switches the boiler
+!           TRV_Count_Mode (value list Valves;Rooms) - count valves or rooms
+!           TRV_Summer_Mode (value list Off;On;Auto) - heating blocked in summer
+!           TRV_Summer_Temp (deg C), TRV_Summer_Delay (min) - for Summer_Mode Auto
+!           TRV_Outdoor_Temp (deg C) - written by Home Assistant
+!           TRV_Vent_Rooms (rooms, 0 = disabled) - open rooms = ventilating
 !           TRV_Exclude (string) - TRV addresses to skip
 !           TRV_ESP_LastSeen (string) - written by ESP on every poll
 !  Outputs: TRV_List, TRV_Count, TRV_List_Changed, TRV_Max_Level,
-!           TRV_Control_Active, TRV_Script_LastRun, TRV_Script_RunsToday
+!           TRV_Control_Active, TRV_Demand_Rooms, TRV_Open_Rooms,
+!           TRV_Ventilating, TRV_Summer_Active, TRV_Summer_Pending,
+!           TRV_Config_Warnings, TRV_Script_LastRun, TRV_Script_RunsToday
 !
 !  TRV_Boiler_Control:
 !    CCU    - this script switches WHS2
@@ -16,14 +24,33 @@
 !             If ESP is silent > ESP_TIMEOUT_MIN, this script takes over
 !             (fallback) until ESP is back.
 !    Manual - this script does not touch WHS2 (only computes outputs)
+!
+!  TRV_Count_Mode:
+!    Valves - On/Off thresholds and Min_Count apply to single valves
+!    Rooms  - they apply to CCU rooms; room position = average of its
+!             reachable TRVs. A TRV without a room counts as its own room.
+!    SVPNMW always applies to single valves.
+!
+!  TRV_Summer_Mode:
+!    Off  - heating allowed
+!    On   - heating blocked: WHS2 is never switched ON
+!    Auto - blocked when TRV_Outdoor_Temp > TRV_Summer_Temp,
+!           released when it drops below TRV_Summer_Temp - SUMMER_HYST,
+!           each change only after the condition lasts TRV_Summer_Delay min.
+!           Missing or stale outdoor temperature -> heating allowed.
 ! ==========================================================
 
-string  WHS2_DP         = "HmIP-RF.<WHS2-serial>:3.STATE";
-boolean WHS2_IN_SERIES  = false;   ! true: WHS2 contact in series with OpenTherm (passive = ON)
-                                   ! false: independent paths (passive = OFF)
-integer ESP_TIMEOUT_MIN = 10;
+! CHANGE ME: serial number and channel of your HmIP-WHS2
+string  WHS2_DP             = "HmIP-RF.<WHS2-SERIAL>:3.STATE";
+boolean WHS2_IN_SERIES      = false;  ! true: WHS2 contact in series with OpenTherm (passive = ON)
+                                      ! false: independent paths (passive = OFF)
+integer ESP_TIMEOUT_MIN     = 10;
+integer OUTDOOR_MAX_AGE_MIN = 180;    ! TRV_Outdoor_Temp older than this = stale, 0 = no check
+real    SUMMER_HYST         = 1.0;    ! deg C
 
-string nowStr = system.Date("%Y-%m-%d %H:%M:%S");
+string  nowStr = system.Date("%Y-%m-%d %H:%M:%S");
+integer nowTs  = nowStr.ToTime().ToInteger();
+string  warn   = "";
 
 ! --- defaults if a system variable does not exist ---
 integer thresholdOn  = 30;
@@ -31,6 +58,15 @@ integer thresholdOff = 25;
 integer minCount     = 2;
 integer svpnmw       = 75;
 integer control      = 0;          ! 0 CCU, 1 ESP, 2 Manual
+integer countMode    = 0;          ! 0 Valves, 1 Rooms
+integer summerMode   = 0;          ! 0 Off, 1 On, 2 Auto
+real    summerTemp   = 15.0;
+integer summerDelay  = 60;
+integer ventRooms    = 3;
+real    outdoorTemp  = 0.0;
+boolean outdoorOk    = false;
+boolean summerActive = false;      ! previous state
+string  sPending     = "";
 string  sExcl        = "";
 string  sSeen        = "";
 
@@ -41,22 +77,63 @@ sv = svList.Get("TRV_Threshold_Off");  if (sv) { thresholdOff = sv.Value().ToInt
 sv = svList.Get("TRV_Min_Count");      if (sv) { minCount     = sv.Value().ToInteger(); }
 sv = svList.Get("TRV_SVPNMW");         if (sv) { svpnmw       = sv.Value().ToInteger(); }
 sv = svList.Get("TRV_Boiler_Control"); if (sv) { control      = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_Count_Mode");     if (sv) { countMode    = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_Summer_Mode");    if (sv) { summerMode   = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_Summer_Temp");    if (sv) { summerTemp   = sv.Value().ToFloat(); }
+sv = svList.Get("TRV_Summer_Delay");   if (sv) { summerDelay  = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_Vent_Rooms");     if (sv) { ventRooms    = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_Summer_Active");  if (sv) { summerActive = sv.Value(); }
+sv = svList.Get("TRV_Summer_Pending"); if (sv) { sPending     = sv.Value().ToString(); }
 sv = svList.Get("TRV_Exclude");        if (sv) { sExcl = ";" # sv.Value().ToString() # ";"; }
 sv = svList.Get("TRV_ESP_LastSeen");   if (sv) { sSeen = sv.Value().ToString(); }
+sv = svList.Get("TRV_Outdoor_Temp");
+if (sv) {
+  outdoorTemp = sv.Value().ToFloat();
+  outdoorOk   = true;
+  if (OUTDOOR_MAX_AGE_MIN > 0) {
+    if ((nowTs - sv.Timestamp().ToInteger()) > (OUTDOOR_MAX_AGE_MIN * 60)) { outdoorOk = false; }
+  }
+}
 
-! safety: OFF threshold must not be higher than ON threshold
-if (thresholdOff > thresholdOn) { thresholdOff = thresholdOn; }
+! --- config checks (inputs are not changed, only the values used in this run) ---
+if (thresholdOn  < 0)   { thresholdOn  = 0;   warn = warn # "On < 0%, using 0; "; }
+if (thresholdOn  > 100) { thresholdOn  = 100; warn = warn # "On > 100%, using 100; "; }
+if (thresholdOff < 0)   { thresholdOff = 0;   warn = warn # "Off < 0%, using 0; "; }
+if (thresholdOff > 100) { thresholdOff = 100; warn = warn # "Off > 100%, using 100; "; }
+if (svpnmw < 0)         { svpnmw = 0;         warn = warn # "SVPNMW < 0%, disabled; "; }
+if (svpnmw > 100)       { svpnmw = 100;       warn = warn # "SVPNMW > 100%, using 100; "; }
+if (thresholdOff > thresholdOn) {
+  warn = warn # "Off " # thresholdOff # "% > On " # thresholdOn # "%, using Off = On; ";
+  thresholdOff = thresholdOn;
+}
+if (thresholdOff == thresholdOn) { warn = warn # "On = Off, no hysteresis; "; }
+if (thresholdOn > 90)   { warn = warn # "On > 90%, boiler will rarely start; "; }
+if (minCount < 1)       { minCount = 1;       warn = warn # "Min_Count < 1, using 1; "; }
+if ((svpnmw > 0) && (svpnmw < thresholdOn)) {
+  warn = warn # "SVPNMW " # svpnmw # "% < On " # thresholdOn # "%, using SVPNMW = On; ";
+  svpnmw = thresholdOn;
+}
+if ((summerTemp < 5.0) || (summerTemp > 30.0)) {
+  summerTemp = 15.0;     warn = warn # "Summer_Temp out of 5-30, using 15; ";
+}
+if (summerDelay < 0)    { summerDelay = 0;    warn = warn # "Summer_Delay < 0, using 0; "; }
+if (summerDelay > 1440) { summerDelay = 1440; warn = warn # "Summer_Delay > 1440, using 1440; "; }
+if (ventRooms < 0)      { ventRooms = 0;      warn = warn # "Vent_Rooms < 0, disabled; "; }
+if ((control < 0) || (control > 2))       { control = 0;    warn = warn # "unknown Boiler_Control, using CCU; "; }
+if ((countMode < 0) || (countMode > 1))   { countMode = 0;  warn = warn # "unknown Count_Mode, using Valves; "; }
+if ((summerMode < 0) || (summerMode > 2)) { summerMode = 0; warn = warn # "unknown Summer_Mode, using Off; "; }
+
 integer hyst = thresholdOn - thresholdOff;
 
 ! --- who controls the boiler ---
 boolean espAlive = false;
 integer espAge   = -1;
 if (sSeen != "") {
-  espAge = nowStr.ToTime().ToInteger() - sSeen.ToTime().ToInteger();
+  espAge = nowTs - sSeen.ToTime().ToInteger();
   if ((espAge >= 0) && (espAge < (ESP_TIMEOUT_MIN * 60))) { espAlive = true; }
 }
 
-boolean ccuControls = true;        ! unknown value -> CCU
+boolean ccuControls = true;
 string  controlStr  = "CCU";
 if (control == 1) {
   if (espAlive) { ccuControls = false; controlStr = "ESP"; }
@@ -64,22 +141,103 @@ if (control == 1) {
 }
 if (control == 2) { ccuControls = false; controlStr = "Manual"; }
 
-! --- scan TRVs: build list + evaluate valves ---
+! --- common loop variables ---
+string  devId;
+string  adr;
+object  dev;
+object  dp;
+object  dpW;
+object  unr;
+boolean isUnr;
+integer level;
+
+! --- pass 1: rooms (average valve position, open windows) ---
+string  sDone       = ";";          ! TRVs already assigned to a room
+integer roomsValid  = 0;
+integer roomsOn     = 0;
+integer roomsOff    = 0;
+integer openRooms   = 0;
+string  demandRooms = "";
+string  roomId;
+object  room;
+string  chId;
+object  ch;
+string  chType;
+string  rName;
+integer rSum;
+integer rN;
+integer rLevel;
+real    rAvg;
+boolean rWin;
+
+foreach (roomId, dom.GetObject(ID_ROOMS).EnumUsedIDs()) {
+  room = dom.GetObject(roomId);
+  rSum = 0;
+  rN   = 0;
+  rWin = false;
+  foreach (chId, room.EnumUsedIDs()) {
+    ch = dom.GetObject(chId);
+    if (ch) {
+      chType = ch.HssType();
+      ! window contacts (SWDO, SWDO-I, SWDO-PL, SWDM, SRH); SRH 1 = tilted, 2 = open
+      if ((chType == "SHUTTER_CONTACT_TRANSCEIVER") || (chType == "ROTARY_HANDLE_TRANSCEIVER")) {
+        dpW = dom.GetObject("HmIP-RF." # ch.Address() # ".STATE");
+        if (dpW) { if (dpW.Value().ToInteger() > 0) { rWin = true; } }
+      }
+      ! TRV, channel 1 only
+      dev = dom.GetObject(ch.Device());
+      if (dev) {
+        if (dev.HssType().Find("eTRV") >= 0) {
+          adr = dev.Address();
+          if (ch.Address() == (adr # ":1")) {
+            if ((sDone.Find(";" # adr # ";") < 0) && (sExcl.Find(";" # adr # ";") < 0)) {
+              dp = dom.GetObject("HmIP-RF." # adr # ":1.LEVEL");
+              if (dp) {
+                if (dev.ReadyConfig()) {
+                  sDone = sDone # adr # ";";
+                  unr   = dom.GetObject("HmIP-RF." # adr # ":0.UNREACH");
+                  isUnr = false;
+                  if (unr) { isUnr = unr.Value(); }
+                  if (isUnr == false) {
+                    rSum = rSum + (dp.Value().ToFloat() * 100.0 + 0.5).ToInteger();
+                    rN   = rN + 1;
+                    dpW  = dom.GetObject("HmIP-RF." # adr # ":1.WINDOW_STATE");
+                    if (dpW) { if (dpW.Value().ToInteger() > 0) { rWin = true; } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  if (rN > 0) {
+    rAvg   = rSum.ToFloat() / rN.ToFloat();
+    rLevel = (rAvg + 0.5).ToInteger();
+    rName  = room.Name();
+    if (rName.Substr(0, 2) == "${") { rName = rName.Substr(2, rName.Length() - 3); }  ! default room names
+    roomsValid = roomsValid + 1;
+    if (rLevel >= thresholdOn) {
+      roomsOn = roomsOn + 1;
+      if (demandRooms != "") { demandRooms = demandRooms # ", "; }
+      demandRooms = demandRooms # rName;
+    }
+    if (rLevel > thresholdOff) { roomsOff = roomsOff + 1; }
+  }
+  if (rWin) { openRooms = openRooms + 1; }
+}
+
+! --- pass 2: all TRVs (list, single valves, TRVs without room) ---
 string  sList        = "";
 integer nList        = 0;
 integer countOn      = 0;
 integer countOff     = 0;
 integer countValid   = 0;
 integer countUnreach = 0;
-integer level;
 integer maxLevel     = 0;
 string  maxName      = "-";
-string  devId;
-string  adr;
-object  dev;
-object  dp;
-object  unr;
-boolean isUnr;
+string  demandValves = "";
 
 foreach (devId, dom.GetObject(ID_DEVICES).EnumUsedIDs()) {
   dev = dom.GetObject(devId);
@@ -103,9 +261,26 @@ foreach (devId, dom.GetObject(ID_DEVICES).EnumUsedIDs()) {
           } else {
             countValid = countValid + 1;
             level = (dp.Value().ToFloat() * 100.0 + 0.5).ToInteger();   ! round to whole %
-            if (level >= thresholdOn)  { countOn  = countOn  + 1; }
+            if (level >= thresholdOn) {
+              countOn = countOn + 1;
+              if (demandValves != "") { demandValves = demandValves # ", "; }
+              demandValves = demandValves # dev.Name();
+            }
             if (level >  thresholdOff) { countOff = countOff + 1; }
             if (level >  maxLevel)     { maxLevel = level; maxName = dev.Name(); }
+
+            ! TRV without room -> own room
+            if (sDone.Find(";" # adr # ";") < 0) {
+              roomsValid = roomsValid + 1;
+              if (level >= thresholdOn) {
+                roomsOn = roomsOn + 1;
+                if (demandRooms != "") { demandRooms = demandRooms # ", "; }
+                demandRooms = demandRooms # dev.Name();
+              }
+              if (level > thresholdOff) { roomsOff = roomsOff + 1; }
+              dpW = dom.GetObject("HmIP-RF." # adr # ":1.WINDOW_STATE");
+              if (dpW) { if (dpW.Value().ToInteger() > 0) { openRooms = openRooms + 1; } }
+            }
           }
         }
       }
@@ -113,14 +288,65 @@ foreach (devId, dom.GetObject(ID_DEVICES).EnumUsedIDs()) {
   }
 }
 
+! --- valves or rooms ---
+integer unitsOn    = countOn;
+integer unitsOff   = countOff;
+integer unitsValid = countValid;
+string  unitsName  = "valves";
+string  demand     = demandValves;
+if (countMode == 1) {
+  unitsOn    = roomsOn;
+  unitsOff   = roomsOff;
+  unitsValid = roomsValid;
+  unitsName  = "rooms";
+  demand     = demandRooms;
+}
+if ((unitsValid > 0) && (minCount > unitsValid)) {
+  warn = warn # "Min_Count " # minCount # " > " # unitsValid # " reachable " # unitsName # ", using " # unitsValid # "; ";
+  minCount = unitsValid;
+}
+
+! --- ventilation ---
+boolean ventilating = false;
+if (ventRooms > 0) { if (openRooms >= ventRooms) { ventilating = true; } }
+
 ! --- single valve no matter what ---
 boolean svpActive  = false;
 boolean singleOn   = false;
 boolean singleHold = false;
-if ((svpnmw > 0) && (svpnmw <= 100)) {
+if (svpnmw > 0) {
   svpActive = true;
   if (maxLevel >= svpnmw)          { singleOn   = true; }
   if (maxLevel >  (svpnmw - hyst)) { singleHold = true; }
+}
+
+! --- summer mode ---
+boolean summerWant = summerActive;
+if (summerMode == 0) { summerActive = false; sPending = ""; }
+if (summerMode == 1) { summerActive = true;  sPending = ""; }
+if (summerMode == 2) {
+  if (outdoorOk == false) {
+    summerActive = false;
+    sPending     = "";
+    warn = warn # "Summer Auto: outdoor temperature missing or stale, heating allowed; ";
+  } else {
+    if (summerActive) {
+      summerWant = true;
+      if (outdoorTemp < (summerTemp - SUMMER_HYST)) { summerWant = false; }
+    } else {
+      summerWant = false;
+      if (outdoorTemp > summerTemp) { summerWant = true; }
+    }
+    if (summerWant == summerActive) {
+      sPending = "";
+    } else {
+      if (sPending == "") { sPending = nowStr; }
+      if ((nowTs - sPending.ToTime().ToInteger()) >= (summerDelay * 60)) {
+        summerActive = summerWant;
+        sPending     = "";
+      }
+    }
+  }
 }
 
 ! --- decision ---
@@ -130,35 +356,49 @@ if (boiler) {
   boolean switchOn = isOn;
 
   if (ccuControls) {
-    ! hysteresis
-    if (isOn == false) {
-      if ((countOn >= minCount) || singleOn) { switchOn = true; }
+    if (summerActive) {
+      switchOn = false;                            ! summer: never ON
+    } else {
+      ! hysteresis
+      if (isOn == false) {
+        if ((unitsOn >= minCount) || singleOn) { switchOn = true; }
+      }
+      if (isOn == true) {
+        if ((unitsOff < minCount) && (singleHold == false)) { switchOn = false; }
+      }
+      ! failsafe: no reachable TRV -> boiler OFF
+      if (countValid == 0) { switchOn = false; }
     }
-    if (isOn == true) {
-      if ((countOff < minCount) && (singleHold == false)) { switchOn = false; }
-    }
-    ! failsafe: no reachable TRV -> boiler OFF
-    if (countValid == 0) { switchOn = false; }
   } else {
-    ! ESP controls -> hold WHS2 in passive state; Manual -> do not touch
-    if (control == 1) { switchOn = WHS2_IN_SERIES; }
+    ! ESP controls -> hold WHS2 in passive state (OFF in summer); Manual -> do not touch
+    if (control == 1) {
+      switchOn = WHS2_IN_SERIES;
+      if (summerActive) { switchOn = false; }
+    }
   }
 
   if (switchOn != isOn) { boiler.State(switchOn); }   ! write only on change
 
   WriteLine("Control: " # controlStr # " | ESP age: " # espAge # " s");
-  WriteLine("Threshold ON  " # thresholdOn  # "% -> " # countOn  # " valves");
-  WriteLine("Threshold OFF " # thresholdOff # "% -> " # countOff # " valves");
+  WriteLine("Summer mode: " # summerMode # " | active: " # summerActive # " | outdoor " # outdoorTemp # " (ok " # outdoorOk # ") | limit " # summerTemp # " | pending since: " # sPending);
+  WriteLine("Count mode: " # unitsName # " | valves on/hold/valid " # countOn # "/" # countOff # "/" # countValid # " | rooms on/hold/valid " # roomsOn # "/" # roomsOff # "/" # roomsValid);
+  WriteLine("Threshold ON " # thresholdOn # "% | OFF " # thresholdOff # "% | Min count: " # minCount # " " # unitsName);
   if (svpActive) {
     WriteLine("SVPNMW " # svpnmw # "% (hold > " # (svpnmw - hyst) # "%) | max valve " # maxLevel # "% " # maxName # " | on " # singleOn # " hold " # singleHold);
   } else {
     WriteLine("SVPNMW disabled | max valve " # maxLevel # "% " # maxName);
   }
+  WriteLine("Demand: " # demand);
+  WriteLine("Open rooms: " # openRooms # " | ventilating: " # ventilating # " (limit " # ventRooms # ")");
   WriteLine("Valid TRV: " # countValid # " | unreachable: " # countUnreach);
-  WriteLine("Min count: " # minCount # " | WHS2: " # isOn # " -> " # switchOn);
+  WriteLine("WHS2: " # isOn # " -> " # switchOn);
 } else {
+  warn = warn # "WHS2 datapoint not found: " # WHS2_DP # "; ";
   WriteLine("ERROR: datapoint not found: " # WHS2_DP);
 }
+
+if (warn != "") { warn = warn.Substr(0, warn.Length() - 2); }
+WriteLine("Warnings: " # warn);
 
 ! --- outputs (write only on change) ---
 sv = svList.Get("TRV_List");
@@ -176,6 +416,18 @@ sv = svList.Get("TRV_Max_Level");
 if (sv) { if (sv.Value().ToInteger() != maxLevel) { sv.State(maxLevel); } }
 sv = svList.Get("TRV_Control_Active");
 if (sv) { if (sv.Value().ToString() != controlStr) { sv.State(controlStr); } }
+sv = svList.Get("TRV_Demand_Rooms");
+if (sv) { if (sv.Value().ToString() != demand) { sv.State(demand); } }
+sv = svList.Get("TRV_Open_Rooms");
+if (sv) { if (sv.Value().ToInteger() != openRooms) { sv.State(openRooms); } }
+sv = svList.Get("TRV_Ventilating");
+if (sv) { if (sv.Value() != ventilating) { sv.State(ventilating); } }
+sv = svList.Get("TRV_Summer_Active");
+if (sv) { if (sv.Value() != summerActive) { sv.State(summerActive); } }
+sv = svList.Get("TRV_Summer_Pending");
+if (sv) { if (sv.Value().ToString() != sPending) { sv.State(sPending); } }
+sv = svList.Get("TRV_Config_Warnings");
+if (sv) { if (sv.Value().ToString() != warn) { sv.State(warn); } }
 WriteLine("TRV list (" # nList # "): " # sList);
 
 ! --- heartbeat: last run time + runs today (reset at midnight) ---
