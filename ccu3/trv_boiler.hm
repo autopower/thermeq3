@@ -1,0 +1,198 @@
+! ==========================================================
+!  HmIP TRV -> HmIP-WHS2 (Boiler) with hysteresis + TRV list
+!  CCU3 program: If: Time control, all day, every 5 min -> Then: this script
+!
+!  Inputs:  TRV_Threshold_On, TRV_Threshold_Off, TRV_Min_Count (numbers)
+!           TRV_SVPNMW (%, 0 = disabled) - any single valve >= this -> ON
+!           TRV_Boiler_Control (value list CCU;ESP;Manual) - who switches the boiler
+!           TRV_Exclude (string) - TRV addresses to skip
+!           TRV_ESP_LastSeen (string) - written by ESP on every poll
+!  Outputs: TRV_List, TRV_Count, TRV_List_Changed, TRV_Max_Level,
+!           TRV_Control_Active, TRV_Script_LastRun, TRV_Script_RunsToday
+!
+!  TRV_Boiler_Control:
+!    CCU    - this script switches WHS2
+!    ESP    - ESP switches the boiler; WHS2 is held in its passive state.
+!             If ESP is silent > ESP_TIMEOUT_MIN, this script takes over
+!             (fallback) until ESP is back.
+!    Manual - this script does not touch WHS2 (only computes outputs)
+! ==========================================================
+
+string  WHS2_DP         = "HmIP-RF.<WHS2-serial>:3.STATE";
+boolean WHS2_IN_SERIES  = false;   ! true: WHS2 contact in series with OpenTherm (passive = ON)
+                                   ! false: independent paths (passive = OFF)
+integer ESP_TIMEOUT_MIN = 10;
+
+string nowStr = system.Date("%Y-%m-%d %H:%M:%S");
+
+! --- defaults if a system variable does not exist ---
+integer thresholdOn  = 30;
+integer thresholdOff = 25;
+integer minCount     = 2;
+integer svpnmw       = 75;
+integer control      = 0;          ! 0 CCU, 1 ESP, 2 Manual
+string  sExcl        = "";
+string  sSeen        = "";
+
+object sv;
+object svList = dom.GetObject(ID_SYSTEM_VARIABLES);
+sv = svList.Get("TRV_Threshold_On");   if (sv) { thresholdOn  = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_Threshold_Off");  if (sv) { thresholdOff = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_Min_Count");      if (sv) { minCount     = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_SVPNMW");         if (sv) { svpnmw       = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_Boiler_Control"); if (sv) { control      = sv.Value().ToInteger(); }
+sv = svList.Get("TRV_Exclude");        if (sv) { sExcl = ";" # sv.Value().ToString() # ";"; }
+sv = svList.Get("TRV_ESP_LastSeen");   if (sv) { sSeen = sv.Value().ToString(); }
+
+! safety: OFF threshold must not be higher than ON threshold
+if (thresholdOff > thresholdOn) { thresholdOff = thresholdOn; }
+integer hyst = thresholdOn - thresholdOff;
+
+! --- who controls the boiler ---
+boolean espAlive = false;
+integer espAge   = -1;
+if (sSeen != "") {
+  espAge = nowStr.ToTime().ToInteger() - sSeen.ToTime().ToInteger();
+  if ((espAge >= 0) && (espAge < (ESP_TIMEOUT_MIN * 60))) { espAlive = true; }
+}
+
+boolean ccuControls = true;        ! unknown value -> CCU
+string  controlStr  = "CCU";
+if (control == 1) {
+  if (espAlive) { ccuControls = false; controlStr = "ESP"; }
+  else          { controlStr = "CCU fallback (ESP silent)"; }
+}
+if (control == 2) { ccuControls = false; controlStr = "Manual"; }
+
+! --- scan TRVs: build list + evaluate valves ---
+string  sList        = "";
+integer nList        = 0;
+integer countOn      = 0;
+integer countOff     = 0;
+integer countValid   = 0;
+integer countUnreach = 0;
+integer level;
+integer maxLevel     = 0;
+string  maxName      = "-";
+string  devId;
+string  adr;
+object  dev;
+object  dp;
+object  unr;
+boolean isUnr;
+
+foreach (devId, dom.GetObject(ID_DEVICES).EnumUsedIDs()) {
+  dev = dom.GetObject(devId);
+  if (dev.HssType().Find("eTRV") >= 0) {
+    if (dev.ReadyConfig()) {
+      adr = dev.Address();
+      dp  = dom.GetObject("HmIP-RF." # adr # ":1.LEVEL");
+      if (dp) {
+        if (sExcl.Find(";" # adr # ";") < 0) {
+          ! list
+          if (nList > 0) { sList = sList # ";"; }
+          sList = sList # adr;
+          nList = nList + 1;
+
+          ! evaluate (skip unreachable)
+          unr   = dom.GetObject("HmIP-RF." # adr # ":0.UNREACH");
+          isUnr = false;
+          if (unr) { isUnr = unr.Value(); }          ! no && short-circuit in HM script
+          if (isUnr) {
+            countUnreach = countUnreach + 1;
+          } else {
+            countValid = countValid + 1;
+            level = (dp.Value().ToFloat() * 100.0 + 0.5).ToInteger();   ! round to whole %
+            if (level >= thresholdOn)  { countOn  = countOn  + 1; }
+            if (level >  thresholdOff) { countOff = countOff + 1; }
+            if (level >  maxLevel)     { maxLevel = level; maxName = dev.Name(); }
+          }
+        }
+      }
+    }
+  }
+}
+
+! --- single valve no matter what ---
+boolean svpActive  = false;
+boolean singleOn   = false;
+boolean singleHold = false;
+if ((svpnmw > 0) && (svpnmw <= 100)) {
+  svpActive = true;
+  if (maxLevel >= svpnmw)          { singleOn   = true; }
+  if (maxLevel >  (svpnmw - hyst)) { singleHold = true; }
+}
+
+! --- decision ---
+object boiler = dom.GetObject(WHS2_DP);
+if (boiler) {
+  boolean isOn     = boiler.Value();
+  boolean switchOn = isOn;
+
+  if (ccuControls) {
+    ! hysteresis
+    if (isOn == false) {
+      if ((countOn >= minCount) || singleOn) { switchOn = true; }
+    }
+    if (isOn == true) {
+      if ((countOff < minCount) && (singleHold == false)) { switchOn = false; }
+    }
+    ! failsafe: no reachable TRV -> boiler OFF
+    if (countValid == 0) { switchOn = false; }
+  } else {
+    ! ESP controls -> hold WHS2 in passive state; Manual -> do not touch
+    if (control == 1) { switchOn = WHS2_IN_SERIES; }
+  }
+
+  if (switchOn != isOn) { boiler.State(switchOn); }   ! write only on change
+
+  WriteLine("Control: " # controlStr # " | ESP age: " # espAge # " s");
+  WriteLine("Threshold ON  " # thresholdOn  # "% -> " # countOn  # " valves");
+  WriteLine("Threshold OFF " # thresholdOff # "% -> " # countOff # " valves");
+  if (svpActive) {
+    WriteLine("SVPNMW " # svpnmw # "% (hold > " # (svpnmw - hyst) # "%) | max valve " # maxLevel # "% " # maxName # " | on " # singleOn # " hold " # singleHold);
+  } else {
+    WriteLine("SVPNMW disabled | max valve " # maxLevel # "% " # maxName);
+  }
+  WriteLine("Valid TRV: " # countValid # " | unreachable: " # countUnreach);
+  WriteLine("Min count: " # minCount # " | WHS2: " # isOn # " -> " # switchOn);
+} else {
+  WriteLine("ERROR: datapoint not found: " # WHS2_DP);
+}
+
+! --- outputs (write only on change) ---
+sv = svList.Get("TRV_List");
+if (sv) {
+  if (sv.Value().ToString() != sList) {
+    sv.State(sList);
+    object svChg = svList.Get("TRV_List_Changed");
+    if (svChg) { svChg.State(nowStr); }
+    WriteLine("TRV list CHANGED");
+  }
+}
+sv = svList.Get("TRV_Count");
+if (sv) { if (sv.Value().ToInteger() != nList) { sv.State(nList); } }
+sv = svList.Get("TRV_Max_Level");
+if (sv) { if (sv.Value().ToInteger() != maxLevel) { sv.State(maxLevel); } }
+sv = svList.Get("TRV_Control_Active");
+if (sv) { if (sv.Value().ToString() != controlStr) { sv.State(controlStr); } }
+WriteLine("TRV list (" # nList # "): " # sList);
+
+! --- heartbeat: last run time + runs today (reset at midnight) ---
+string  today    = system.Date("%Y-%m-%d");
+string  lastDate = "";
+integer runs     = 0;
+
+object svLast = svList.Get("TRV_Script_LastRun");
+object svRuns = svList.Get("TRV_Script_RunsToday");
+
+if (svLast) { lastDate = svLast.Value().ToString().Substr(0, 10); }
+if (svRuns) { runs = svRuns.Value().ToInteger(); }
+
+if (lastDate != today) { runs = 0; }   ! first run of a new day
+runs = runs + 1;
+
+if (svRuns) { svRuns.State(runs); }
+if (svLast) { svLast.State(nowStr); }
+
+WriteLine("Last run: " # nowStr # " | runs today: " # runs);

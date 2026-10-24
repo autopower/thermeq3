@@ -1,0 +1,123 @@
+! ==========================================================
+!  Create system variables for TRV boiler control (run once)
+!  Existing variables are skipped (values are not changed).
+! ==========================================================
+
+object svList = dom.GetObject(ID_SYSTEM_VARIABLES);
+object o;
+
+! ---------- numbers ----------
+! name, min, max, unit, default, description
+if (svList.Get("TRV_Threshold_On")) { WriteLine("exists: TRV_Threshold_On"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Threshold_On"); svList.Add(o.ID());
+  o.ValueType(ivtFloat); o.ValueSubType(istGeneric);
+  o.ValueMin(0); o.ValueMax(100); o.ValueUnit("%");
+  o.DPInfo("HAHM Boiler ON when at least TRV_Min_Count valves are open >= this value (%)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State(30);
+  WriteLine("created: TRV_Threshold_On");
+}
+if (svList.Get("TRV_Threshold_Off")) { WriteLine("exists: TRV_Threshold_Off"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Threshold_Off"); svList.Add(o.ID());
+  o.ValueType(ivtFloat); o.ValueSubType(istGeneric);
+  o.ValueMin(0); o.ValueMax(100); o.ValueUnit("%");
+  o.DPInfo("HAHM Boiler OFF when fewer than TRV_Min_Count valves are open > this value (%)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State(25);
+  WriteLine("created: TRV_Threshold_Off");
+}
+if (svList.Get("TRV_Min_Count")) { WriteLine("exists: TRV_Min_Count"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Min_Count"); svList.Add(o.ID());
+  o.ValueType(ivtFloat); o.ValueSubType(istGeneric);
+  o.ValueMin(1); o.ValueMax(10); o.ValueUnit("");
+  o.DPInfo("HAHM Minimum number of open TRV valves required to run the boiler");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State(2);
+  WriteLine("created: TRV_Min_Count");
+}
+if (svList.Get("TRV_SVPNMW")) { WriteLine("exists: TRV_SVPNMW"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_SVPNMW"); svList.Add(o.ID());
+  o.ValueType(ivtFloat); o.ValueSubType(istGeneric);
+  o.ValueMin(0); o.ValueMax(100); o.ValueUnit("%");
+  o.DPInfo("HAHM Single valve position no matter what: boiler ON when any valve >= this (%), 0 = disabled");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State(75);
+  WriteLine("created: TRV_SVPNMW");
+}
+if (svList.Get("TRV_Count")) { WriteLine("exists: TRV_Count"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Count"); svList.Add(o.ID());
+  o.ValueType(ivtFloat); o.ValueSubType(istGeneric);
+  o.ValueMin(0); o.ValueMax(50); o.ValueUnit("");
+  o.DPInfo("Number of TRVs in TRV_List (output)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State(0);
+  WriteLine("created: TRV_Count");
+}
+if (svList.Get("TRV_Max_Level")) { WriteLine("exists: TRV_Max_Level"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Max_Level"); svList.Add(o.ID());
+  o.ValueType(ivtFloat); o.ValueSubType(istGeneric);
+  o.ValueMin(0); o.ValueMax(100); o.ValueUnit("%");
+  o.DPInfo("Most open reachable TRV valve (output)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State(0);
+  WriteLine("created: TRV_Max_Level");
+}
+if (svList.Get("TRV_Script_RunsToday")) { WriteLine("exists: TRV_Script_RunsToday"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Script_RunsToday"); svList.Add(o.ID());
+  o.ValueType(ivtFloat); o.ValueSubType(istGeneric);
+  o.ValueMin(0); o.ValueMax(1000); o.ValueUnit("");
+  o.DPInfo("Boiler script runs today, reset at midnight (output)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State(0);
+  WriteLine("created: TRV_Script_RunsToday");
+}
+
+! ---------- value list ----------
+if (svList.Get("TRV_Boiler_Control")) { WriteLine("exists: TRV_Boiler_Control"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Boiler_Control"); svList.Add(o.ID());
+  o.ValueType(ivtInteger); o.ValueSubType(istEnum);
+  o.ValueList("CCU;ESP;Manual");
+  o.DPInfo("HAHM Who switches the boiler: CCU program, ESP thermostat, or Manual");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State(0);
+  WriteLine("created: TRV_Boiler_Control");
+}
+
+! ---------- strings ----------
+if (svList.Get("TRV_Exclude")) { WriteLine("exists: TRV_Exclude"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Exclude"); svList.Add(o.ID());
+  o.ValueType(ivtString); o.ValueSubType(istChar8859);
+  o.DPInfo("HAHM TRV addresses to skip, separated by ;");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State("");
+  WriteLine("created: TRV_Exclude");
+}
+if (svList.Get("TRV_List")) { WriteLine("exists: TRV_List"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_List"); svList.Add(o.ID());
+  o.ValueType(ivtString); o.ValueSubType(istChar8859);
+  o.DPInfo("TRV addresses separated by ; (output)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State("");
+  WriteLine("created: TRV_List");
+}
+if (svList.Get("TRV_List_Changed")) { WriteLine("exists: TRV_List_Changed"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_List_Changed"); svList.Add(o.ID());
+  o.ValueType(ivtString); o.ValueSubType(istChar8859);
+  o.DPInfo("Time of last TRV_List change (output)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State("");
+  WriteLine("created: TRV_List_Changed");
+}
+if (svList.Get("TRV_Control_Active")) { WriteLine("exists: TRV_Control_Active"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Control_Active"); svList.Add(o.ID());
+  o.ValueType(ivtString); o.ValueSubType(istChar8859);
+  o.DPInfo("Who actually switches the boiler now, incl. fallback (output)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State("");
+  WriteLine("created: TRV_Control_Active");
+}
+if (svList.Get("TRV_ESP_LastSeen")) { WriteLine("exists: TRV_ESP_LastSeen"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_ESP_LastSeen"); svList.Add(o.ID());
+  o.ValueType(ivtString); o.ValueSubType(istChar8859);
+  o.DPInfo("Time of last ESP thermostat poll, written by ESP (output)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State("");
+  WriteLine("created: TRV_ESP_LastSeen");
+}
+if (svList.Get("TRV_Script_LastRun")) { WriteLine("exists: TRV_Script_LastRun"); } else {
+  o = dom.CreateObject(OT_VARDP); o.Name("TRV_Script_LastRun"); svList.Add(o.ID());
+  o.ValueType(ivtString); o.ValueSubType(istChar8859);
+  o.DPInfo("Time of last boiler script run (output)");
+  o.Internal(false); o.Visible(true); o.DPArchive(false); o.State("");
+  WriteLine("created: TRV_Script_LastRun");
+}
+
+dom.RTUpdate(0);
+WriteLine("done");
